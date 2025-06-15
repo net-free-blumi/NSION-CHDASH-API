@@ -155,6 +155,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+window.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('whatsappModal');
+  if (modal) modal.style.display = 'none';
+});
+
 // Helper function to get day of week
 function getDayOfWeek(dateStr) {
     const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
