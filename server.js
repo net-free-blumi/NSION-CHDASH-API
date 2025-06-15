@@ -4,8 +4,23 @@ import fetch from 'node-fetch';
 
 const app = express();
 
-// Enable CORS for all origins
-app.use(cors());
+// Enable CORS with specific settings
+app.use(cors({
+    origin: true, // Allow all origins
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+    maxAge: 86400 // 24 hours
+}));
+
+// Add headers middleware
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    next();
+});
 
 // Parse JSON bodies
 app.use(express.json());
@@ -79,5 +94,5 @@ app.post('/send-whatsapp', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Proxy server running on port ${PORT}`);
-    console.log(`CORS enabled for all origins`);
+    console.log(`CORS enabled with specific settings`);
 }); 
