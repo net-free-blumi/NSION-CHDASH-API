@@ -4,17 +4,8 @@ import fetch from 'node-fetch';
 
 const app = express();
 
-// Enable CORS for your frontend
-app.use(cors({
-    origin: [
-        'http://127.0.0.1:5500',
-        'http://localhost:5500',
-        'https://venerable-rugelach-127f4b.netlify.app',
-        'https://*.netlify.app'
-    ],
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type']
-}));
+// Enable CORS for all origins
+app.use(cors());
 
 // Parse JSON bodies
 app.use(express.json());
@@ -88,5 +79,5 @@ app.post('/send-whatsapp', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Proxy server running on port ${PORT}`);
-    console.log(`CORS enabled for: http://127.0.0.1:5500, http://localhost:5500, and Netlify domains`);
+    console.log(`CORS enabled for all origins`);
 }); 
