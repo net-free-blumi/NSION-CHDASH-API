@@ -187,3 +187,31 @@ function showNotification(message, color = "green") {
     }, 3000);
 }
 
+function copyCurrentSummary() {
+    const waEditable = document.getElementById('waEditable');
+    if (!waEditable) {
+        showNotification('שגיאה: לא נמצא אזור עריכה', 'red');
+        return;
+    }
+    // המרת HTML לטקסט עם כוכביות (הדגשה) ושמירה על רווחים כפולים
+    let message = waEditable.innerHTML
+        .replace(/<br><br>/g, '\n\n')
+        .replace(/<div>/g, '\n')
+        .replace(/<br>/g, '\n')
+        .replace(/<b>(.*?)<\/b>/g, '*$1*')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    if (!message) {
+        showNotification('אין מה להעתיק', 'red');
+        return;
+    }
+    navigator.clipboard.writeText(message)
+        .then(() => {
+            showNotification('הסיכום הועתק בהצלחה!', 'green');
+        })
+        .catch(() => {
+            showNotification('שגיאה בהעתקת הסיכום', 'red');
+        });
+}
+
