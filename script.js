@@ -101,65 +101,31 @@ function closeWhatsAppModal() {
 
 async function sendWhatsAppMessage() {
     const message = document.getElementById('whatsappMessage').value;
-    const modal = document.getElementById('whatsappModal');
-    
-    if (!message.trim()) {
-        showNotification("אין תוכן לשליחה!", "red");
+    if (!message) {
+        showNotification('אנא הכנס הודעה', 'error');
         return;
     }
-    
-    // Show loading notification
-    showNotification("שולח הודעה...", "blue");
-    
-    // Use our proxy server
-    const url = 'http://localhost:3000/send-whatsapp';
-    
-    const options = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            message: message
-        })
-    };
+
+    showNotification('שולח הודעה...', 'info');
     
     try {
-        console.log('Sending message through proxy:', {
-            url: url,
-            messageLength: message.length
+        const response = await fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message })
         });
-        
-        const response = await fetch(url, options);
-        const responseData = await response.json();
-        
-        console.log('Proxy Response:', responseData);
-        
+
         if (!response.ok) {
-            throw new Error(responseData.details || responseData.error || 'שגיאה לא ידועה');
+            throw new Error('שגיאה בשליחת ההודעה');
         }
-        
-        console.log('Message sent successfully:', responseData);
+
         showNotification("✅ ההודעה נשלחה בהצלחה!", "green");
         closeWhatsAppModal();
-        
     } catch (error) {
-        console.error('Error sending message:', error);
-        let errorMessage = "❌ שגיאה בשליחת ההודעה!";
-        
-        if (error.message.includes('Failed to fetch')) {
-            errorMessage = "❌ השרת המקומי לא פעיל - יש להפעיל את השרת";
-        } else if (error.message.includes('Unauthorized')) {
-            errorMessage = "❌ שגיאת אימות - הטוקן לא תקין";
-        } else if (error.message.includes('Forbidden')) {
-            errorMessage = "❌ אין הרשאה לשלוח הודעה לקבוצה זו";
-        } else if (error.message.includes('Not Found')) {
-            errorMessage = "❌ קבוצת WhatsApp לא נמצאה";
-        } else if (error.message.includes('Too Many Requests')) {
-            errorMessage = "❌ חרגת ממכסת ההודעות היומית";
-        }
-        
-        showNotification(errorMessage, "red");
+        console.error('Error:', error);
+        showNotification("❌ שגיאה בשליחת ההודעה", "red");
     }
 }
 
