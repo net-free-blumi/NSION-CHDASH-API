@@ -6,7 +6,14 @@ const app = express();
 
 // Enable CORS for your frontend
 app.use(cors({
-    origin: ['http://127.0.0.1:5500', 'http://localhost:5500']
+    origin: [
+        'http://127.0.0.1:5500',
+        'http://localhost:5500',
+        'https://venerable-rugelach-127f4b.netlify.app',
+        'https://*.netlify.app'
+    ],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type']
 }));
 
 // Parse JSON bodies
@@ -78,8 +85,8 @@ app.post('/send-whatsapp', async (req, res) => {
     }
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Proxy server running on port ${PORT}`);
-    console.log(`CORS enabled for: http://127.0.0.1:5500 and http://localhost:5500`);
+    console.log(`CORS enabled for: http://127.0.0.1:5500, http://localhost:5500, and Netlify domains`);
 }); 
