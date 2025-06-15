@@ -34,62 +34,58 @@ ${bakeryItems.join('\n')}
 // WhatsApp functionality
 function openWhatsAppModal() {
     const modal = document.getElementById('whatsappModal');
-    const messageTextarea = document.getElementById('whatsappMessage');
-    
-    if (!modal || !messageTextarea) {
+    const waEditable = document.getElementById('waEditable');
+    if (!modal || !waEditable) {
         console.error('Modal elements not found!');
         return;
     }
-    
-    // Get the current order summary
+    // יצירת הודעה בפורמט וואטסאפ עם ריווח בין שורות במטבח ורווח לפני כל כותרת
     const orderNumber = localStorage.getItem("orderNumber") || "";
     const orderDate = localStorage.getItem("orderDate") || "";
     const orderTime = localStorage.getItem("orderTime") || "";
     const temperature = localStorage.getItem("temperature") || "";
     const formattedDate = orderDate ? formatDateToDDMMYYYY(orderDate) : "";
-
-    // בדוק אם יש מוצרים בסיכום ההזמנה
-    const hasProducts = ["kitchen", "bakery", "online", "warehouse"].some((category) => {
+    const categories = ["kitchen", "bakery", "online", "warehouse"];
+    const hasProducts = categories.some((category) => {
         return document.getElementById(`${category}List`).children.length > 0;
     });
-
     if (!hasProducts) {
         showNotification("אין מוצרים בסיכום ההזמנה.", "red");
         return;
     }
-
-    let message = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${formattedDate}*\n*שעה: ${orderTime}*\n\n`;
-
-    // רשימת הקטגוריות שיכללו בסיכום הכללי
-    ["kitchen", "bakery", "online", "warehouse"].forEach((category) => {
+    let message = `<b>הזמנה מס: ${orderNumber}</b>\n<b>תאריך: ${formattedDate}</b>\n<b>שעה: ${orderTime}</b>\n`;
+    let firstCategory = true;
+    categories.forEach((category) => {
         const categoryItems = Array.from(document.getElementById(`${category}List`).children)
             .map((li) => {
                 let text = li.firstElementChild.textContent;
                 text = text.replace(/\(מק"ט: \d+\)/g, '')
                           .replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג))\|/g, ' $1')
+                          .replace(/\s{2,}/g, ' ')
                           .trim();
                 return text;
             })
             .filter((text) => text.trim() !== "");
-
         if (categoryItems.length > 0) {
-            const categoryTitle = getCategoryTitle(category);
-            message += `*${categoryTitle}:*\n${categoryItems.join("\n\n")}\n\n`;
+            // רווח שורה לפני כל כותרת קטגוריה
+            message += `\n<b>${getCategoryTitle(category)}:</b>\n`;
+            // ריווח בין שורות רק במטבח
+            if (category === 'kitchen') {
+                message += categoryItems.map(item => item).join("\n<br><br>") + "\n";
+            } else {
+                message += categoryItems.join("\n") + "\n";
+            }
         }
     });
-
     if (temperature) {
-        message += `*הערות:* *"${temperature}"*\n`;
+        message += `\n<b>הערות:</b> <b>\"${temperature}\"</b>\n`;
     }
-    
-    // Set the message in the textarea
-    messageTextarea.value = message;
-    
-    // Show the modal
-    modal.style.display = "block";
-    
-    // Focus on the textarea
-    messageTextarea.focus();
+    // ניקוי רווחים מיותרים בסוף כל שורה ובסוף ההודעה
+    message = message.split('\n').map(line => line.replace(/\s+$/g, '').replace(/\s{2,}/g, ' ')).join('\n').trim();
+    // המרה ל-html (הדגשה וכד')
+    waEditable.innerHTML = message.replace(/\n/g, '<br>');
+    modal.style.display = 'block';
+    waEditable.focus();
 }
 
 function closeWhatsAppModal() {
@@ -99,8 +95,22 @@ function closeWhatsAppModal() {
     }
 }
 
-async function sendWhatsAppMessage() {
-    const message = document.getElementById('whatsappMessage').value;
+function sendWhatsAppMessage() {
+    const waEditable = document.getElementById('waEditable');
+    if (!waEditable) {
+        showNotification('שגיאה: לא נמצא אזור עריכה', 'red');
+        return;
+    }
+    // המרת HTML לטקסט עם כוכביות (הדגשה) ושמירה על רווחים כפולים
+    let message = waEditable.innerHTML
+        .replace(/<br><br>/g, '\n\n') // רווח כפול
+        .replace(/<div>/g, '\n')
+        .replace(/<br>/g, '\n')
+        .replace(/<b>(.*?)<\/b>/g, '*$1*')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
     if (!message) {
         showNotification('אנא הכנס הודעה', 'error');
         return;
@@ -108,25 +118,25 @@ async function sendWhatsAppMessage() {
 
     showNotification('שולח הודעה...', 'info');
     
-    try {
-        const response = await fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ message })
-        });
-
-        if (!response.ok) {
-            throw new Error('שגיאה בשליחת ההודעה');
-        }
-
-        showNotification("✅ ההודעה נשלחה בהצלחה!", "green");
+    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        return response.json();
+    })
+    .then(() => {
+        showNotification('✅ ההודעה נשלחה בהצלחה!', 'green');
         closeWhatsAppModal();
-    } catch (error) {
+    })
+    .catch(error => {
         console.error('Error:', error);
-        showNotification("❌ שגיאה בשליחת ההודעה", "red");
-    }
+        showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+    });
 }
 
 // Add event listener for the close button
