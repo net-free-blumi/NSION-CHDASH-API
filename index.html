@@ -2798,9 +2798,8 @@ function addProduct() {
         showNotification("נוסף בהצלחה להזמנה!", "blue");
         saveOrderDetails();
         resetFields();
-
-        // הוספת קריאה לבדוק אם יש צורך להציג את תיבת סוג הלחם
-        checkBisProduct(productCode); // בדיקת הצגת תיבת סוג הלחם
+        checkBisProduct(productCode);
+        copyAmarSummary();
     } else {
         showNotification("אין מס מקט כזה במערכת.", "red");
     }
@@ -2828,6 +2827,7 @@ function removeProduct(button, category) {
     if (listItem) {
         document.getElementById(`${category}List`).removeChild(listItem);
         saveOrderDetails();
+        copyAmarSummary();
     }
 }
 // ... existing code ...
@@ -4909,6 +4909,8 @@ function saveEdit() {
         currentEditItem.setAttribute('data-raw-summary', newText);
         // שמירת השינויים
         saveOrderDetails();
+        // רענון סיכום עמר
+        copyAmarSummary();
         // סגירת הפופאפ
         closeEditPopup();
         // הצגת הודעת הצלחה
