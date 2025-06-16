@@ -2384,7 +2384,12 @@ function copyAmarSummary() {
     const bisTypeTotals = {};
 
     // בדיקה אם יש מוצרי ביס
-    allLists.forEach(item => {
+    // נוסיף גם את amarList ללולאה
+    const allBisLists = [
+        ...document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li"),
+        ...amarList.getElementsByTagName("li")
+    ];
+    allBisLists.forEach(item => {
         const productCodeElement = item.querySelector(".product-code");
         if (productCodeElement) {
             const productCode = productCodeElement.textContent.match(/מק"ט: (\d+)/)?.[1];
