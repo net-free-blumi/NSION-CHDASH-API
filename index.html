@@ -8,8 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="script.js"></script>
-
+    
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 
@@ -958,6 +957,7 @@ background-color: #c1232324;}
         <div id="amar">
           <div class="category-title">קונדיטוריית עמר:</div>
           <ul id="amarList"></ul>
+          <div id="amarSummaryDisplay" style="white-space: pre-line; margin-top: 10px; font-weight: bold;"></div>
         </div>
 
         <div id="sushi">
@@ -2430,6 +2430,134 @@ function copyAmarSummary() {
     });
 }
 
+// פונקציה שמרעננת את התצוגה של סיכום עמר בלבד (לא מעתיקה ללוח)
+function refreshAmarSummary() {
+    const amarList = document.getElementById("amarList");
+    const orderDate = new Date(document.getElementById("orderDate").value);
+    const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+    const dayName = days[orderDate.getDay()];
+    const orderTime = document.getElementById("orderTime").value;
+    let summary = `*ליום ${dayName} עד השעה: ${orderTime}*\n\n`;
+    let corassonTotal = 0;
+    let jabettaTotal = 0;
+    let grisiniTotal = 0;
+    let focacciaTotal = 0;
+    let bakeryTotal = 0;
+    let finukimTotal = 0;
+    const allLists = document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li");
+    const amarProductCodes = ["12626", "12408", "12409", "12622", "12624", "13473", "410", "415"];
+    const corassonCodes = ["12626", "410", "415"];
+    allLists.forEach(item => {
+        const productCodeElement = item.querySelector(".product-code");
+        if (productCodeElement) {
+            const productCode = productCodeElement.textContent.match(/מק"ט: (\d+)/)?.[1];
+            const itemText = item.querySelector("span").textContent;
+            if (corassonCodes.includes(productCode)) {
+                let match = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'?/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    const unitsPerTray = parseInt(match[2]);
+                    corassonTotal += trays * unitsPerTray;
+                } else {
+                    match = itemText.match(/(\d+)\s*מגש/);
+                    if (match) {
+                        const trays = parseInt(match[1]);
+                        corassonTotal += trays * 15;
+                    }
+                }
+            } else if (productCode === "12409") {
+                const match = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    const unitsPerTray = parseInt(match[2]);
+                    jabettaTotal += trays * unitsPerTray;
+                }
+            } else if (productCode === "12408") {
+                const match = itemText.match(/(\d+)\s*מגש/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    grisiniTotal += trays * 13;
+                }
+            } else if (productCode === "12622") {
+                const match = itemText.match(/(\d+)\s*מגש/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    focacciaTotal += trays * 8;
+                }
+            } else if (productCode === "12624") {
+                const match = itemText.match(/(\d+)\s*מגש/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    bakeryTotal += trays * 9;
+                }
+            } else if (productCode === "13473") {
+                const match = itemText.match(/(\d+)\s*מגש/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    finukimTotal += trays * 20;
+                }
+            }
+        }
+    });
+    if (corassonTotal > 0) {
+        summary += `● ${corassonTotal} קרואסון מיני\n\n`;
+    }
+    if (jabettaTotal > 0) {
+        summary += `● ${jabettaTotal} ג'בטה מיני\n\n`;
+    }
+    if (grisiniTotal > 0) {
+        summary += `● ${grisiniTotal} מקלות גריסני\n\n`;
+    }
+    if (focacciaTotal > 0) {
+        summary += `● ${focacciaTotal} פוקאצות מ4 סוגים\n\n`;
+    }
+    if (bakeryTotal > 0) {
+        summary += `● ${bakeryTotal} יח' מאפי בוקר טריים של הבייקרי\n\n`;
+    }
+    if (finukimTotal > 0) {
+        summary += `● ${finukimTotal} בורקס תפו''א משולש מיני \n\n`;
+    }
+    window.finukimTotal = 0;
+    const items = amarList.getElementsByTagName("li");
+    for (const item of items) {
+        let itemText = item.querySelector("span").textContent;
+        itemText = itemText.replace(/\|BREAD_TYPE:ביס (שומשום|בריוש|קמח מלא|דגנים|פרג|שחור|אדום-סלק|בריוש מלבן)\|/g, '').trim();
+        summary += `● ${itemText}\n\n`;
+    }
+    const bisTypeTotals = {};
+    const allBisLists = [
+        ...document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li"),
+        ...amarList.getElementsByTagName("li")
+    ];
+    allBisLists.forEach(item => {
+        const productCodeElement = item.querySelector(".product-code");
+        if (productCodeElement) {
+            const productCode = productCodeElement.textContent.match(/מק"ט: (\d+)/)?.[1];
+            if (bisProducts.includes(productCode)) {
+                const itemText = item.getAttribute('data-raw-summary') || item.querySelector("span").textContent;
+                const quantityMatch = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'/);
+                const breadTypeMatch = itemText.match(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג|שחור|אדום-סלק|בריוש מלבן))\|/);
+                if (quantityMatch && breadTypeMatch) {
+                    const numTrays = parseInt(quantityMatch[1]);
+                    const unitsPerTray = parseInt(quantityMatch[2]);
+                    const totalUnits = numTrays * unitsPerTray;
+                    const breadType = breadTypeMatch[1];
+                    if (bisTypeTotals[breadType]) {
+                        bisTypeTotals[breadType] += totalUnits;
+                    } else {
+                        bisTypeTotals[breadType] = totalUnits;
+                    }
+                }
+            }
+        }
+    });
+    Object.entries(bisTypeTotals).forEach(([breadType, total]) => {
+        summary += `● ${total} ${breadType}\n\n`;
+    });
+    const orderNumber = document.getElementById("orderNumber").value;
+    summary += `(הזמנה מס' *${orderNumber}*)`;
+    document.getElementById("amarSummaryDisplay").innerText = summary;
+}
 
       function copyFruitSummary() {
     const orderNumber = localStorage.getItem("orderNumber") || "";
@@ -2798,8 +2926,9 @@ function addProduct() {
         showNotification("נוסף בהצלחה להזמנה!", "blue");
         saveOrderDetails();
         resetFields();
-        checkBisProduct(productCode);
-        copyAmarSummary();
+
+        // הוספת קריאה לבדוק אם יש צורך להציג את תיבת סוג הלחם
+        checkBisProduct(productCode); // בדיקת הצגת תיבת סוג הלחם
     } else {
         showNotification("אין מס מקט כזה במערכת.", "red");
     }
@@ -2827,7 +2956,6 @@ function removeProduct(button, category) {
     if (listItem) {
         document.getElementById(`${category}List`).removeChild(listItem);
         saveOrderDetails();
-        copyAmarSummary();
     }
 }
 // ... existing code ...
@@ -4905,15 +5033,21 @@ function saveEdit() {
     if (currentEditItem && currentEditCategory) {
         const newText = document.getElementById('editItemText').value;
         currentEditItem.querySelector('span').textContent = newText;
-        // עדכון data-raw-summary (אם קיים)
-        currentEditItem.setAttribute('data-raw-summary', newText);
-        // שמירת השינויים
+
+        // ניתוח חכם של breadType
+        let rawSummary = newText;
+        // בדוק אם יש ביסים בפורמט: מגש ביס ... (XX יחי') ביס YYY
+        const bisMatch = newText.match(/מגש ביס.*?\((\d+) יחי'?\).*?(ביס [^\s]+)/);
+        if (bisMatch) {
+            const breadType = bisMatch[2];
+            if (!/\|BREAD_TYPE:/.test(newText)) {
+                rawSummary = newText + ` |BREAD_TYPE:${breadType}|`;
+            }
+        }
+        currentEditItem.setAttribute('data-raw-summary', rawSummary);
         saveOrderDetails();
-        // רענון סיכום עמר
-        copyAmarSummary();
-        // סגירת הפופאפ
+        refreshAmarSummary();
         closeEditPopup();
-        // הצגת הודעת הצלחה
         showNotification("הפריט עודכן בהצלחה!", "green");
     }
 }
@@ -5008,6 +5142,107 @@ async function pasteFromClipboard() {
         showNotification("לא הצלחנו לגשת ללוח ההעתקה", "red");
     }
 }
+
+function openWhatsAppFruitsModal() {
+    const modal = document.getElementById('whatsappFruitsModal');
+    const waEditable = document.getElementById('waEditableFruits');
+    
+    if (!modal || !waEditable) {
+        console.error('Modal elements not found!');
+        return;
+    }
+
+    // יצירת סיכום פירות בפורמט זהה ל-copyFruitSummary
+    const orderNumber = localStorage.getItem("orderNumber") || "";
+    const orderDate = localStorage.getItem("orderDate") || "";
+    const orderDay = getDayOfWeek(orderDate);
+    const orderTime = document.getElementById("orderTime").value;
+    
+    // קבלת כל הפריטים בפורמט מודגש
+    const fruitItems = getFruitItems().map(item => {
+        const match = item.match(/(\d+)\s+מגש.*?\((.*?)\)/);
+        if (match) {
+            const [_, quantity, size] = match;
+            return `${quantity} מגש פירות *${size}*`;
+        }
+        return item;
+    });
+
+    // הוספת סיכום עבור המקט החדש
+    const totalFruitTrays = calculateTotalFruitTrays();
+    if (totalFruitTrays > 0) {
+        fruitItems.push(`${totalFruitTrays} מגש פירות העונה בכוסות *5 סוגים שונים סה''כ 15 כוסות במגש*`);
+    }
+
+    if (fruitItems.length > 0) {
+        // בנה את הסיכום בפורמט וואטסאפ עם הדגשות
+        let fruitSummary = `*ליום ${orderDay} עד השעה: ${orderTime}*\n\n${fruitItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
+        // המרה ל-html: כל טקסט בין כוכביות יהפוך ל-<b>
+        fruitSummary = fruitSummary.replace(/\*([^*]+)\*/g, '<b>$1</b>');
+        waEditable.innerHTML = fruitSummary.trim().replace(/\n/g, '<br>');
+        modal.style.display = 'block';
+        waEditable.focus();
+    } else {
+        showNotification("אין פריטי פירות בהזמנה.", "red");
+    }
+}
+
+// ... existing code ...
+// חיפוש אוטומטי גם בתיבת productCode
+(function() {
+  let codeSearchTimeout = null;
+  const productCodeInput = document.getElementById('productCode');
+  const searchResults = document.getElementById('searchResults');
+  productCodeInput.addEventListener('input', function(e) {
+    if (codeSearchTimeout) clearTimeout(codeSearchTimeout);
+    const val = e.target.value.trim();
+    if (!val) {
+      searchResults.innerHTML = '';
+      return;
+    }
+    codeSearchTimeout = setTimeout(() => {
+      document.getElementById('searchInput').value = val;
+      searchProduct();
+    }, 500);
+  });
+})();
+// ... existing code ...
+
+// ... existing code ...
+// חיפוש אוטומטי בתיבת המק"ט
+(function() {
+    let searchTimeout = null;
+    const productCodeInput = document.getElementById('productCode');
+    const searchResults = document.getElementById('searchResults');
+    
+    // מאזין יחיד לכל אירועי הקלט
+    productCodeInput.addEventListener('input', function(e) {
+        // ביטול טיימר קודם אם קיים
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        const code = e.target.value.trim();
+        
+        // אם השדה ריק - ניקוי תוצאות
+        if (!code) {
+            searchResults.innerHTML = '';
+            return;
+        }
+        
+        // הפעלת החיפוש אחרי 500ms של חוסר הקלדה
+        searchTimeout = setTimeout(() => {
+            // עדכון תיבת החיפוש הראשית והפעלת החיפוש
+            document.getElementById('searchInput').value = code;
+            searchProduct();
+            
+            // בדיקה אם זה מוצר ביס
+            checkBisProduct(code);
+        }, 500);
+    });
+})();
+
+// ... existing code ...
 
     </script>
 
