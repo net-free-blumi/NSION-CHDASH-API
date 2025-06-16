@@ -95,15 +95,44 @@ function closeWhatsAppModal() {
     }
 }
 
+// משתנים גלובליים למעקב אחר הודעות
+let lastSentMessage = null;
+let isSendingMessage = false;
+let pendingMessage = null;
+
+// איפוס המשתנים בטעינת הדף
+window.addEventListener('DOMContentLoaded', function() {
+    lastSentMessage = null;
+    isSendingMessage = false;
+    pendingMessage = null;
+    
+    // הסתרת המודלים בטעינה
+    const whatsappModal = document.getElementById('whatsappModal');
+    const duplicateModal = document.getElementById('duplicateMessageModal');
+    if (whatsappModal) whatsappModal.style.display = 'none';
+    if (duplicateModal) duplicateModal.style.display = 'none';
+});
+
 function sendWhatsAppMessage() {
     const waEditable = document.getElementById('waEditable');
+    const sendButton = document.querySelector('.send-btn');
+    
     if (!waEditable) {
         showNotification('שגיאה: לא נמצא אזור עריכה', 'red');
         return;
     }
+
+    // בדיקה אם ההודעה זהה להודעה האחרונה שנשלחה
+    const currentMessage = waEditable.innerHTML;
+    if (lastSentMessage === currentMessage && lastSentMessage !== null) {
+        pendingMessage = currentMessage;
+        showDuplicateMessageModal();
+        return;
+    }
+
     // המרת HTML לטקסט עם כוכביות (הדגשה) ושמירה על רווחים כפולים
     let message = waEditable.innerHTML
-        .replace(/<br><br>/g, '\n\n') // רווח כפול
+        .replace(/<br><br>/g, '\n\n')
         .replace(/<div>/g, '\n')
         .replace(/<br>/g, '\n')
         .replace(/<b>(.*?)<\/b>/g, '*$1*')
@@ -116,6 +145,22 @@ function sendWhatsAppMessage() {
         return;
     }
 
+    // מניעת שליחה כפולה
+    if (isSendingMessage) {
+        showNotification('שליחה בתהליך, אנא המתן...', 'info');
+        return;
+    }
+
+    sendMessageToWhatsApp(message, currentMessage);
+}
+
+function sendMessageToWhatsApp(message, currentMessage) {
+    const sendButton = document.querySelector('.send-btn');
+    
+    // עדכון מצב הכפתור
+    isSendingMessage = true;
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
     showNotification('שולח הודעה...', 'info');
     
     fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
@@ -132,28 +177,60 @@ function sendWhatsAppMessage() {
     .then(() => {
         showNotification('✅ ההודעה נשלחה בהצלחה!', 'green');
         closeWhatsAppModal();
+        // שמירת ההודעה האחרונה שנשלחה
+        lastSentMessage = currentMessage;
     })
     .catch(error => {
         console.error('Error:', error);
         showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+    })
+    .finally(() => {
+        // איפוס מצב הכפתור
+        isSendingMessage = false;
+        sendButton.disabled = false;
+        sendButton.innerHTML = 'שלח לוואטסאפ';
     });
 }
 
-// Add event listener for the close button
-document.addEventListener('DOMContentLoaded', function() {
-    const closeBtn = document.querySelector('.close');
-    if (closeBtn) {
-        closeBtn.onclick = closeWhatsAppModal;
+function showDuplicateMessageModal() {
+    const modal = document.getElementById('duplicateMessageModal');
+    modal.style.display = 'block';
+}
+
+function closeDuplicateModal() {
+    const modal = document.getElementById('duplicateMessageModal');
+    modal.style.display = 'none';
+    pendingMessage = null;
+}
+
+function confirmResend() {
+    if (pendingMessage) {
+        const message = pendingMessage
+            .replace(/<br><br>/g, '\n\n')
+            .replace(/<div>/g, '\n')
+            .replace(/<br>/g, '\n')
+            .replace(/<b>(.*?)<\/b>/g, '*$1*')
+            .replace(/<[^>]+>/g, '')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+            
+        sendMessageToWhatsApp(message, pendingMessage);
+        closeDuplicateModal();
     }
+}
+
+// סגירת המודל בלחיצה מחוץ לתוכן
+window.onclick = function(event) {
+    const whatsappModal = document.getElementById('whatsappModal');
+    const duplicateModal = document.getElementById('duplicateMessageModal');
     
-    // Close modal when clicking outside
-    window.onclick = function(event) {
-        const modal = document.getElementById('whatsappModal');
-        if (event.target == modal) {
-            closeWhatsAppModal();
-        }
+    if (event.target == whatsappModal) {
+        closeWhatsAppModal();
     }
-});
+    if (event.target == duplicateModal) {
+        closeDuplicateModal();
+    }
+}
 
 window.addEventListener('DOMContentLoaded', function() {
   const modal = document.getElementById('whatsappModal');
@@ -213,5 +290,39 @@ function copyCurrentSummary() {
         .catch(() => {
             showNotification('שגיאה בהעתקת הסיכום', 'red');
         });
+}
+
+function newOrder() {
+    // איפוס כל השדות
+    document.getElementById("orderNumber").value = "";
+    document.getElementById("orderDate").value = "";
+    document.getElementById("orderTime").value = "";
+    document.getElementById("temperature").value = "";
+    document.getElementById("notesSummary").value = "";
+    
+    // ניקוי כל הרשימות
+    document.getElementById("kitchenList").innerHTML = "";
+    document.getElementById("bakeryList").innerHTML = "";
+    document.getElementById("onlineList").innerHTML = "";
+    document.getElementById("warehouseList").innerHTML = "";
+    document.getElementById("sushiList").innerHTML = "";
+    
+    // איפוס משתני הזיכרון של הודעות
+    lastSentMessage = null;
+    isSendingMessage = false;
+    pendingMessage = null;
+    
+    // הסתרת המודלים
+    const whatsappModal = document.getElementById('whatsappModal');
+    const duplicateModal = document.getElementById('duplicateMessageModal');
+    if (whatsappModal) whatsappModal.style.display = 'none';
+    if (duplicateModal) duplicateModal.style.display = 'none';
+    
+    // איפוס שדות קלט נוספים
+    resetInputFields();
+    
+    // עדכון הממשק
+    updateSelectedRadio();
+    showNotification("הזמנה חדשה נוצרה בהצלחה!", "green");
 }
 

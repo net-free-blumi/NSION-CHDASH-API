@@ -1009,7 +1009,21 @@ background-color: #c1232324;}
         </div>
     </div>
 
+    <!-- הוספת מודל אישור שליחה כפולה -->
+    <div id="duplicateMessageModal" class="modal">
+        <div class="modal-content confirmation-modal">
+            <div class="confirmation-icon">⚠️</div>
+            <h3>שליחה חוזרת</h3>
+            <p>ההודעה כבר נשלחה בעבר. האם אתה בטוח שברצונך לשלוח שוב?</p>
+            <div class="confirmation-buttons">
+                <button onclick="confirmResend()" class="confirm-btn">כן, שלח שוב</button>
+                <button onclick="closeDuplicateModal()" class="cancel-btn">ביטול</button>
+            </div>
+        </div>
+    </div>
+
     <style>
+        /* סגנונות קיימים */
         .wa-modal-content {
             background-color: #fefefe;
             margin: 5% auto;
@@ -1021,6 +1035,76 @@ background-color: #c1232324;}
             direction: rtl;
             box-sizing: border-box;
         }
+
+        /* סגנונות למודל האישור */
+        .confirmation-modal {
+            background-color: #ffffff;
+            margin: 15% auto;
+            padding: 25px;
+            border: none;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            direction: rtl;
+        }
+
+        .confirmation-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            animation: pulse 2s infinite;
+        }
+
+        .confirmation-modal h3 {
+            color: #333;
+            margin: 0 0 15px 0;
+            font-size: 24px;
+        }
+
+        .confirmation-modal p {
+            color: #666;
+            margin: 0 0 25px 0;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .confirmation-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .confirm-btn {
+            background-color: #25D366;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .confirm-btn:hover {
+            background-color: #128C7E;
+            transform: translateY(-2px);
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* סגנונות קיימים נוספים */
         .wa-editable {
             min-height: 180px;
             max-height: 320px;
@@ -1039,50 +1123,6 @@ background-color: #c1232324;}
             white-space: pre-line;
             word-break: break-word;
             outline: none;
-        }
-        .wa-editable b {
-            font-weight: bold;
-            color: #075e54;
-        }
-        .modal-buttons {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-        }
-        .send-btn {
-            background-color: #25D366;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .send-btn:hover {
-            background-color: #128C7E;
-        }
-        .cancel-btn {
-            background-color: #dc3545;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .cancel-btn:hover {
-            background-color: #c82333;
-        }
-        @media (max-width: 600px) {
-            .wa-modal-content {
-                width: 99%;
-                max-width: 99vw;
-                padding: 8px 2px 2px 2px;
-            }
-            .wa-editable {
-                font-size: 15px;
-                padding: 10px 6px 10px 4px;
-            }
         }
     </style>
 
@@ -1116,6 +1156,32 @@ background-color: #c1232324;}
 }
 .copy-btn:hover {
     background-color: #0056b3;
+}
+
+/* סגנון לאנימציית הטעינה */
+.loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* סגנון לכפתור מושבת */
+.send-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 </style>
 
@@ -4569,7 +4635,7 @@ function copyOrderSummary() {
   alert('הסיכום הועתק!');
 }
 
-// קוראים לפונקציה בעת שינוי מצב החום/קור או שינוי פריט
+// קוראים לפונקצייה בעת שינוי מצב החום/קור או שינוי פריט
 document.getElementById('temperature').addEventListener('change', generateOrderSummary);
 
 // אם יש כפתור העתקה
