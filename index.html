@@ -4900,13 +4900,12 @@ function saveEdit() {
     if (currentEditItem && currentEditCategory) {
         const newText = document.getElementById('editItemText').value;
         currentEditItem.querySelector('span').textContent = newText;
-        
+        // עדכון data-raw-summary (אם קיים)
+        currentEditItem.setAttribute('data-raw-summary', newText);
         // שמירת השינויים
         saveOrderDetails();
-        
         // סגירת הפופאפ
         closeEditPopup();
-        
         // הצגת הודעת הצלחה
         showNotification("הפריט עודכן בהצלחה!", "green");
     }
