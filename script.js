@@ -168,7 +168,10 @@ function sendMessageToWhatsApp(message, currentMessage) {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ message })
+        body: JSON.stringify({ 
+            message,
+            groupId: "120363414923943659@g.us" // קבוצת הקונדיטוריה
+        })
     })
     .then(response => {
         if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
@@ -324,5 +327,189 @@ function newOrder() {
     // עדכון הממשק
     updateSelectedRadio();
     showNotification("הזמנה חדשה נוצרה בהצלחה!", "green");
+}
+
+// משתנים גלובליים לפירות
+let lastSentFruitsMessage = null;
+let isSendingFruitsMessage = false;
+let pendingFruitsMessage = null;
+
+// פונקציות לוואטסאפ פירות
+function openWhatsAppFruitsModal() {
+    const modal = document.getElementById("whatsappFruitsModal");
+    const waEditable = document.getElementById("waFruitsEditable");
+    
+    if (!modal || !waEditable) {
+        console.error('Modal elements not found!');
+        return;
+    }
+
+    // יצירת סיכום פירות
+    const orderNumber = localStorage.getItem("orderNumber") || "";
+    const orderDate = localStorage.getItem("orderDate") || "";
+    const orderDay = getDayOfWeek(orderDate);
+    const orderTime = document.getElementById("orderTime").value;
+    
+    const fruitItems = getFruitItems().map(item => {
+        const match = item.match(/(\d+)\s+מגש.*?\((.*?)\)/);
+        if (match) {
+            const [_, quantity, size] = match;
+            return `${quantity} מגש פירות *${size}*`;
+        }
+        return item;
+    });
+
+    const totalFruitTrays = calculateTotalFruitTrays();
+    if (totalFruitTrays > 0) {
+        fruitItems.push(`${totalFruitTrays} מגש פירות העונה בכוסות *5 סוגים שונים סה''כ 15 כוסות במגש*`);
+    }
+
+    if (fruitItems.length > 0) {
+        const fruitSummary = `*ליום ${orderDay} עד השעה: ${orderTime}*\n\n${fruitItems.join('\n')}\n\n(הזמנה מס' *${orderNumber})*`;
+        waEditable.innerHTML = fruitSummary.replace(/\n/g, '<br>');
+    } else {
+        showNotification("אין מגשי פירות בהזמנה.", "error");
+        return;
+    }
+
+    modal.style.display = 'block';
+    waEditable.focus();
+}
+
+function closeWhatsAppFruitsModal() {
+    const modal = document.getElementById("whatsappFruitsModal");
+    if (modal) {
+        modal.style.display = "none";
+    }
+}
+
+function showDuplicateFruitsModal() {
+    const modal = document.getElementById("duplicateFruitsMessageModal");
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function closeDuplicateFruitsModal() {
+    const modal = document.getElementById("duplicateFruitsMessageModal");
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    pendingFruitsMessage = null;
+}
+
+async function sendWhatsAppFruitsMessage() {
+    const waEditable = document.getElementById("waFruitsEditable");
+    const sendButton = document.querySelector("#whatsappFruitsModal .send-btn");
+    
+    if (!waEditable) {
+        showNotification('שגיאה: לא נמצא אזור עריכה', 'error');
+        return;
+    }
+
+    // בדיקה אם ההודעה זהה להודעה האחרונה שנשלחה
+    const currentMessage = waEditable.innerHTML;
+    if (lastSentFruitsMessage === currentMessage && lastSentFruitsMessage !== null) {
+        pendingFruitsMessage = currentMessage;
+        showDuplicateFruitsModal();
+        return;
+    }
+
+    // המרת HTML לטקסט עם כוכביות (הדגשה) ושמירה על רווחים כפולים
+    let message = waEditable.innerHTML
+        .replace(/<br><br>/g, '\n\n')
+        .replace(/<div>/g, '\n')
+        .replace(/<br>/g, '\n')
+        .replace(/<b>(.*?)<\/b>/g, '*$1*')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+    if (!message) {
+        showNotification('אנא הכנס הודעה', 'error');
+        return;
+    }
+
+    // מניעת שליחה כפולה
+    if (isSendingFruitsMessage) {
+        showNotification('שליחה בתהליך, אנא המתן...', 'info');
+        return;
+    }
+
+    // עדכון מצב הכפתור
+    isSendingFruitsMessage = true;
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
+    showNotification('שולח הודעה...', 'info');
+    
+    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            message,
+            groupId: "120363314468223287@g.us" // קבוצת הפירות
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        return response.json();
+    })
+    .then(() => {
+        showNotification('✅ ההודעה נשלחה בהצלחה!', 'green');
+        closeWhatsAppFruitsModal();
+        // שמירת ההודעה האחרונה שנשלחה
+        lastSentFruitsMessage = currentMessage;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+    })
+    .finally(() => {
+        // איפוס מצב הכפתור
+        isSendingFruitsMessage = false;
+        sendButton.disabled = false;
+        sendButton.innerHTML = 'שלח לוואטסאפ';
+    });
+}
+
+function copyCurrentFruitsSummary() {
+    const waEditable = document.getElementById("waFruitsEditable");
+    
+    if (!waEditable) {
+        showNotification('שגיאה: לא נמצא אזור עריכה', 'error');
+        return;
+    }
+    
+    let message = waEditable.innerHTML
+        .replace(/<br><br>/g, '\n\n')
+        .replace(/<div>/g, '\n')
+        .replace(/<br>/g, '\n')
+        .replace(/<b>(.*?)<\/b>/g, '*$1*')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+        
+    if (!message) {
+        showNotification('אין מה להעתיק', 'error');
+        return;
+    }
+    
+    navigator.clipboard.writeText(message)
+        .then(() => {
+            showNotification('הסיכום הועתק בהצלחה!', 'success');
+        })
+        .catch(() => {
+            showNotification('שגיאה בהעתקת הסיכום', 'error');
+        });
+}
+
+function confirmFruitsResend() {
+    if (pendingFruitsMessage) {
+        const sendButton = document.querySelector("#whatsappFruitsModal .send-btn");
+        sendFruitsMessageToWhatsApp(pendingFruitsMessage, pendingFruitsMessage, sendButton);
+    }
+    closeDuplicateFruitsModal();
 }
 

@@ -30,6 +30,12 @@ const INSTANCE_ID = '7105260862';
 const API_TOKEN = '19d4910c994a45a58d22d1d7cc5d7121fc1575fd6ac143b295';
 const BASE_URL = `https://7105.api.greenapi.com/waInstance${INSTANCE_ID}`;
 
+// קבוצות וואטסאפ
+const GROUPS = {
+    CONDITORIA: "120363414923943659@g.us",
+    FRUITS: "120363314468223287@g.us"
+};
+
 // Function to check message status
 async function checkMessageStatus(messageId) {
     try {
@@ -47,9 +53,11 @@ app.post('/send-whatsapp', async (req, res) => {
     console.log('Received request:', req.body);
     
     try {
-        // קבוצת וואטסאפ - חשוב לשמור על הפורמט הזה
+        // קבלת מזהה הקבוצה מהבקשה
+        const groupId = req.body.groupId || GROUPS.CONDITORIA; // ברירת מחדל לקבוצת הקונדיטוריה
+        
         const requestBody = {
-            chatId: "120363414923943659@g.us",  // מזהה קבוצה קבוע
+            chatId: groupId,
             message: req.body.message
         };
         

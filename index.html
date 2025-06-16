@@ -971,6 +971,7 @@ background-color: #c1232324;}
       <!-- ליד הכפתורים הקיימים -->
       <!-- <button id="copyButton" onclick="copySummary()">העתק סיכום הזמנה</button> -->
       <button id="whatsappButton" onclick="openWhatsAppModal()">שליחת והעתקה סיכום כללי</button>
+      <button id="whatsappFruitsButton" onclick="openWhatsAppFruitsModal()">שליחת סיכום פירות</button>
       <button id="copyFruitsButton" onclick="copyFruitSummary()">העתק סיכום פירות</button>
       <button id="copyBakeryButton" onclick="copyBakerySummary()">העתק סיכום קונדיטוריה</button>
       <button id="copyWarehouseButton" onclick="copyWarehouseSummary()">העתק סיכום מחסן</button>
@@ -1009,6 +1010,20 @@ background-color: #c1232324;}
         </div>
     </div>
 
+    <!-- Fruits WhatsApp Modal -->
+    <div id="whatsappFruitsModal" class="modal" style="display: none;">
+        <div class="modal-content wa-modal-content">
+            <span class="close" onclick="closeWhatsAppFruitsModal()">&times;</span>
+            <h2>שליחת סיכום פירות לוואטסאפ</h2>
+            <div id="waEditableFruits" class="wa-preview wa-editable" contenteditable="true" spellcheck="false"></div>
+            <div class="modal-buttons">
+                <button onclick="sendWhatsAppFruitsMessage()" class="send-fruits-btn">שלח לוואטסאפ</button>
+                <button onclick="copyFruitSummary()" class="copy-btn">העתק סיכום</button>
+                <button onclick="closeWhatsAppFruitsModal()" class="cancel-btn">ביטול</button>
+            </div>
+        </div>
+    </div>
+
     <!-- הוספת מודל אישור שליחה כפולה -->
     <div id="duplicateMessageModal" class="modal">
         <div class="modal-content confirmation-modal">
@@ -1018,6 +1033,19 @@ background-color: #c1232324;}
             <div class="confirmation-buttons">
                 <button onclick="confirmResend()" class="confirm-btn">כן, שלח שוב</button>
                 <button onclick="closeDuplicateModal()" class="cancel-btn">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- מודל אישור שליחה כפולה לפירות -->
+    <div id="duplicateFruitsModal" class="modal">
+        <div class="modal-content confirmation-modal">
+            <div class="confirmation-icon">⚠️</div>
+            <h3>שליחה חוזרת</h3>
+            <p>ההודעה כבר נשלחה בעבר. האם אתה בטוח שברצונך לשלוח שוב?</p>
+            <div class="confirmation-buttons">
+                <button onclick="confirmFruitsResend()" class="confirm-btn">כן, שלח שוב</button>
+                <button onclick="closeDuplicateFruitsModal()" class="cancel-btn">ביטול</button>
             </div>
         </div>
     </div>
