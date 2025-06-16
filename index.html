@@ -863,7 +863,9 @@ background-color: #c1232324;}
       <option value="ביס קמח מלא">ביס קמח מלא</option>
       <option value="ביס דגנים">ביס דגנים</option>
       <option value="ביס פרג">ביס פרג</option>
-
+      <option value="ביס שחור">ביס שחור</option>
+      <option value="ביס אדום-סלק">ביס אדום-סלק</option>
+      <option value="ביס בריוש מלבן">ביס בריוש מלבן</option>
   </select>
 </div>
 
@@ -2374,7 +2376,7 @@ function copyAmarSummary() {
     for (const item of items) {
     let itemText = item.querySelector("span").textContent;
     // מסיר את |BREAD_TYPE:...|
-    itemText = itemText.replace(/\|BREAD_TYPE:ביס (שומשום|בריוש|קמח מלא|דגנים|פרג)\|/g, '').trim();
+    itemText = itemText.replace(/\|BREAD_TYPE:ביס (שומשום|בריוש|קמח מלא|דגנים|פרג|שחור|אדום-סלק|בריוש מלבן)\|/g, '').trim();
     summary += `● ${itemText}\n\n`;
 }
 
@@ -2390,7 +2392,7 @@ function copyAmarSummary() {
                 // קח את הטקסט המקורי מה־data-attribute
                 const itemText = item.getAttribute('data-raw-summary') || item.querySelector("span").textContent;
                 const quantityMatch = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'\)/);
-                const breadTypeMatch = itemText.match(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג))\|/);
+                const breadTypeMatch = itemText.match(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג|שחור|אדום-סלק|בריוש מלבן))\|/);
                 if (quantityMatch && breadTypeMatch) {
                     const numTrays = parseInt(quantityMatch[1]);
                     const unitsPerTray = parseInt(quantityMatch[2]);
@@ -2766,7 +2768,7 @@ function addProduct() {
         }
         
         const rawSummary = productSummary; // עם BREAD_TYPE
-        const displaySummary = productSummary.replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג))\|/g, ' $1');
+        const displaySummary = productSummary.replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג|שחור|אדום-סלק|בריוש מלבן))\|/g, ' $1');
 
 
         
@@ -2977,7 +2979,7 @@ function validateInput(input) {
     .map((li) => {
         let text = li.firstElementChild.textContent;
         text = text.replace(/\(מק"ט: \d+\)/g, '')
-                   .replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג))\|/g, ' $1')
+                   .replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג|שחור|אדום-סלק|בריוש מלבן))\|/g, ' $1')
                    .trim();
         return text;
     })

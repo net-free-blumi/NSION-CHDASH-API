@@ -60,7 +60,7 @@ function openWhatsAppModal() {
             .map((li) => {
                 let text = li.firstElementChild.textContent;
                 text = text.replace(/\(מק"ט: \d+\)/g, '')
-                          .replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג))\|/g, ' $1')
+                          .replace(/\|BREAD_TYPE:ביס (שומשום|בריוש|קמח מלא|דגנים|פרג|שחור|אדום-סלק|בריוש מלבן)\|/g, ' $1')
                           .replace(/\s{2,}/g, ' ')
                           .trim();
                 return text;
@@ -78,7 +78,7 @@ function openWhatsAppModal() {
         }
     });
     if (temperature) {
-        message += `\n<b>הערות:</b> <b>\"${temperature}\"</b>\n`;
+        message += `\n<b>הערות:</b> <b>"${temperature}"</b>\n`;
     }
     // ניקוי רווחים מיותרים בסוף כל שורה ובסוף ההודעה
     message = message.split('\n').map(line => line.replace(/\s+$/g, '').replace(/\s{2,}/g, ' ')).join('\n').trim();
