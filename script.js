@@ -370,19 +370,24 @@ function openWhatsAppFruitsModal() {
     const orderTime = document.getElementById("orderTime").value;
     
     // מקבל את כל הפריטים מקטגוריית הפירות
-    const fruitItems = getFruitItems();
+    const fruitItems = getFruitItems().map(item => {
+        const match = item.match(/(\d+)\s+מגש.*?\((.*?)\)/);
+        if (match) {
+            const [_, quantity, size] = match;
+            return `${quantity} מגש פירות *${size}*`;
+        }
+        return item;
+    });
 
     if (fruitItems.length > 0) {
-        const fruitSummary = `
-*ליום ${orderDay} עד השעה: ${orderTime}*
-
-מיהודה
-
-${fruitItems.join('\n')}
-
-(הזמנה מס' *${orderNumber}*)`;
+        const fruitSummary = `*ליום ${orderDay} עד השעה: ${orderTime}*\n\n${fruitItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
         
-        waEditable.innerHTML = fruitSummary.trim().replace(/\n/g, '<br>');
+        // המרה ל-HTML עם שמירה על הפורמט
+        const htmlSummary = fruitSummary
+            .replace(/\n/g, '<br>')
+            .replace(/\*(.*?)\*/g, '<b>$1</b>');
+        
+        waEditable.innerHTML = htmlSummary;
         modal.style.display = 'block';
         waEditable.focus();
     } else {
@@ -430,14 +435,11 @@ function sendWhatsAppFruitsMessage() {
         return;
     }
 
-    // המרת HTML לטקסט עם כוכביות (הדגשה) ושמירה על רווחים כפולים
+    // המרת HTML לטקסט עם שמירה על הפורמט המדויק
     let message = waEditable.innerHTML
-        .replace(/<br><br>/g, '\n\n')
-        .replace(/<div>/g, '\n')
         .replace(/<br>/g, '\n')
         .replace(/<b>(.*?)<\/b>/g, '*$1*')
         .replace(/<[^>]+>/g, '')
-        .replace(/\n{3,}/g, '\n\n')
         .trim();
 
     if (!message) {
