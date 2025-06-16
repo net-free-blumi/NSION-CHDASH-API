@@ -491,16 +491,16 @@ function sendWhatsAppFruitsMessage() {
 
 function confirmFruitsResend() {
     if (pendingFruitsMessage) {
-        const message = pendingFruitsMessage
-            .replace(/<br><br>/g, '\n\n')
-            .replace(/<div>/g, '\n')
-            .replace(/<br>/g, '\n')
-            .replace(/<b>(.*?)<\/b>/g, '*$1*')
-            .replace(/<[^>]+>/g, '')
-            .replace(/\n{3,}/g, '\n\n')
-            .trim();
-            
-        sendWhatsAppFruitsMessage();
+        // איפוס ההודעה האחרונה שנשלחה כדי לאפשר שליחה חוזרת
+        lastSentFruitsMessage = null;
+        
+        // שליחת ההודעה
+        const waEditable = document.getElementById('waEditableFruits');
+        if (waEditable) {
+            waEditable.innerHTML = pendingFruitsMessage;
+            sendWhatsAppFruitsMessage();
+        }
+        
         closeDuplicateFruitsModal();
     }
 }
