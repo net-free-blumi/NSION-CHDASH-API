@@ -787,4 +787,289 @@ function confirmAmarResend() {
         closeDuplicateAmarModal();
     }
 }
+// משתנים גלובליים למעקב אחר הודעות סושי
+let lastSentSushiMessage = null;
+let isSendingSushiMessage = false;
+let pendingSushiMessage = null;
 
+function closeWhatsAppSushiModal() {
+    const modal = document.getElementById('whatsappSushiModal');
+    if (modal) {
+        modal.style.display = "none";
+    }
+}
+
+function showDuplicateSushiModal() {
+    const modal = document.getElementById("duplicateSushiModal");
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function closeDuplicateSushiModal() {
+    const modal = document.getElementById("duplicateSushiModal");
+    if (modal) {
+        modal.style.display = 'none';
+        pendingSushiMessage = null;
+    }
+}
+
+function sendWhatsAppSushiMessage() {
+    const waEditable = document.getElementById('waEditableSushi');
+    const sendButton = document.querySelector('.send-sushi-btn');
+    
+    if (!waEditable) {
+        showNotification('שגיאה: לא נמצא אזור עריכה', 'red');
+        return;
+    }
+
+    // בדיקה אם ההודעה זהה להודעה האחרונה שנשלחה
+    const currentMessage = waEditable.innerHTML;
+    if (lastSentSushiMessage === currentMessage && lastSentSushiMessage !== null) {
+        pendingSushiMessage = currentMessage;
+        showDuplicateSushiModal();
+        return;
+    }
+
+    // המרת HTML לטקסט עם כוכביות (הדגשה) ושמירה על רווחים כפולים
+    let message = waEditable.innerHTML
+        .replace(/<br><br>/g, '\n\n')
+        .replace(/<div>/g, '\n')
+        .replace(/<br>/g, '\n')
+        .replace(/<b>(.*?)<\/b>/g, '*$1*')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+    if (!message) {
+        showNotification('אנא הכנס הודעה', 'error');
+        return;
+    }
+
+    // מניעת שליחה כפולה
+    if (isSendingSushiMessage) {
+        showNotification('שליחה בתהליך, אנא המתן...', 'info');
+        return;
+    }
+
+    // עדכון מצב הכפתור
+    isSendingSushiMessage = true;
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
+    showNotification('שולח הודעה...', 'info');
+    
+    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            message,
+            groupId: "120363314468223287@g.us" // קבוצת הסושי
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        return response.json();
+    })
+    .then(() => {
+        showNotification('✅ ההודעה נשלחה בהצלחה!', 'green');
+        closeWhatsAppSushiModal();
+        // שמירת ההודעה האחרונה שנשלחה
+        lastSentSushiMessage = currentMessage;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+    })
+    .finally(() => {
+        isSendingSushiMessage = false;
+        sendButton.disabled = false;
+        sendButton.innerHTML = 'שלח לוואטסאפ';
+    });
+}
+
+function confirmSushiResend() {
+    if (pendingSushiMessage) {
+        lastSentSushiMessage = null;
+        const waEditable = document.getElementById('waEditableSushi');
+        if (waEditable) {
+            waEditable.innerHTML = pendingSushiMessage;
+            sendWhatsAppSushiMessage();
+        }
+        closeDuplicateSushiModal();
+    }
+}
+
+// הוספת מאזינים למודל סושי
+window.addEventListener('DOMContentLoaded', function() {
+    lastSentSushiMessage = null;
+    isSendingSushiMessage = false;
+    pendingSushiMessage = null;
+    
+    const sushiModals = [
+        'whatsappSushiModal',
+        'duplicateSushiModal'
+    ];
+    sushiModals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    });
+    
+    // סגירת מודל סושי בלחיצה על overlay
+    const sushiModal = document.getElementById('whatsappSushiModal');
+    if (sushiModal) {
+        sushiModal.addEventListener('mousedown', function(e) {
+            if (e.target === sushiModal) {
+                closeWhatsAppSushiModal();
+            }
+        });
+    }
+});
+
+
+
+
+// משתנים גלובליים למעקב אחר הודעות מחסן
+let lastSentWarehouseMessage = null;
+let isSendingWarehouseMessage = false;
+let pendingWarehouseMessage = null;
+
+function closeWhatsAppWarehouseModal() {
+    const modal = document.getElementById('whatsappWarehouseModal');
+    if (modal) {
+        modal.style.display = "none";
+    }
+}
+
+function showDuplicateWarehouseModal() {
+    const modal = document.getElementById("duplicateWarehouseModal");
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function closeDuplicateWarehouseModal() {
+    const modal = document.getElementById("duplicateWarehouseModal");
+    if (modal) {
+        modal.style.display = 'none';
+        pendingWarehouseMessage = null;
+    }
+}
+
+function sendWhatsAppWarehouseMessage() {
+    const waEditable = document.getElementById('waEditableWarehouse');
+    const sendButton = document.querySelector('.send-warehouse-btn');
+    
+    if (!waEditable) {
+        showNotification('שגיאה: לא נמצא אזור עריכה', 'red');
+        return;
+    }
+
+    // בדיקה אם ההודעה זהה להודעה האחרונה שנשלחה
+    const currentMessage = waEditable.innerHTML;
+    if (lastSentWarehouseMessage === currentMessage && lastSentWarehouseMessage !== null) {
+        pendingWarehouseMessage = currentMessage;
+        showDuplicateWarehouseModal();
+        return;
+    }
+
+    // המרת HTML לטקסט עם כוכביות (הדגשה) ושמירה על רווחים כפולים
+    let message = waEditable.innerHTML
+        .replace(/<br><br>/g, '\n\n')
+        .replace(/<div>/g, '\n')
+        .replace(/<br>/g, '\n')
+        .replace(/<b>(.*?)<\/b>/g, '*$1*')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+    if (!message) {
+        showNotification('אנא הכנס הודעה', 'error');
+        return;
+    }
+
+    // מניעת שליחה כפולה
+    if (isSendingWarehouseMessage) {
+        showNotification('שליחה בתהליך, אנא המתן...', 'info');
+        return;
+    }
+
+    // עדכון מצב הכפתור
+    isSendingWarehouseMessage = true;
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
+    showNotification('שולח הודעה...', 'info');
+    
+    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            message,
+            groupId: "120363314468223287@g.us" // קבוצת המחסן
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        return response.json();
+    })
+    .then(() => {
+        showNotification('✅ ההודעה נשלחה בהצלחה!', 'green');
+        closeWhatsAppWarehouseModal();
+        // שמירת ההודעה האחרונה שנשלחה
+        lastSentWarehouseMessage = currentMessage;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+    })
+    .finally(() => {
+        isSendingWarehouseMessage = false;
+        sendButton.disabled = false;
+        sendButton.innerHTML = 'שלח לוואטסאפ';
+    });
+}
+
+function confirmWarehouseResend() {
+    if (pendingWarehouseMessage) {
+        lastSentWarehouseMessage = null;
+        const waEditable = document.getElementById('waEditableWarehouse');
+        if (waEditable) {
+            waEditable.innerHTML = pendingWarehouseMessage;
+            sendWhatsAppWarehouseMessage();
+        }
+        closeDuplicateWarehouseModal();
+    }
+}
+
+// הוספת מאזינים למודל מחסן
+window.addEventListener('DOMContentLoaded', function() {
+    lastSentWarehouseMessage = null;
+    isSendingWarehouseMessage = false;
+    pendingWarehouseMessage = null;
+    
+    const warehouseModals = [
+        'whatsappWarehouseModal',
+        'duplicateWarehouseModal'
+    ];
+    warehouseModals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    });
+    
+    // סגירת מודל מחסן בלחיצה על overlay
+    const warehouseModal = document.getElementById('whatsappWarehouseModal');
+    if (warehouseModal) {
+        warehouseModal.addEventListener('mousedown', function(e) {
+            if (e.target === warehouseModal) {
+                closeWhatsAppWarehouseModal();
+            }
+        });
+    }
+});

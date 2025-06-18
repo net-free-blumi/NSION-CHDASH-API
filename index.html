@@ -977,8 +977,10 @@ background-color: #c1232324;}
       <!-- <button id="copyFruitsButton" onclick="copyFruitSummary()">העתק סיכום פירות</button> -->
       <!-- <button id="copyBakeryButton" onclick="copyBakerySummary()">העתק סיכום קונדיטוריה</button> -->
       <button id="whatsappBakeryButton" onclick="openWhatsAppBakeryModal()">שליחת סיכום קונדיטוריה</button>
-      <button id="copyWarehouseButton" onclick="copyWarehouseSummary()">העתק סיכום מחסן</button>
-      <button id="copySushiButton" onclick="copySushiSummary()">העתק סיכום סושי</button>
+      <button id="whatsappWarehouseButton" onclick="openWhatsAppWarehouseModal()">שליחת סיכום מחסן</button>
+      <!-- <button id="copyWarehouseButton" onclick="copyWarehouseSummary()">העתק סיכום מחסן</button> -->
+      <!-- <button id="copySushiButton" onclick="copySushiSummary()">העתק סיכום סושי</button> -->
+      <button id="whatsappSushiButton" onclick="openWhatsAppSushiModal()">שליחת סיכום סושי</button>
       <!-- <button id="copyAmarButton" onclick="copyAmarSummary()">סיכום קונדיטוריית עמר</button> -->
       <button id="whatsappAmarButton" onclick="openWhatsAppAmarModal()">שליחת סיכום קונדיטוריית עמר</button>
       <div id="tacton">האתר נבנה ועוצב על ידי מוישי ב  | mchb0556706325@gmail.com | 0515157166</div>
@@ -1131,6 +1133,66 @@ background-color: #c1232324;}
   </div>
 </div>
    
+
+
+<!-- Sushi WhatsApp Modal -->
+<div id="whatsappSushiModal" class="modal" style="display: none;">
+  <div class="modal-content wa-modal-content">
+      <span class="close" onclick="closeWhatsAppSushiModal()">&times;</span>
+      <h2>שליחת סיכום סושי לוואטסאפ </h2>
+      <div>שימו לב זה לא מתייג את אבי באופן אוטומטי נא לתייג ידני בקבוצה</div>
+      <br>
+      <div id="waEditableSushi" class="wa-preview wa-editable" contenteditable="true" spellcheck="false"></div>
+      <div class="modal-buttons">
+          <button onclick="sendWhatsAppSushiMessage()" class="send-sushi-btn">שלח לוואטסאפ</button>
+          <button onclick="copySushiSummary()" class="copy-btn">העתק סיכום</button>
+          <button onclick="closeWhatsAppSushiModal()" class="cancel-btn">ביטול</button>
+      </div>
+  </div>
+</div>
+
+<!-- מודל אישור שליחה כפולה לסושי -->
+<div id="duplicateSushiModal" class="modal" style="display: none;">
+  <div class="modal-content confirmation-modal">
+      <div class="confirmation-icon">⚠️</div>
+      <h3>שליחה חוזרת</h3>
+      <p>ההודעה כבר נשלחה בעבר. האם אתה בטוח שברצונך לשלוח שוב?</p>
+      <div class="confirmation-buttons">
+          <button onclick="confirmSushiResend()" class="confirm-btn">כן, שלח שוב</button>
+          <button onclick="closeDuplicateSushiModal()" class="cancel-btn">ביטול</button>
+      </div>
+  </div>
+</div>
+
+
+
+<!-- Warehouse WhatsApp Modal -->
+<div id="whatsappWarehouseModal" class="modal" style="display: none;">
+  <div class="modal-content wa-modal-content">
+      <span class="close" onclick="closeWhatsAppWarehouseModal()">&times;</span>
+      <h2>שליחת סיכום מחסן לוואטסאפ</h2>
+      <div id="waEditableWarehouse" class="wa-preview wa-editable" contenteditable="true" spellcheck="false"></div>
+      <div class="modal-buttons">
+          <button onclick="sendWhatsAppWarehouseMessage()" class="send-warehouse-btn">שלח לוואטסאפ</button>
+          <button onclick="copyWarehouseSummary()" class="copy-btn">העתק סיכום</button>
+          <button onclick="closeWhatsAppWarehouseModal()" class="cancel-btn">ביטול</button>
+      </div>
+  </div>
+</div>
+
+<!-- מודל אישור שליחה כפולה למחסן -->
+<div id="duplicateWarehouseModal" class="modal" style="display: none;">
+  <div class="modal-content confirmation-modal">
+      <div class="confirmation-icon">⚠️</div>
+      <h3>שליחה חוזרת</h3>
+      <p>ההודעה כבר נשלחה בעבר. האם אתה בטוח שברצונך לשלוח שוב?</p>
+      <div class="confirmation-buttons">
+          <button onclick="confirmWarehouseResend()" class="confirm-btn">כן, שלח שוב</button>
+          <button onclick="closeDuplicateWarehouseModal()" class="cancel-btn">ביטול</button>
+      </div>
+  </div>
+</div>
+
 
     <style>
         /* סגנונות קיימים */
@@ -3022,6 +3084,101 @@ function getFruitItems() {
         });
 }
 
+
+
+// פונקציה לפתיחת מודל וואטסאפ עבור מחסן
+function openWhatsAppWarehouseModal() {
+    const modal = document.getElementById('whatsappWarehouseModal');
+    const waEditable = document.getElementById('waEditableWarehouse');
+    
+    if (!modal || !waEditable) {
+        console.error('Modal elements not found!');
+        return;
+    }
+
+    const warehouseList = document.getElementById("warehouseList");
+    const orderDate = new Date(document.getElementById("orderDate").value);
+    const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+    const dayName = days[orderDate.getDay()];
+    const orderTime = document.getElementById("orderTime").value;
+
+    // התחלת הסיכום
+    let summary = `*ליום ${dayName} עד השעה: ${orderTime}*\nמארי\n\n`;
+    
+    // סיכום של כל הכמויות
+    let pranutTotal = 0;
+    let warehouseItemsSummary = [];
+
+    // מקבל את כל הפריטים ברשימת המחסן
+    const warehouseItems = Array.from(warehouseList.children);
+
+    // חישוב הכמויות מהמחסן
+    warehouseItems.forEach(item => {
+        const productCodeElement = item.querySelector(".product-code");
+        const itemText = item.querySelector("span").textContent;
+        if (productCodeElement) {
+            warehouseItemsSummary.push(itemText.replace(/\(מק"ט: \d+\)/g, '').trim());
+        }
+    });
+
+    // חישוב כמות הפרנות ממגש ניגוב למתקדמים
+    const kitchenList = document.getElementById("kitchenList");
+    const kitchenItems = Array.from(kitchenList.children);
+    kitchenItems.forEach(item => {
+        const productCodeElement = item.querySelector(".product-code");
+        if (productCodeElement) {
+            const productCode = productCodeElement.textContent.match(/מק"ט: (\d+)/)?.[1];
+            if (productCode === "12602") {
+                const itemText = item.querySelector("span").textContent;
+                const match = itemText.match(/(\d+)\s*מגש/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    pranutTotal += trays * 6; // כל מגש = 6 פרנות
+                }
+            }
+        }
+    });
+
+    // בדיקה אם יש מוצרים במחסן או פרנות
+    if (warehouseItemsSummary.length === 0 && pranutTotal === 0) {
+        showNotification("אין מוצרים במחסן.", "red");
+        return;
+    }
+
+    // הוספת פרטי המוצרים מהמחסן לסיכום
+    if (warehouseItemsSummary.length > 0) {
+        summary += `${warehouseItemsSummary.join("\n")}\n\n`;
+    }
+
+    // הוספת סיכום הפרנות אם יש
+    if (pranutTotal > 0) {
+        summary += `${pranutTotal} יח' פרנה מיני\n\n`;
+    }
+
+    // הוספת מספר ההזמנה לסיכום
+    const orderNumber = document.getElementById("orderNumber").value;
+    summary += `(הזמנה מס' *${orderNumber}*)`;
+
+    // המרה ל-HTML והצגה במודל
+    const htmlSummary = summary
+        .replace(/\*([^*]+)\*/g, '<b>$1</b>')
+        .replace(/\n/g, '<br>');
+    
+    waEditable.innerHTML = htmlSummary;
+    modal.style.display = 'block';
+    waEditable.focus();
+    
+    // שמירת המידע על הסיכום הנוכחי
+    window.currentWhatsAppSummary = {
+        type: "warehouse",
+        text: summary,
+        orderNumber: orderNumber
+    };
+}
+
+
+
+
 function copySushiSummary() {
     const orderNumber = localStorage.getItem("orderNumber") || "";
     const orderDate = localStorage.getItem("orderDate") || "";
@@ -3033,7 +3190,7 @@ function copySushiSummary() {
         .map(li => li.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, '').trim());
 
     if (sushiItems.length > 0) {
-        const sushiSummary = `היי @\n
+const sushiSummary = `היי @אבי\n
 אשמח לקבל
 
 ${sushiItems.map(item => `● ${item}`).join('\n\n')}
@@ -3055,6 +3212,59 @@ ${sushiItems.map(item => `● ${item}`).join('\n\n')}
         showNotification("אין פריטי סושי בהזמנה.", "red");
     }
 }
+
+
+// פונקציה לפתיחת מודל וואטסאפ עבור סושי
+function openWhatsAppSushiModal() {
+    const modal = document.getElementById('whatsappSushiModal');
+    const waEditable = document.getElementById('waEditableSushi');
+    
+    if (!modal || !waEditable) {
+        console.error('Modal elements not found!');
+        return;
+    }
+
+    const orderNumber = localStorage.getItem("orderNumber") || "";
+    const orderDate = localStorage.getItem("orderDate") || "";
+    const orderDay = getDayOfWeek(orderDate);
+    const orderTime = document.getElementById("orderTime").value;
+  
+    // מקבל את כל פריטי הסושי
+    const sushiItems = Array.from(document.getElementById("sushiList").children)
+        .map(li => li.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, '').trim());
+
+    if (sushiItems.length > 0) {
+const sushiSummary = `היי @אבי\n
+${sushiItems.map(item => `● ${item}`).join('\n\n')}
+
+שיגיע אליי *ביום ${orderDay}* עד השעה: *${orderTime}*
+
+(הזמנה מס' *${orderNumber}*)`;
+
+        // המרה ל-HTML והצגה במודל
+        const htmlSummary = sushiSummary
+            .replace(/\*([^*]+)\*/g, '<b>$1</b>')
+            .replace(/\n/g, '<br>');
+        
+        waEditable.innerHTML = htmlSummary;
+        modal.style.display = 'block';
+        waEditable.focus();
+        
+        // שמירת המידע על הסיכום הנוכחי
+        window.currentWhatsAppSummary = {
+            type: "sushi",
+            text: sushiSummary,
+            orderNumber: orderNumber
+        };
+    } else {
+        showNotification("אין פריטי סושי בהזמנה.", "red");
+    }
+}
+
+
+
+
+
 
       function toggleQuantitySize() {
     const quantityDiv = document.getElementById("quantityDiv");
