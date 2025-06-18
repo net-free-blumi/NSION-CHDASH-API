@@ -32,8 +32,8 @@ const BASE_URL = `https://7105.api.greenapi.com/waInstance${INSTANCE_ID}`;
 
 // קבוצות וואטסאפ
 const GROUPS = {
-    CONDITORIA: "120363414923943659@g.us",
-    FRUITS: "120363314468223287@g.us"
+    CONDITORIA: "120363314468223287@g.us", //קונדיטורייה
+    FRUITS: "120363314468223287@g.us" //פירות
 };
 
 // Function to check message status

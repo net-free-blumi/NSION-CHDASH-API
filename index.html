@@ -974,11 +974,13 @@ background-color: #c1232324;}
       <!-- <button id="copyButton" onclick="copySummary()">העתק סיכום הזמנה</button> -->
       <button id="whatsappButton" onclick="openWhatsAppModal()">שליחת והעתקה סיכום כללי</button>
       <button id="whatsappFruitsButton" onclick="openWhatsAppFruitsModal()">שליחת סיכום פירות</button>
-      <button id="copyFruitsButton" onclick="copyFruitSummary()">העתק סיכום פירות</button>
-      <button id="copyBakeryButton" onclick="copyBakerySummary()">העתק סיכום קונדיטוריה</button>
+      <!-- <button id="copyFruitsButton" onclick="copyFruitSummary()">העתק סיכום פירות</button> -->
+      <!-- <button id="copyBakeryButton" onclick="copyBakerySummary()">העתק סיכום קונדיטוריה</button> -->
+      <button id="whatsappBakeryButton" onclick="openWhatsAppBakeryModal()">שליחת סיכום קונדיטוריה</button>
       <button id="copyWarehouseButton" onclick="copyWarehouseSummary()">העתק סיכום מחסן</button>
       <button id="copySushiButton" onclick="copySushiSummary()">העתק סיכום סושי</button>
-      <button id="copyAmarButton" onclick="copyAmarSummary()">סיכום קונדיטוריית עמר</button>
+      <!-- <button id="copyAmarButton" onclick="copyAmarSummary()">סיכום קונדיטוריית עמר</button> -->
+      <button id="whatsappAmarButton" onclick="openWhatsAppAmarModal()">שליחת סיכום קונדיטוריית עמר</button>
       <div id="tacton">האתר נבנה ועוצב על ידי מוישי ב  | mchb0556706325@gmail.com | 0515157166</div>
     </div>
 
@@ -1051,6 +1053,84 @@ background-color: #c1232324;}
             </div>
         </div>
     </div>
+
+
+
+
+ <!-- Bakery WhatsApp Modal -->
+  <div id="whatsappBakeryModal" class="modal" style="display: none;">
+      <div class="modal-content wa-modal-content">
+          <span class="close" onclick="closeWhatsAppBakeryModal()">&times;</span>
+          <h2>שליחת סיכום קונדיטוריה לוואטסאפ</h2>
+          <div id="waEditableBakery" class="wa-preview wa-editable" contenteditable="true" spellcheck="false"></div>
+          <div class="modal-buttons">
+              <button onclick="sendWhatsAppBakeryMessage()" class="send-bakery-btn">שלח לוואטסאפ</button>
+              <button onclick="copyBakerySummary()" class="copy-btn">העתק סיכום</button>
+              <button onclick="closeWhatsAppBakeryModal()" class="cancel-btn">ביטול</button>
+          </div>
+      </div>
+  </div>
+
+
+
+<!-- מודל אישור שליחה כפולה לקונדיטוריה -->
+<div id="duplicateBakeryModal" class="modal" style="display: none;">
+    <div class="modal-content confirmation-modal">
+        <div class="confirmation-icon">⚠️</div>
+        <h3>שליחה חוזרת</h3>
+        <p>ההודעה כבר נשלחה בעבר. האם אתה בטוח שברצונך לשלוח שוב?</p>
+        <div class="confirmation-buttons">
+            <button onclick="confirmBakeryResend()" class="confirm-btn">כן, שלח שוב</button>
+            <button onclick="closeDuplicateBakeryModal()" class="cancel-btn">ביטול</button>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+    <!-- מודל אישור שליחה כפולה לקונדיטוריה -->
+    <div id="duplicateBakeryModal" class="modal" style="display: none;">
+        <div class="modal-content confirmation-modal">
+            <div class="confirmation-icon">⚠️</div>
+            <h3>שליחה חוזרת</h3>
+            <p>ההודעה כבר נשלחה בעבר. האם אתה בטוח שברצונך לשלוח שוב?</p>
+            <div class="confirmation-buttons">
+                <button onclick="confirmBakeryResend()" class="confirm-btn">כן, שלח שוב</button>
+                <button onclick="closeDuplicateBakeryModal()" class="cancel-btn">ביטול</button>
+            </div>
+        </div>
+    </div>
+<!-- Amar WhatsApp Modal -->
+<div id="whatsappAmarModal" class="modal" style="display: none;">
+  <div class="modal-content wa-modal-content">
+      <span class="close" onclick="closeWhatsAppAmarModal()">&times;</span>
+      <h2>שליחת סיכום קונדיטוריית עמר לוואטסאפ</h2>
+      <div id="waEditableAmar" class="wa-preview wa-editable" contenteditable="true" spellcheck="false"></div>
+      <div class="modal-buttons">
+          <button onclick="sendWhatsAppAmarMessage()" class="send-amar-btn">שלח לוואטסאפ</button>
+          <button onclick="copyAmarSummary()" class="copy-btn">העתק סיכום</button>
+          <button onclick="closeWhatsAppAmarModal()" class="cancel-btn">ביטול</button>
+      </div>
+  </div>
+</div>
+
+
+<!-- מודל אישור שליחה כפולה לעמר -->
+<div id="duplicateAmarModal" class="modal" style="display: none;">
+  <div class="modal-content confirmation-modal">
+      <div class="confirmation-icon">⚠️</div>
+      <h3>שליחה חוזרת</h3>
+      <p>ההודעה כבר נשלחה בעבר. האם אתה בטוח שברצונך לשלוח שוב?</p>
+      <div class="confirmation-buttons">
+          <button onclick="confirmAmarResend()" class="confirm-btn">כן, שלח שוב</button>
+          <button onclick="closeDuplicateAmarModal()" class="cancel-btn">ביטול</button>
+      </div>
+  </div>
+</div>
+   
 
     <style>
         /* סגנונות קיימים */
@@ -2558,6 +2638,218 @@ function refreshAmarSummary() {
     summary += `(הזמנה מס' *${orderNumber}*)`;
     document.getElementById("amarSummaryDisplay").innerText = summary;
 }
+
+
+// פונקציה לפתיחת מודל וואטסאפ עבור קונדיטוריית עמר
+function openWhatsAppAmarModal() {
+    const modal = document.getElementById('whatsappAmarModal');
+    const waEditable = document.getElementById('waEditableAmar');
+    
+    if (!modal || !waEditable) {
+        console.error('Modal elements not found!');
+        return;
+    }
+
+    const amarList = document.getElementById("amarList");
+    const orderDate = new Date(document.getElementById("orderDate").value);
+    const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+    const dayName = days[orderDate.getDay()];
+    const orderTime = document.getElementById("orderTime").value;
+    
+    // התחלת הסיכום
+    let summary = `*ליום ${dayName} עד השעה: ${orderTime}*\n\n`;
+    
+    // חישוב כמות הקרואסונים, ג'בטה וגריסיני
+    let corassonTotal = 0;
+    let jabettaTotal = 0;
+    let grisiniTotal = 0;
+    let focacciaTotal = 0;
+    let bakeryTotal = 0; // משתנה חדש למאפי בוקר
+    let finukimTotal = 0; // משתנה חדש לבורקסים
+
+    
+    const allLists = document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li");
+    
+    // בדיקה אם יש מוצרים מקונדיטוריית עמר
+    let hasAmarProducts = false;
+    const amarProductCodes = ["12626", "12408", "12409", "12622", "12624", "13473", "410", "415"]; // מוצרים רגילים של עמר + מגש מאפי פינוקים
+  
+    // בדיקה אם יש מוצרים ששייכים לעמר
+    allLists.forEach(item => {
+        const productCodeElement = item.querySelector(".product-code");
+        if (productCodeElement) {
+            const productCode = productCodeElement.textContent.match(/מק"ט: (\d+)/)?.[1];
+            if (amarProductCodes.includes(productCode) || bisProducts.includes(productCode)) {
+                hasAmarProducts = true;
+            }
+        }
+    });
+
+    // בדיקה אם יש מוצרים בכלל
+    if (!hasAmarProducts && amarList.children.length === 0) {
+        showNotification("אין מוצרי קונדיטוריית עמר בהזמנה.", "red");
+        return;
+    }
+
+    // קודם כל מחשב את הקרואסונים והג'בטה
+    // חישוב הכמויות
+    
+    const corassonCodes = ["12626", "410", "415"];
+
+    // --- חישוב קרואסונים ---
+    allLists.forEach(item => {
+        const productCodeElement = item.querySelector(".product-code");
+        if (productCodeElement) {
+            const productCode = productCodeElement.textContent.match(/מק"ט: (\d+)/)?.[1];
+            const itemText = item.querySelector("span").textContent;
+
+            if (corassonCodes.includes(productCode)) {
+                // חפש גם 15 וגם 20 יחי'
+                let match = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'?/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    const unitsPerTray = parseInt(match[2]);
+                    corassonTotal += trays * unitsPerTray;
+                } else {
+                    // אם לא מצא, ברירת מחדל 15 יחי'
+                    match = itemText.match(/(\d+)\s*מגש/);
+                    if (match) {
+                        const trays = parseInt(match[1]);
+                        corassonTotal += trays * 15;
+                    }
+                }
+            } else if (productCode === "12409") {
+                const match = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    const unitsPerTray = parseInt(match[2]);
+                    jabettaTotal += trays * unitsPerTray;
+                }
+            } else if (productCode === "12408") {
+                const match = itemText.match(/(\d+)\s*מגש/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    grisiniTotal += trays * 13;
+                }
+            } else if (productCode === "12622") {
+                const match = itemText.match(/(\d+)\s*מגש/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    focacciaTotal += trays * 8;
+                }
+            } else if (productCode === "12624") {
+                const match = itemText.match(/(\d+)\s*מגש/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    bakeryTotal += trays * 9;
+                }
+            } else if (productCode === "13473") {
+                const match = itemText.match(/(\d+)\s*מגש/);
+                if (match) {
+                    const trays = parseInt(match[1]);
+                    finukimTotal += trays * 20;
+                }
+            }
+        }
+    });
+    // מוסיף את הקוראסונים לסיכום אם יש
+    if (corassonTotal > 0) {
+        summary += `● ${corassonTotal} קרואסון מיני\n\n`;
+    }
+    // מוסיף את הג'בטה לסיכום אם יש
+    if (jabettaTotal > 0) {
+        summary += `● ${jabettaTotal} ג'בטה מיני\n\n`;
+    }
+    // מוסיף את הגריסיני לסיכום אם יש
+    if (grisiniTotal > 0) {
+        summary += `● ${grisiniTotal} מקלות גריסני\n\n`;
+    }
+
+    // מוסיף את הפוקאצ'ות לסיכום אם יש
+    if (focacciaTotal > 0) {
+        summary += `● ${focacciaTotal} פוקאצות מ4 סוגים\n\n`;
+    }
+ // מוסיף את מאפי הבוקר לסיכום אם יש
+ if (bakeryTotal > 0) {
+        summary += `● ${bakeryTotal} יח' מאפי בוקר טריים של הבייקרי\n\n`;
+    }
+    // --- הוספת סיכום בורקס משולש עם תפו"א ---
+    if (finukimTotal > 0) {
+        summary += `● ${finukimTotal} בורקס תפו''א משולש מיני \n\n`;
+    }
+    window.finukimTotal = 0; // איפוס למניעת הצטברות בין קריאות
+
+    
+    // המשך הקוד הקיים...
+    const items = amarList.getElementsByTagName("li");
+    for (const item of items) {
+    let itemText = item.querySelector("span").textContent;
+    // מסיר את |BREAD_TYPE:...|
+    itemText = itemText.replace(/\|BREAD_TYPE:ביס (שומשום|בריוש|קמח מלא|דגנים|פרג|שחור|אדום-סלק|בריוש מלבן)\|/g, '').trim();
+    summary += `● ${itemText}\n\n`;
+}
+
+    // אובייקט לאחסון סיכום הכמויות לפי סוג ביס
+    const bisTypeTotals = {};
+
+    // בדיקה אם יש מוצרי ביס
+    // נוסיף גם את amarList ללולאה
+    const allBisLists = [
+        ...document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li"),
+        ...amarList.getElementsByTagName("li")
+    ];
+    allBisLists.forEach(item => {
+        const productCodeElement = item.querySelector(".product-code");
+        if (productCodeElement) {
+            const productCode = productCodeElement.textContent.match(/מק"ט: (\d+)/)?.[1];
+            if (bisProducts.includes(productCode)) {
+                // קח את הטקסט המקורי מה־data-attribute
+                const itemText = item.getAttribute('data-raw-summary') || item.querySelector("span").textContent;
+                const quantityMatch = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'\)/);
+                const breadTypeMatch = itemText.match(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג|שחור|אדום-סלק|בריוש מלבן))\|/);
+                if (quantityMatch && breadTypeMatch) {
+                    const numTrays = parseInt(quantityMatch[1]);
+                    const unitsPerTray = parseInt(quantityMatch[2]);
+                    const totalUnits = numTrays * unitsPerTray;
+                    const breadType = breadTypeMatch[1];
+                    if (bisTypeTotals[breadType]) {
+                        bisTypeTotals[breadType] += totalUnits;
+                    } else {
+                        bisTypeTotals[breadType] = totalUnits;
+                    }
+                }
+            }
+        }
+    });
+    
+    // הוספת סיכום הביסים המאוחד
+    Object.entries(bisTypeTotals).forEach(([breadType, total]) => {
+        summary += `● ${total} ${breadType}\n\n`;
+    });
+    
+    // הוספת מספר ההזמנה עם הדגשה לוואטסאפ
+    const orderNumber = document.getElementById("orderNumber").value;
+    summary += `(הזמנה מס' *${orderNumber}*)`;
+
+    // המרה ל-HTML והצגה במודל
+    const htmlSummary = summary
+        .replace(/\*([^*]+)\*/g, '<b>$1</b>')
+        .replace(/\n/g, '<br>');
+    
+    waEditable.innerHTML = htmlSummary;
+    modal.style.display = 'block';
+    waEditable.focus();
+    
+    // שמירת המידע על הסיכום הנוכחי
+    window.currentWhatsAppSummary = {
+        type: "amar",
+        text: summary,
+        orderNumber: orderNumber
+    };
+}
+
+
+
 
       function copyFruitSummary() {
     const orderNumber = localStorage.getItem("orderNumber") || "";
@@ -5248,4 +5540,10 @@ function openWhatsAppFruitsModal() {
 
     
   </body>
+</html>
+ 
+
+    
+  </body>
+</html>
 </html>

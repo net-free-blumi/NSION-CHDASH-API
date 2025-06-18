@@ -78,7 +78,7 @@ function openWhatsAppModal() {
         }
     });
     if (temperature) {
-        message += `\n<b>הערות:</b> <b>\"${temperature}\"</b>\n`;
+        message += `\n<b>הערות:</b> <b>"${temperature}"</b>\n`;
     }
     // ניקוי רווחים מיותרים בסוף כל שורה ובסוף ההודעה
     message = message.split('\n').map(line => line.replace(/\s+$/g, '').replace(/\s{2,}/g, ' ')).join('\n').trim();
@@ -373,16 +373,13 @@ function openWhatsAppFruitsModal() {
     const fruitItems = getFruitItems();
 
     if (fruitItems.length > 0) {
-        const fruitSummary = `
-*ליום ${orderDay} עד השעה: ${orderTime}*
-
-מיהודה
-
-${fruitItems.join('\n')}
-
-(הזמנה מס' *${orderNumber}*)`;
+        const fruitSummary = `*ליום ${orderDay} עד השעה: ${orderTime}*\n\nמיהודה\n\n${fruitItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
         
-        waEditable.innerHTML = fruitSummary.trim().replace(/\n/g, '<br>');
+        // המרה ל-HTML עם הדגשות נכונות לוואטסאפ
+        const htmlSummary = fruitSummary
+            .replace(/\*([^*]+)\*/g, '<b>$1</b>')
+            .replace(/\n/g, '<br>');
+        waEditable.innerHTML = htmlSummary;
         modal.style.display = 'block';
         waEditable.focus();
     } else {
@@ -502,6 +499,292 @@ function confirmFruitsResend() {
         }
         
         closeDuplicateFruitsModal();
+    }
+}
+
+// משתנים גלובליים למעקב אחר הודעות קונדיטוריה
+let lastSentBakeryMessage = null;
+let isSendingBakeryMessage = false;
+let pendingBakeryMessage = null;
+
+// איפוס המשתנים בטעינת הדף
+window.addEventListener('DOMContentLoaded', function() {
+    lastSentBakeryMessage = null;
+    isSendingBakeryMessage = false;
+    pendingBakeryMessage = null;
+    // ... existing code ...
+    const bakeryModals = [
+        'whatsappBakeryModal',
+        'duplicateBakeryModal'
+    ];
+    bakeryModals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    });
+});
+
+function openWhatsAppBakeryModal() {
+    const modal = document.getElementById('whatsappBakeryModal');
+    const waEditable = document.getElementById('waEditableBakery');
+    if (!modal || !waEditable) {
+        console.error('Modal elements not found!');
+        return;
+    }
+    const orderNumber = localStorage.getItem("orderNumber") || "";
+    const orderDate = localStorage.getItem("orderDate") || "";
+    const orderDay = getDayOfWeek(orderDate);
+    const orderTime = document.getElementById("orderTime").value;
+    const bakeryItems = Array.from(document.getElementById("bakeryList").children)
+        .map(li => li.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, '').trim());
+    if (bakeryItems.length > 0) {
+        const bakerySummary = `*ליום ${orderDay} עד השעה: ${orderTime}*\n\nמיהודה\n\n${bakeryItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
+        // המרה ל-HTML עם הדגשות נכונות לוואטסאפ
+        const htmlSummary = bakerySummary
+            .replace(/\*([^*]+)\*/g, '<b>$1</b>')
+            .replace(/\n/g, '<br>');
+        waEditable.innerHTML = htmlSummary;
+        modal.style.display = 'block';
+        waEditable.focus();
+    } else {
+        showNotification("אין פריטי קונדיטוריה בהזמנה.", "red");
+    }
+}
+
+function closeWhatsAppBakeryModal() {
+    const modal = document.getElementById('whatsappBakeryModal');
+    if (modal) {
+        modal.style.display = "none";
+    }
+}
+
+function showDuplicateBakeryModal() {
+    const modal = document.getElementById("duplicateBakeryModal");
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function closeDuplicateBakeryModal() {
+    const modal = document.getElementById("duplicateBakeryModal");
+    if (modal) {
+        modal.style.display = 'none';
+        pendingBakeryMessage = null;
+    }
+}
+
+function sendWhatsAppBakeryMessage() {
+    const waEditable = document.getElementById('waEditableBakery');
+    const sendButton = document.querySelector('.send-bakery-btn');
+    if (!waEditable) {
+        showNotification('שגיאה: לא נמצא אזור עריכה', 'red');
+        return;
+    }
+    const currentMessage = waEditable.innerHTML;
+    if (lastSentBakeryMessage === currentMessage && lastSentBakeryMessage !== null) {
+        pendingBakeryMessage = currentMessage;
+        showDuplicateBakeryModal();
+        return;
+    }
+    let message = waEditable.innerHTML
+        .replace(/<br><br>/g, '\n\n')
+        .replace(/<div>/g, '\n')
+        .replace(/<br>/g, '\n')
+        .replace(/<b>(.*?)<\/b>/g, '*$1*')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    if (!message) {
+        showNotification('אנא הכנס הודעה', 'error');
+        return;
+    }
+    if (isSendingBakeryMessage) {
+        showNotification('שליחה בתהליך, אנא המתן...', 'info');
+        return;
+    }
+    isSendingBakeryMessage = true;
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
+    showNotification('שולח הודעה...', 'info');
+    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            message,
+            groupId: "120363314468223287@g.us" // קבוצת הקונדיטוריה
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        return response.json();
+    })
+    .then(() => {
+        showNotification('✅ ההודעה נשלחה בהצלחה!', 'green');
+        closeWhatsAppBakeryModal();
+        lastSentBakeryMessage = currentMessage;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+    })
+    .finally(() => {
+        isSendingBakeryMessage = false;
+        sendButton.disabled = false;
+        sendButton.innerHTML = 'שלח לוואטסאפ';
+    });
+}
+
+function confirmBakeryResend() {
+    if (pendingBakeryMessage) {
+        lastSentBakeryMessage = null;
+        const waEditable = document.getElementById('waEditableBakery');
+        if (waEditable) {
+            waEditable.innerHTML = pendingBakeryMessage;
+            sendWhatsAppBakeryMessage();
+        }
+        closeDuplicateBakeryModal();
+    }
+}
+
+// סגירת מודל קונדיטוריה בלחיצה על overlay
+window.addEventListener('DOMContentLoaded', function() {
+    const bakeryModal = document.getElementById('whatsappBakeryModal');
+    if (bakeryModal) {
+        bakeryModal.addEventListener('mousedown', function(e) {
+            if (e.target === bakeryModal) {
+                closeWhatsAppBakeryModal();
+            }
+        });
+    }
+});
+
+// משתנים גלובליים למעקב אחר הודעות עמר
+let lastSentAmarMessage = null;
+let isSendingAmarMessage = false;
+let pendingAmarMessage = null;
+
+window.addEventListener('DOMContentLoaded', function() {
+    lastSentAmarMessage = null;
+    isSendingAmarMessage = false;
+    pendingAmarMessage = null;
+    const amarModals = [
+        'whatsappAmarModal',
+        'duplicateAmarModal'
+    ];
+    amarModals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    });
+    // סגירת מודל עמר בלחיצה על overlay
+    const amarModal = document.getElementById('whatsappAmarModal');
+    if (amarModal) {
+        amarModal.addEventListener('mousedown', function(e) {
+            if (e.target === amarModal) {
+                closeWhatsAppAmarModal();
+            }
+        });
+    }
+});
+
+function closeWhatsAppAmarModal() {
+    const modal = document.getElementById('whatsappAmarModal');
+    if (modal) {
+        modal.style.display = "none";
+    }
+}
+
+function showDuplicateAmarModal() {
+    const modal = document.getElementById("duplicateAmarModal");
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function closeDuplicateAmarModal() {
+    const modal = document.getElementById("duplicateAmarModal");
+    if (modal) {
+        modal.style.display = 'none';
+        pendingAmarMessage = null;
+    }
+}
+
+function sendWhatsAppAmarMessage() {
+    const waEditable = document.getElementById('waEditableAmar');
+    const sendButton = document.querySelector('.send-amar-btn');
+    if (!waEditable) {
+        showNotification('שגיאה: לא נמצא אזור עריכה', 'red');
+        return;
+    }
+    const currentMessage = waEditable.innerHTML;
+    if (lastSentAmarMessage === currentMessage && lastSentAmarMessage !== null) {
+        pendingAmarMessage = currentMessage;
+        showDuplicateAmarModal();
+        return;
+    }
+    let message = waEditable.innerHTML
+        .replace(/<br><br>/g, '\n\n')
+        .replace(/<div>/g, '\n')
+        .replace(/<br>/g, '\n')
+        .replace(/<b>(.*?)<\/b>/g, '*$1*')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    if (!message) {
+        showNotification('אנא הכנס הודעה', 'error');
+        return;
+    }
+    if (isSendingAmarMessage) {
+        showNotification('שליחה בתהליך, אנא המתן...', 'info');
+        return;
+    }
+    isSendingAmarMessage = true;
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
+    showNotification('שולח הודעה...', 'info');
+    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            message,
+            groupId: "120363314468223287@g.us" // קבוצת עמר
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        return response.json();
+    })
+    .then(() => {
+        showNotification('✅ ההודעה נשלחה בהצלחה!', 'green');
+        closeWhatsAppAmarModal();
+        lastSentAmarMessage = currentMessage;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+    })
+    .finally(() => {
+        isSendingAmarMessage = false;
+        sendButton.disabled = false;
+        sendButton.innerHTML = 'שלח לוואטסאפ';
+    });
+}
+
+function confirmAmarResend() {
+    if (pendingAmarMessage) {
+        lastSentAmarMessage = null;
+        const waEditable = document.getElementById('waEditableAmar');
+        if (waEditable) {
+            waEditable.innerHTML = pendingAmarMessage;
+            sendWhatsAppAmarMessage();
+        }
+        closeDuplicateAmarModal();
     }
 }
 
