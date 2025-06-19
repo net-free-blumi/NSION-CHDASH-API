@@ -257,7 +257,7 @@ padding: 10px;
         border-radius: 5px;
         box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
         text-align: center;
-        z-index: 1000;
+        z-index: 99999;
         font-size: 16px;
         font-weight: bold;
       }
@@ -731,6 +731,36 @@ background-color: #c1232324;}
                 font-size: 18px;
             }
         }
+
+
+
+        .wa-preview {
+  background: linear-gradient(135deg, #eaffd0 60%, #c6f7b2 100%);
+  border: 1.5px solid #b2e59e;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px 0 #b2e59e33;
+  padding: 14px 18px;
+  font-size: 1.13em;
+  font-family: 'Varela Round', 'Rubik', 'Segoe UI', Arial, sans-serif;
+  color: #1a4d1a;
+  /* font-weight: 700; */
+  margin-bottom: 18px;
+  margin-top: 8px;
+  min-height: 44px;
+  max-height: 220px;
+  overflow-y: auto;
+  transition: box-shadow 0.2s;
+}
+.wa-preview:focus {
+  box-shadow: 0 4px 18px 0 #b2e59e66;
+  outline: none;
+}
+
+
+
+
+
+
     </style>
 
 
@@ -758,24 +788,7 @@ background-color: #c1232324;}
 
         <!-- הודעת העתקה שתופיע בחלק העליון -->
         <div
-          id="copyMessage"
-          style="
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #4caf50;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            font-size: 16px;
-            opacity: 0;
-            transition: all 0.5s ease-in-out;
-          "
-        >
+          id="copyMessage">
           הועתק בהצלחה!
         </div>
 
@@ -1327,9 +1340,34 @@ background-color: #c1232324;}
             word-break: break-word;
             outline: none;
         }
-    </style>
 
-    <style>
+        #copyMessage {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 99999 !important;
+  background: linear-gradient(135deg, #eaffd0 60%, #c6f7b2 100%);
+  color: #178a1c;
+  font-weight: bold;
+  font-size: 1.1em;
+  padding: 10px 28px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px 0 #b2e59e33;
+  min-width: 120px;
+  max-width: 90vw;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, top 0.3s;
+}
+#copyMessage.show {
+  opacity: 1;
+  pointer-events: auto;
+  top: 38px !important;
+}
+
+    
     .close {
         color: #222;
         float: left;
@@ -1344,12 +1382,10 @@ background-color: #c1232324;}
         transform: scale(1.18) rotate(-8deg);
         cursor: pointer;
     }
-</style>
 
-    <style>
 .copy-btn {
     background: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
-    color: #fff;
+    color: #dc0000;
     border: none;
     border-radius: 24px;
     padding: 10px 28px;
@@ -1366,44 +1402,7 @@ background-color: #c1232324;}
 }
 
 /* הודעות קופצות תמיד במרכז, עיצוב מודרני וידידותי */
-#copy-notification, #notification, #copyMessage {
-  z-index: 9999 !important;
-  position: fixed !important;
-  left: 50% !important;
-  top: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  display: none;
-  min-width: 80px;
-  max-width: 400px;
-  height: 40px;
-  padding: 4px 32px;
-  border-radius: 18px;
-  font-size: 16px;
-  font-family: 'Varela Round', 'Rubik', 'Segoe UI', Arial, sans-serif;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.13);
-  text-align: center;
-  opacity: 0.98;
-  pointer-events: none;
-  background: linear-gradient(135deg, #e1ffc7 60%, #b2e59e 100%);
-  color: #1a3d1a;
-  letter-spacing: 0.3px;
-  transition: transform 0.2s, box-shadow 0.2s;
-  line-height: 2.3;
-  white-space: pre-line;
-}
-#copy-notification.show, #notification.show, #copyMessage.show {
-  display: block !important;
-  animation: popIn 0.35s;
-}
-@keyframes popIn {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
-  80% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
-  100% { opacity: 0.98; transform: translate(-50%, -50%) scale(1); }
-}
-</style>
 
-<style>
   /* סגנון לאנימציית הטעינה */
   .loading-spinner {
     display: inline-block;
@@ -1429,18 +1428,27 @@ background-color: #c1232324;}
     cursor: not-allowed;
     opacity: 0.7;
   }
-</style>
 
-<style>
   /* עיצוב מודלים של וואטסאפ ושליחה כפולה */
   .modal {
-    display: none;
+    /* display: none;
     position: fixed;
     z-index: 1001;
     left: 0; top: 0; width: 100vw; height: 100vh;
     background: rgba(0,0,0,0.35);
     justify-content: center;
-    align-items: center;
+    align-items: center; */
+    position: fixed;
+  z-index: 9999;
+  left: 0; top: 0; right: 0; bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.35); /* רקע כהה */
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+
   }
   .modal[style*="display: block"] {
     display: flex !important;
@@ -1487,8 +1495,8 @@ background-color: #c1232324;}
   }
   .send-btn, .confirm-btn { background: #25D366; color: #fff; }
   .send-btn:hover, .confirm-btn:hover { background: #128C7E; }
-  .copy-btn { background: #f0f0f0; color: #333; }
-  .copy-btn:hover { background: #e0e0e0; }
+  .copy-btn { background: #16eb07; color: #333; }
+  .copy-btn:hover { background: #00720a; }
   .cancel-btn { background: #ff4444; color: #fff; }
   .cancel-btn:hover { background: #cc0000; }
   .confirmation-icon { font-size: 40px; margin-bottom: 10px; }
@@ -3467,13 +3475,6 @@ function addProduct() {
     }
 
   
-
-// ... existing code ...
-
-
-
-// ... existing code ...
-
      saveOrderDetails();
         resetFields();
         setTimeout(() => {
@@ -3482,7 +3483,7 @@ function addProduct() {
       }
 
       // פונקציה חדשה להסרת מוצר
-    // ... existing code ...
+  
 function removeProduct(button, category) {
     // מוצאים את אלמנט ה-li הקרוב ביותר לכפתור המחיקה
     const listItem = button.closest('li');
@@ -3491,7 +3492,7 @@ function removeProduct(button, category) {
         saveOrderDetails();
     }
 }
-// ... existing code ...
+
 
       // איפוס שדות לאחר הוספת מוצר
       function resetFields() {
@@ -5389,12 +5390,12 @@ function showCopyMessage() {
     const messageElement = document.getElementById("copyMessage");
     messageElement.style.display = "block";
     setTimeout(() => {
-        messageElement.style.top = "20px";
+        messageElement.style.top = "50%";
         messageElement.style.opacity = "1";
     }, 10);
 
     setTimeout(() => {
-        messageElement.style.top = "0";
+        messageElement.style.top = "50";
         messageElement.style.opacity = "0";
         setTimeout(() => {
             messageElement.style.display = "none";

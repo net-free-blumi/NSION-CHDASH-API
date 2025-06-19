@@ -53,7 +53,7 @@ function openWhatsAppModal() {
         showNotification("אין מוצרים בסיכום ההזמנה.", "red");
         return;
     }
-    let message = `<b>הזמנה מס: ${orderNumber}</b>\n<b>תאריך: ${formattedDate}</b>\n<b>שעה: ${orderTime}</b>\n`;
+    let message = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${formattedDate}*\n*שעה: ${orderTime}*\n`;
     let firstCategory = true;
     categories.forEach((category) => {
         const categoryItems = Array.from(document.getElementById(`${category}List`).children)
@@ -62,28 +62,30 @@ function openWhatsAppModal() {
                 text = text.replace(/\(מק"ט: \d+\)/g, '')
                           .replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג))\|/g, ' $1')
                           .replace(/\s{2,}/g, ' ')
+                          .replace(/\*([^*]+)\*/g, '$1') // מסיר כוכביות מהמוצרים עצמם
                           .trim();
                 return text;
             })
             .filter((text) => text.trim() !== "");
         if (categoryItems.length > 0) {
             // רווח שורה לפני כל כותרת קטגוריה
-            message += `\n<b>${getCategoryTitle(category)}:</b>\n`;
+            message += `\n*${getCategoryTitle(category)}:*\n`;
             // ריווח בין שורות רק במטבח
             if (category === 'kitchen') {
-                message += categoryItems.map(item => item).join("\n<br><br>") + "\n";
+                message += categoryItems.map(item => item).join("\n\n") + "\n";
             } else {
                 message += categoryItems.join("\n") + "\n";
             }
         }
     });
     if (temperature) {
-        message += `\n<b>הערות:</b> <b>"${temperature}"</b>\n`;
+        message += `\n*הערות:* *\"${temperature}\"*\n`;
     }
     // ניקוי רווחים מיותרים בסוף כל שורה ובסוף ההודעה
     message = message.split('\n').map(line => line.replace(/\s+$/g, '').replace(/\s{2,}/g, ' ')).join('\n').trim();
-    // המרה ל-html (הדגשה וכד')
-    waEditable.innerHTML = message.replace(/\n/g, '<br>');
+    // המרה ל-HTML והצגה במודל
+    const htmlSummary = message.replace(/\*([^*]+)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+    waEditable.innerHTML = htmlSummary;
     modal.style.display = 'block';
     waEditable.focus();
 }
@@ -128,6 +130,34 @@ window.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+
+
+
+window.addEventListener('click', function(event) {
+    const modals = {
+      'whatsappModal': closeWhatsAppModal,
+      'whatsappFruitsModal': closeWhatsAppFruitsModal,
+      'duplicateMessageModal': closeDuplicateModal,
+      'duplicateFruitsModal': closeDuplicateFruitsModal,
+      'whatsappBakeryModal': closeWhatsAppBakeryModal,
+      'duplicateBakeryModal': closeDuplicateBakeryModal,
+      'whatsappAmarModal': closeWhatsAppAmarModal,
+      'duplicateAmarModal': closeDuplicateAmarModal,
+      'whatsappSushiModal': closeWhatsAppSushiModal,
+      'duplicateSushiModal': closeDuplicateSushiModal,
+      'whatsappWarehouseModal': closeWhatsAppWarehouseModal,
+      'duplicateWarehouseModal': closeDuplicateWarehouseModal,
+      'whatsappGeneralModal': closeWhatsAppGeneralModal,
+      'duplicateGeneralModal': closeDuplicateGeneralModal
+    };
+    Object.entries(modals).forEach(([modalId, closeFunction]) => {
+      const modal = document.getElementById(modalId);
+      if (modal && event.target === modal) {
+        closeFunction();
+      }
+    });
+  });
 
 function sendWhatsAppMessage() {
     const waEditable = document.getElementById('waEditable');
@@ -248,9 +278,18 @@ window.onclick = function(event) {
         'whatsappModal': closeWhatsAppModal,
         'whatsappFruitsModal': closeWhatsAppFruitsModal,
         'duplicateMessageModal': closeDuplicateModal,
-        'duplicateFruitsModal': closeDuplicateFruitsModal
+        'duplicateFruitsModal': closeDuplicateFruitsModal,
+        'whatsappBakeryModal': closeWhatsAppBakeryModal,
+        'duplicateBakeryModal': closeDuplicateBakeryModal,
+        'whatsappAmarModal': closeWhatsAppAmarModal,
+        'duplicateAmarModal': closeDuplicateAmarModal,
+        'whatsappSushiModal': closeWhatsAppSushiModal,
+        'duplicateSushiModal': closeDuplicateSushiModal,
+        'whatsappWarehouseModal': closeWhatsAppWarehouseModal,
+        'duplicateWarehouseModal': closeDuplicateWarehouseModal,
+        'whatsappGeneralModal': closeWhatsAppGeneralModal,
+        'duplicateGeneralModal': closeDuplicateGeneralModal
     };
-    
     Object.entries(modals).forEach(([modalId, closeFunction]) => {
         const modal = document.getElementById(modalId);
         if (event.target === modal) {
@@ -1096,6 +1135,14 @@ function openWhatsAppGeneralModal() {
     const daySelect = document.getElementById('waDaySelect');
     if (!modal || !waEditable || !daySelect) return;
 
+    // בדיקה אם יש מוצרים בכלל
+    const categories = ['kitchen', 'bakery', 'online', 'warehouse'];
+    const hasProducts = categories.some(category => document.getElementById(`${category}List`).children.length > 0);
+    if (!hasProducts) {
+        showNotification("אין מוצרים בסיכום ההזמנה.", "red");
+        return;
+    }
+
     // ברירת מחדל לפי תאריך ההזמנה
     const orderDate = localStorage.getItem('orderDate') || '';
     let defaultDay = 'ראשון';
@@ -1110,8 +1157,7 @@ function openWhatsAppGeneralModal() {
     const orderDateFormatted = orderDate ? formatDateToDDMMYYYY(orderDate) : '';
     const orderTime = localStorage.getItem('orderTime') || '';
     const temperature = localStorage.getItem('temperature') || '';
-    const categories = ['kitchen', 'bakery', 'online', 'warehouse'];
-    let message = `<b>הזמנה מס: ${orderNumber}</b>\n<b>תאריך: ${orderDateFormatted}</b>\n<b>שעה: ${orderTime}</b>\n`;
+    let message = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${orderDateFormatted}*\n*שעה: ${orderTime}*\n`;
     categories.forEach((category) => {
         const categoryItems = Array.from(document.getElementById(`${category}List`).children)
             .map((li) => {
@@ -1119,23 +1165,29 @@ function openWhatsAppGeneralModal() {
                 text = text.replace(/\(מק\"ט: \d+\)/g, '')
                           .replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג))\|/g, ' $1')
                           .replace(/\s{2,}/g, ' ')
+                          .replace(/\*([^*]+)\*/g, '$1') // מסיר כוכביות מהמוצרים עצמם
                           .trim();
                 return text;
             })
             .filter((text) => text.trim() !== '');
         if (categoryItems.length > 0) {
-            message += `\n<b>${getCategoryTitle(category)}:</b>\n`;
+            // רווח שורה לפני כל כותרת קטגוריה
+            message += `\n*${getCategoryTitle(category)}:*\n`;
+            // ריווח בין שורות רק במטבח
             if (category === 'kitchen') {
-                message += categoryItems.map(item => item).join("\n<br><br>") + "\n";
+                message += categoryItems.map(item => item).join("\n\n") + "\n";
             } else {
                 message += categoryItems.join("\n") + "\n";
             }
         }
     });
     if (temperature) {
-        message += `\n<b>הערות:</b> <b>"${temperature}"</b>\n`;
+        message += `\n*הערות:* *\"${temperature}\"*\n`;
     }
+    // ניקוי רווחים מיותרים בסוף כל שורה ובסוף ההודעה
     message = message.split('\n').map(line => line.replace(/\s+$/g, '').replace(/\s{2,}/g, ' ')).join('\n').trim();
+    // המרה ל-html: כל טקסט בין כוכביות יהפוך ל-<b>
+    message = message.replace(/\*([^*]+)\*/g, '<b>$1</b>');
     waEditable.innerHTML = message.replace(/\n/g, '<br>');
     modal.style.display = 'block';
     waEditable.focus();
