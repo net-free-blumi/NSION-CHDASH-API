@@ -972,7 +972,9 @@ background-color: #c1232324;}
       </div>
       <!-- ליד הכפתורים הקיימים -->
       <!-- <button id="copyButton" onclick="copySummary()">העתק סיכום הזמנה</button> -->
-      <button id="whatsappButton" onclick="openWhatsAppModal()">שליחת והעתקה סיכום כללי</button>
+      <!-- <button id="whatsappButton" onclick="openWhatsAppModal()">שליחת והעתקה סיכום כללי</button> -->
+
+      <button id="whatsappGeneralButton" onclick="openWhatsAppGeneralModal()">שליחת סיכום הזמנה כללי</button>
       <button id="whatsappFruitsButton" onclick="openWhatsAppFruitsModal()">שליחת סיכום פירות</button>
       <!-- <button id="copyFruitsButton" onclick="copyFruitSummary()">העתק סיכום פירות</button> -->
       <!-- <button id="copyBakeryButton" onclick="copyBakerySummary()">העתק סיכום קונדיטוריה</button> -->
@@ -1189,6 +1191,35 @@ background-color: #c1232324;}
       <div class="confirmation-buttons">
           <button onclick="confirmWarehouseResend()" class="confirm-btn">כן, שלח שוב</button>
           <button onclick="closeDuplicateWarehouseModal()" class="cancel-btn">ביטול</button>
+      </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+<!-- WhatsApp General Modal -->
+<div id="whatsappGeneralModal" class="modal" style="display: none;">
+  <div class="modal-content wa-modal-content">
+      <span class="close" onclick="closeWhatsAppGeneralModal()">&times;</span>
+      <h2>שליחת סיכום הזמנה כללי לוואטסאפ</h2>
+      <label for="waDaySelect"><b>בחר יום לשליחה</b></label>
+      <select id="waDaySelect">
+          <option value="ראשון">יום ראשון</option>
+          <option value="שני">יום שני</option>
+          <option value="שלישי">יום שלישי</option>
+          <option value="רביעי">יום רביעי</option>
+          <option value="חמישי">יום חמישי</option>
+          <option value="שישי">יום שישי</option>
+      </select>
+      <div id="waEditableGeneral" class="wa-preview wa-editable" contenteditable="true" spellcheck="false"></div>
+      <div class="modal-buttons">
+          <button onclick="sendWhatsAppGeneralMessage()" class="send-general-btn">שלח לוואטסאפ</button>
+          <button onclick="copyGeneralSummary()" class="copy-btn">העתק סיכום</button>
+          <button onclick="closeWhatsAppGeneralModal()" class="cancel-btn">ביטול</button>
       </div>
   </div>
 </div>
@@ -1758,9 +1789,9 @@ background-color: #c1232324;}
     '12619': { type: 'size', defaultSize: 'large' },  // מגש רוסטביף מהמעשנה
     '12494': { type: 'size', defaultSize: 'large' },  // מגש עוגיות של הבייקרי
     '12451': { type: 'size', defaultSize: 'large' },  // מגש אנטיפסטי של ירקות העונה
-    '12611': { type: 'size', defaultSize: 'large' }, 
-    '12601': { type: 'size', defaultSize: 'large' }, 
-    '12482': { type: 'size', defaultSize: 'large' }, 
+    '12611': { type: 'size', defaultSize: 'large' },  // מגש מיני רוגלך שוקולד ובורקס תפו'א
+    '12601': { type: 'size', defaultSize: 'large' },  // מגש mix מיני כוסות מוס
+    '12482': { type: 'size', defaultSize: 'large' },  // מגש mix אקלרים
 
 
 
@@ -5473,6 +5504,11 @@ function getOrderItems() {
   ];
 }
 
+
+
+
+
+
 function resetInputStyles() {
     const radioContainers = document.querySelectorAll('.radio-container');
     radioContainers.forEach(container => {
@@ -5749,11 +5785,7 @@ function openWhatsAppFruitsModal() {
     </script>
 
     
-  </body>
-</html>
- 
 
     
   </body>
-</html>
 </html>

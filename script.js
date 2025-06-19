@@ -1073,3 +1073,219 @@ window.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+
+
+
+const whatsappGroupsByDay = {
+    'ראשון': '120363414923943659@g.us',
+    'שני': '120363414923943659@g.us',
+    'שלישי': '120363414923943659@g.us',
+    'רביעי': '120363414923943659@g.us',
+    'חמישי': '120363414923943659@g.us',
+    'שישי': '120363414923943659@g.us'
+};
+
+let lastSentGeneralMessage = null;
+let isSendingGeneralMessage = false;
+let pendingGeneralMessage = null;
+
+function openWhatsAppGeneralModal() {
+    const modal = document.getElementById('whatsappGeneralModal');
+    const waEditable = document.getElementById('waEditableGeneral');
+    const daySelect = document.getElementById('waDaySelect');
+    if (!modal || !waEditable || !daySelect) return;
+
+    // ברירת מחדל לפי תאריך ההזמנה
+    const orderDate = localStorage.getItem('orderDate') || '';
+    let defaultDay = 'ראשון';
+    if (orderDate) {
+        defaultDay = getDayOfWeek(orderDate);
+        if (!whatsappGroupsByDay[defaultDay]) defaultDay = 'ראשון';
+    }
+    daySelect.value = defaultDay;
+
+    // יצירת סיכום כללי בפורמט כמו הכפתור הקיים
+    const orderNumber = localStorage.getItem('orderNumber') || '';
+    const orderDateFormatted = orderDate ? formatDateToDDMMYYYY(orderDate) : '';
+    const orderTime = localStorage.getItem('orderTime') || '';
+    const temperature = localStorage.getItem('temperature') || '';
+    const categories = ['kitchen', 'bakery', 'online', 'warehouse'];
+    let message = `<b>הזמנה מס: ${orderNumber}</b>\n<b>תאריך: ${orderDateFormatted}</b>\n<b>שעה: ${orderTime}</b>\n`;
+    categories.forEach((category) => {
+        const categoryItems = Array.from(document.getElementById(`${category}List`).children)
+            .map((li) => {
+                let text = li.firstElementChild.textContent;
+                text = text.replace(/\(מק\"ט: \d+\)/g, '')
+                          .replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג))\|/g, ' $1')
+                          .replace(/\s{2,}/g, ' ')
+                          .trim();
+                return text;
+            })
+            .filter((text) => text.trim() !== '');
+        if (categoryItems.length > 0) {
+            message += `\n<b>${getCategoryTitle(category)}:</b>\n`;
+            if (category === 'kitchen') {
+                message += categoryItems.map(item => item).join("\n<br><br>") + "\n";
+            } else {
+                message += categoryItems.join("\n") + "\n";
+            }
+        }
+    });
+    if (temperature) {
+        message += `\n<b>הערות:</b> <b>"${temperature}"</b>\n`;
+    }
+    message = message.split('\n').map(line => line.replace(/\s+$/g, '').replace(/\s{2,}/g, ' ')).join('\n').trim();
+    waEditable.innerHTML = message.replace(/\n/g, '<br>');
+    modal.style.display = 'block';
+    waEditable.focus();
+
+    // סגירה בלחיצה מחוץ למודל
+    window.onclick = function(event) {
+        if (event.target === modal) {
+            closeWhatsAppGeneralModal();
+        }
+    };
+}
+
+function closeWhatsAppGeneralModal() {
+    const modal = document.getElementById('whatsappGeneralModal');
+    if (modal) modal.style.display = 'none';
+    window.onclick = null;
+}
+
+function sendWhatsAppGeneralMessage() {
+    const waEditable = document.getElementById('waEditableGeneral');
+    const daySelect = document.getElementById('waDaySelect');
+    const sendButton = document.querySelector('.send-general-btn');
+    if (!waEditable || !daySelect) return;
+    const selectedDay = daySelect.value;
+    const groupId = whatsappGroupsByDay[selectedDay];
+    let message = waEditable.innerHTML
+        .replace(/<br><br>/g, '\n\n')
+        .replace(/<div>/g, '\n')
+        .replace(/<br>/g, '\n')
+        .replace(/<b>(.*?)<\/b>/g, '*$1*')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    if (!message) {
+        showNotification('אנא הכנס הודעה', 'error');
+        return;
+    }
+    if (lastSentGeneralMessage === message && lastSentGeneralMessage !== null) {
+        pendingGeneralMessage = message;
+        showDuplicateGeneralModal();
+        return;
+    }
+    if (isSendingGeneralMessage) {
+        showNotification('שליחה בתהליך, אנא המתן...', 'info');
+        return;
+    }
+    isSendingGeneralMessage = true;
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
+    showNotification('שולח הודעה...', 'info');
+    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, groupId })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        return response.json();
+    })
+    .then(() => {
+        showNotification('✅ ההודעה נשלחה בהצלחה!', 'green');
+        closeWhatsAppGeneralModal();
+        lastSentGeneralMessage = message;
+    })
+    .catch(() => {
+        showNotification('שגיאה בשליחת ההודעה', 'red');
+    })
+    .finally(() => {
+        isSendingGeneralMessage = false;
+        sendButton.disabled = false;
+        sendButton.innerHTML = 'שלח לוואטסאפ';
+    });
+}
+
+function copyGeneralSummary() {
+    const waEditable = document.getElementById('waEditableGeneral');
+    if (!waEditable) return;
+    let message = waEditable.innerHTML
+        .replace(/<br><br>/g, '\n\n')
+        .replace(/<div>/g, '\n')
+        .replace(/<br>/g, '\n')
+        .replace(/<b>(.*?)<\/b>/g, '*$1*')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    navigator.clipboard.writeText(message).then(() => {
+        showNotification('הסיכום הועתק בהצלחה!', 'green');
+    }).catch(() => {
+        showNotification('שגיאה בהעתקת הסיכום', 'red');
+    });
+}
+
+// מודל למניעת שליחה כפולה
+function showDuplicateGeneralModal() {
+    let modal = document.getElementById('duplicateGeneralModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'duplicateGeneralModal';
+        modal.className = 'modal';
+        modal.style.display = 'block';
+        modal.innerHTML = `
+        <div class="modal-content confirmation-modal">
+            <div class="confirmation-icon">⚠️</div>
+            <h3>שליחה חוזרת</h3>
+            <p>ההודעה כבר נשלחה בעבר. האם אתה בטוח שברצונך לשלוח שוב?</p>
+            <div class="confirmation-buttons">
+                <button onclick="confirmGeneralResend()" class="confirm-btn">כן, שלח שוב</button>
+                <button onclick="closeDuplicateGeneralModal()" class="cancel-btn">ביטול</button>
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+    } else {
+        modal.style.display = 'block';
+    }
+}
+function closeDuplicateGeneralModal() {
+    const modal = document.getElementById('duplicateGeneralModal');
+    if (modal) modal.style.display = 'none';
+}
+function confirmGeneralResend() {
+    if (pendingGeneralMessage) {
+        lastSentGeneralMessage = null;
+        sendWhatsAppGeneralMessage();
+        closeDuplicateGeneralModal();
+    }
+}
+// פונקציה עזר: קבלת שם יום מהתאריך (אם לא קיימת)
+function getDayOfWeek(dateStr) {
+    const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+    const date = new Date(dateStr);
+    return days[date.getDay()];
+}
+// פונקציה עזר: כותרת קטגוריה
+function getCategoryTitle(category) {
+    switch (category) {
+        case 'kitchen': return 'מטבח';
+        case 'bakery': return 'קונדיטוריה';
+        case 'online': return 'אונליין';
+        case 'warehouse': return 'מחסן';
+        default: return '';
+    }
+}
+// פונקציה עזר: פורמט תאריך DD/MM/YYYY
+function formatDateToDDMMYYYY(dateString) {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+
+
