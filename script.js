@@ -1155,15 +1155,16 @@ function openWhatsAppGeneralModal() {
     // יצירת סיכום כללי בפורמט כמו הכפתור הקיים
     const orderNumber = localStorage.getItem('orderNumber') || '';
     const orderDateFormatted = orderDate ? formatDateToDDMMYYYY(orderDate) : '';
+    const orderDay = orderDate ? getDayOfWeek(orderDate) : '';
     const orderTime = localStorage.getItem('orderTime') || '';
     const temperature = localStorage.getItem('temperature') || '';
-    let message = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${orderDateFormatted}*\n*שעה: ${orderTime}*\n`;
+    let message = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${orderDateFormatted}${orderDay ? ' (יום ' + orderDay + ')' : ''}*\n*שעה: ${orderTime}*\n`;
     categories.forEach((category) => {
         const categoryItems = Array.from(document.getElementById(`${category}List`).children)
             .map((li) => {
                 let text = li.firstElementChild.textContent;
                 text = text.replace(/\(מק\"ט: \d+\)/g, '')
-                          .replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג))\|/g, ' $1')
+                          .replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג|שחור|אדום-סלק|בריוש מלבן))\|/g, ' $1')
                           .replace(/\s{2,}/g, ' ')
                           .replace(/\*([^*]+)\*/g, '$1') // מסיר כוכביות מהמוצרים עצמם
                           .trim();
@@ -1191,19 +1192,11 @@ function openWhatsAppGeneralModal() {
     waEditable.innerHTML = message.replace(/\n/g, '<br>');
     modal.style.display = 'block';
     waEditable.focus();
-
-    // סגירה בלחיצה מחוץ למודל
-    window.onclick = function(event) {
-        if (event.target === modal) {
-            closeWhatsAppGeneralModal();
-        }
-    };
 }
 
 function closeWhatsAppGeneralModal() {
     const modal = document.getElementById('whatsappGeneralModal');
     if (modal) modal.style.display = 'none';
-    window.onclick = null;
 }
 
 function sendWhatsAppGeneralMessage() {
@@ -1273,6 +1266,16 @@ function copyGeneralSummary() {
         .replace(/<[^>]+>/g, '')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
+    // הוספת היום בשבוע רק אם הוא לא קיים כבר
+    const orderDate = localStorage.getItem('orderDate') || '';
+    const orderDateFormatted = orderDate ? formatDateToDDMMYYYY(orderDate) : '';
+    const orderDay = orderDate ? getDayOfWeek(orderDate) : '';
+    if (orderDateFormatted && orderDay && !message.includes(`(יום ${orderDay})`)) {
+        message = message.replace(
+            /\*תאריך: ([^*]+)\*/,
+            `*תאריך: $1 (יום ${orderDay})*`
+        );
+    }
     navigator.clipboard.writeText(message).then(() => {
         showNotification('הסיכום הועתק בהצלחה!', 'green');
     }).catch(() => {
@@ -1337,6 +1340,19 @@ function formatDateToDDMMYYYY(dateString) {
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
+}
+
+function displayOrderInfo() {
+    const orderNumber = localStorage.getItem("orderNumber") || "";
+    const orderDate = localStorage.getItem("orderDate") || "";
+    const orderTime = localStorage.getItem("orderTime") || "";
+    const temperature = localStorage.getItem("temperature") || ""; // הצגת חם/קר
+    const formattedDate = orderDate ? formatDateToDDMMYYYY(orderDate) : "תאריך לא תקין";
+    const orderDay = orderDate ? getDayOfWeek(orderDate) : '';
+    document.getElementById("orderInfo").innerHTML = `<strong>הזמנה מס: ${orderNumber}</strong><br>
+                <strong>לתאריך: ${formattedDate}${orderDay ? ' (יום ' + orderDay + ')' : ''}</strong><br>
+                <strong>לשעה: ${orderTime}</strong>`;
+    document.getElementById("notesSummary").textContent = temperature ? `''${temperature}''` : '';
 }
 
 
