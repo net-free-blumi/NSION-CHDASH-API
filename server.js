@@ -1,16 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
-
-// Serve static files from the current directory
-app.use(express.static(__dirname));
 
 // Enable CORS with specific settings
 app.use(cors({
@@ -33,11 +25,6 @@ app.use((req, res, next) => {
 // Parse JSON bodies
 app.use(express.json());
 
-// Serve index.html for the root route
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
 // Green API configuration
 const INSTANCE_ID = '7105260862';
 const API_TOKEN = '19d4910c994a45a58d22d1d7cc5d7121fc1575fd6ac143b295';
@@ -49,14 +36,8 @@ const GROUPS = {
     FRUITS: "120363314468223287@g.us" //פירות
 };
 
-// רשימת מיילים מורשים לשליחה
-const allowedEmails = [
-    "BLUMI@GOLDYS.CO.IL",
-    "SERVICE@GOLDYS.CO.IL"
-  ];
-
 // Function to check message status
-async function checkMessageStatus(messageId) {
+async function checkMeageStatus(messageId) {
     try {
         const response = await fetch(`${BASE_URL}/getMessage/${API_TOKEN}/${messageId}`);
         const data = await response.json();
@@ -70,12 +51,6 @@ async function checkMessageStatus(messageId) {
 // Proxy endpoint
 app.post('/send-whatsapp', async (req, res) => {
     console.log('Received request:', req.body);
-    
-    // בדיקת הרשאה לפי מייל
-    const userEmail = req.body.userEmail;
-    if (!userEmail || !allowedEmails.includes(userEmail.toUpperCase())) {
-        return res.status(403).json({ error: 'Unauthorized: Email not allowed' });
-    }
     
     try {
         // קבלת מזהה הקבוצה מהבקשה
