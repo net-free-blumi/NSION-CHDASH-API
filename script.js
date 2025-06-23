@@ -1486,11 +1486,19 @@ window.addEventListener('DOMContentLoaded', function() {
     // חכה ל-Google API לטעון
     if (typeof google !== 'undefined' && google.accounts) {
         insertGoogleSignInButton();
+        // ניסיון שחזור התחברות אוטומטי
+        if (google.accounts.id) {
+            google.accounts.id.prompt();
+        }
     } else {
         // אם Google API לא נטען עדיין, חכה קצת ונסה שוב
         setTimeout(() => {
             if (typeof google !== 'undefined' && google.accounts) {
                 insertGoogleSignInButton();
+                // ניסיון שחזור התחברות אוטומטי
+                if (google.accounts.id) {
+                    google.accounts.id.prompt();
+                }
             }
         }, 1000);
     }
@@ -1537,10 +1545,9 @@ function requireValidLogin(fn) {
     
     // אם אין מייל או המייל לא מורשה
     if (!checkTokenValidity()) {
-      console.log('Token invalid, logging out');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('googleToken');
-      showNotification('התחברות פגה, יש להתחבר מחדש', 'red');
+      console.log('Token invalid, but keeping user logged in');
+      // אל תמחק את userEmail - תן למשתמש להישאר מחובר
+      showNotification('יש להתחבר מחדש כדי לשלוח הודעות', 'red');
       updateSignInUI && updateSignInUI();
       return;
     }
@@ -1589,9 +1596,8 @@ setInterval(() => {
   
   // אם אין מייל או המייל לא מורשה, בדוק טוקן
   if (isUserLoggedIn() && !checkTokenValidity()) {
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('googleToken');
-    showNotification('התחברות פגה, יש להתחבר מחדש', 'red');
+    // אל תמחק את userEmail - תן למשתמש להישאר מחובר
+    console.log('Token expired but keeping user logged in');
     updateSignInUI && updateSignInUI();
   }
 }, 5 * 60 * 1000);

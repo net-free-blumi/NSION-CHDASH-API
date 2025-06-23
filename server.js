@@ -1,8 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Serve static files from the current directory
+app.use(express.static(__dirname));
 
 // Enable CORS with specific settings
 app.use(cors({
@@ -25,6 +33,11 @@ app.use((req, res, next) => {
 // Parse JSON bodies
 app.use(express.json());
 
+// Serve index.html for the root route
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Green API configuration
 const INSTANCE_ID = '7105260862';
 const API_TOKEN = '19d4910c994a45a58d22d1d7cc5d7121fc1575fd6ac143b295';
@@ -41,30 +54,6 @@ const allowedEmails = [
     "BLUMI@GOLDYS.CO.IL",
     "SERVICE@GOLDYS.CO.IL"
   ];
-  
-  window.onGoogleSignIn = function(response) {
-    const id_token = response.credential;
-    const payload = JSON.parse(atob(id_token.split('.')[1]));
-    const email = payload.email.toUpperCase();
-  
-    if (!allowedEmails.includes(email)) {
-      // לא מורשה
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('googleToken');
-      updateSignInUI && updateSignInUI();
-      updateSendButtonsState && updateSendButtonsState();
-      showNotification && showNotification('אין לך הרשאה להתחבר לאתר', 'red');
-      return;
-    }
-  
-    // מורשה
-    localStorage.setItem('userEmail', payload.email);
-    localStorage.setItem('googleToken', id_token);
-    updateSignInUI && updateSignInUI();
-    updateSendButtonsState && updateSendButtonsState();
-    showNotification && showNotification('התחברת בהצלחה!', 'green');
-  };
-
 
 // Function to check message status
 async function checkMessageStatus(messageId) {
