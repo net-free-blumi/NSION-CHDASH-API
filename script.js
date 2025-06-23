@@ -1486,18 +1486,18 @@ window.addEventListener('DOMContentLoaded', function() {
     // חכה ל-Google API לטעון
     if (typeof google !== 'undefined' && google.accounts) {
         insertGoogleSignInButton();
-        // ניסיון שחזור התחברות אוטומטי
+        // שחזור התחברות אוטומטי אם המשתמש כבר מחובר
         if (google.accounts.id) {
-            google.accounts.id.prompt();
+            google.accounts.id.restore();
         }
     } else {
         // אם Google API לא נטען עדיין, חכה קצת ונסה שוב
         setTimeout(() => {
             if (typeof google !== 'undefined' && google.accounts) {
                 insertGoogleSignInButton();
-                // ניסיון שחזור התחברות אוטומטי
+                // שחזור התחברות אוטומטי אם המשתמש כבר מחובר
                 if (google.accounts.id) {
-                    google.accounts.id.prompt();
+                    google.accounts.id.restore();
                 }
             }
         }, 1000);
@@ -1506,7 +1506,25 @@ window.addEventListener('DOMContentLoaded', function() {
     updateSendButtonsState();
     // בדוק אם יש התחברות קיימת ומורשית
     const email = (localStorage.getItem('userEmail') || '').toUpperCase();
-    showMainContent(allowedEmails.includes(email));
+    const isAllowed = allowedEmails.includes(email);
+    showMainContent(isAllowed);
+    
+    // אם יש userEmail אבל Google לא מזהה התחברות, נסה לשחזר
+    if (email && isAllowed && typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+        setTimeout(() => {
+            google.accounts.id.restore();
+        }, 2000);
+    }
+    
+    // האזן לשינויים ב-localStorage
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'userEmail') {
+            updateSignInUI();
+            updateSendButtonsState();
+            const newEmail = (e.newValue || '').toUpperCase();
+            showMainContent(allowedEmails.includes(newEmail));
+        }
+    });
 });
 
 // בדיקת תוקף טוקן Google
