@@ -796,21 +796,7 @@ background-color: #c1232324;}
       </div>
       <script src="https://accounts.google.com/gsi/client" async defer></script>
       <script>
-        // function updateSignInUI() {
-        //   const isLoggedIn = !!localStorage.getItem('userEmail');
-        //   document.getElementById('signOutBtn').style.display = isLoggedIn ? 'inline-block' : 'none';
-        //   document.getElementById('googleSignInBtn').style.display = isLoggedIn ? 'none' : 'block';
-        // }
       
-        // window.onGoogleSignIn = function(response) {
-        //   const id_token = response.credential;
-        //   const payload = JSON.parse(atob(id_token.split('.')[1]));
-        //   localStorage.setItem('userEmail', payload.email);
-        //   localStorage.setItem('googleToken', id_token);
-        //   updateSignInUI();
-        //   if (typeof updateSendButtonsState === 'function') updateSendButtonsState();
-        //   if (typeof showNotification === 'function') showNotification('התחברת בהצלחה!', 'green');
-        // };
       
         window.onload = function() {
           google.accounts.id.initialize({
@@ -5501,10 +5487,10 @@ function copyOrderSummary() {
 }
 
 // קוראים לפונקצייה בעת שינוי מצב החום/קור או שינוי פריט
-document.getElementById('temperature').addEventListener('change', generateOrderSummary);
+// document.getElementById('temperature').addEventListener('change', generateOrderSummary);
 
 // אם יש כפתור העתקה
-document.getElementById('copy-button').addEventListener('click', copyOrderSummary);
+// document.getElementById('copy-button').addEventListener('click', copyOrderSummary);
 
 
 
@@ -5551,19 +5537,6 @@ document.getElementById('temperature').addEventListener('change', generateOrderS
 
 // כפתור העתקה שמעתיק את הסיכום
 document.getElementById('copy-button').addEventListener('click', copyOrderSummary);
-
-// פונקציה שמחזירה את המוצרים בהזמנה (יש לעדכן את הפונקציה הזו לפי איך שאתה שומר את פרטי ההזמנה)
-function getOrderItems() {
-  // כאן אתה יכול לשים את הדרך בה אתה אוסף את פרטי המוצרים
-  // לדוגמה:
-  return [
-    { name: 'מוצר 1', code: 'מק"ט123', quantity: 2 },
-    { name: 'מוצר 2', code: 'מק"ט124', quantity: 1 }
-  ];
-}
-
-
-
 
 
 
