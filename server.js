@@ -36,6 +36,36 @@ const GROUPS = {
     FRUITS: "120363314468223287@g.us" //פירות
 };
 
+// רשימת מיילים מורשים לשליחה
+const allowedEmails = [
+    "BLUMI@GOLDYS.CO.IL",
+    "SERVICE@GOLDYS.CO.IL"
+  ];
+  
+  window.onGoogleSignIn = function(response) {
+    const id_token = response.credential;
+    const payload = JSON.parse(atob(id_token.split('.')[1]));
+    const email = payload.email.toUpperCase();
+  
+    if (!allowedEmails.includes(email)) {
+      // לא מורשה
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('googleToken');
+      updateSignInUI && updateSignInUI();
+      updateSendButtonsState && updateSendButtonsState();
+      showNotification && showNotification('אין לך הרשאה להתחבר לאתר', 'red');
+      return;
+    }
+  
+    // מורשה
+    localStorage.setItem('userEmail', payload.email);
+    localStorage.setItem('googleToken', id_token);
+    updateSignInUI && updateSignInUI();
+    updateSendButtonsState && updateSendButtonsState();
+    showNotification && showNotification('התחברת בהצלחה!', 'green');
+  };
+
+
 // Function to check message status
 async function checkMessageStatus(messageId) {
     try {
@@ -51,6 +81,12 @@ async function checkMessageStatus(messageId) {
 // Proxy endpoint
 app.post('/send-whatsapp', async (req, res) => {
     console.log('Received request:', req.body);
+    
+    // בדיקת הרשאה לפי מייל
+    const userEmail = req.body.userEmail;
+    if (!userEmail || !allowedEmails.includes(userEmail.toUpperCase())) {
+        return res.status(403).json({ error: 'Unauthorized: Email not allowed' });
+    }
     
     try {
         // קבלת מזהה הקבוצה מהבקשה

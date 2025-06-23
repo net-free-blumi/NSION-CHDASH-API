@@ -216,7 +216,8 @@ function sendMessageToWhatsApp(message, currentMessage) {
         },
         body: JSON.stringify({ 
             message,
-            groupId: "120363414923943659@g.us" // קבוצת הקונדיטוריה
+            groupId: "120363414923943659@g.us",
+            userEmail: getUserEmail()
         })
     })
     .then(response => {
@@ -500,7 +501,8 @@ function sendWhatsAppFruitsMessage() {
         },
         body: JSON.stringify({ 
             message,
-            groupId: "120363314468223287@g.us" // קבוצת הפירות
+            groupId: "120363314468223287@g.us",
+            userEmail: getUserEmail()
         })
     })
     .then(response => {
@@ -653,7 +655,8 @@ function sendWhatsAppBakeryMessage() {
         },
         body: JSON.stringify({ 
             message,
-            groupId: "120363314468223287@g.us" // קבוצת הקונדיטוריה
+            groupId: "120363314468223287@g.us",
+            userEmail: getUserEmail()
         })
     })
     .then(response => {
@@ -792,7 +795,8 @@ function sendWhatsAppAmarMessage() {
         },
         body: JSON.stringify({ 
             message,
-            groupId: "120363314468223287@g.us" // קבוצת עמר
+            groupId: "120363314468223287@g.us",
+            userEmail: getUserEmail()
         })
     })
     .then(response => {
@@ -904,7 +908,8 @@ function sendWhatsAppSushiMessage() {
         },
         body: JSON.stringify({ 
             message,
-            groupId: "120363314468223287@g.us" // קבוצת הסושי
+            groupId: "120363314468223287@g.us",
+            userEmail: getUserEmail()
         })
     })
     .then(response => {
@@ -1049,7 +1054,8 @@ function sendWhatsAppWarehouseMessage() {
         },
         body: JSON.stringify({ 
             message,
-            groupId: "120363314468223287@g.us" // קבוצת המחסן
+            groupId: "120363314468223287@g.us",
+            userEmail: getUserEmail()
         })
     })
     .then(response => {
@@ -1234,7 +1240,7 @@ function sendWhatsAppGeneralMessage() {
     fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, groupId })
+        body: JSON.stringify({ message, groupId, userEmail: getUserEmail() })
     })
     .then(response => {
         if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
@@ -1354,6 +1360,160 @@ function displayOrderInfo() {
                 <strong>לשעה: ${orderTime}</strong>`;
     document.getElementById("notesSummary").textContent = temperature ? `''${temperature}''` : '';
 }
+
+// === Google Sign-In Integration ===
+const GOOGLE_CLIENT_ID = '530661972828-l9qgtsui9d3aj40pbdnn6rvv15fr82kf.apps.googleusercontent.com';
+
+function insertGoogleSignInButton() {
+    if (document.getElementById('googleSignInBtn')) return;
+    const btn = document.createElement('div');
+    btn.id = 'googleSignInBtn';
+    btn.style.display = 'flex';
+    btn.style.justifyContent = 'center';
+    btn.style.margin = '20px 0';
+    btn.innerHTML = `<div id="g_id_onload"
+        data-client_id="${GOOGLE_CLIENT_ID}"
+        data-callback="onGoogleSignIn"
+        data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"
+        data-type="standard"
+        data-shape="pill"
+        data-theme="filled_blue"
+        data-text="sign_in_with"
+        data-size="large"
+        data-logo_alignment="left">
+    </div>`;
+    // הוסף ל-container במקום ל-body
+    const container = document.querySelector('.container');
+    if (container) {
+        container.insertBefore(btn, container.firstChild.nextSibling); // אחרי הלוגו/כותרת
+    } else {
+        document.body.prepend(btn);
+    }
+}
+
+// רשימת מיילים מורשים להתחברות ושליחה (שימוש יחיד בקובץ)
+const allowedEmails = [
+  "BLUMI@GOLDYS.CO.IL",
+  "SERVICE@GOLDYS.CO.IL"
+];
+
+function showMainContent(isAllowed) {
+  const mainContent = document.getElementById('mainContent');
+  const notAllowedMsg = document.getElementById('notAllowedMsg');
+  if (mainContent && notAllowedMsg) {
+    if (isAllowed) {
+      mainContent.style.display = '';
+      notAllowedMsg.style.display = 'none';
+    } else {
+      mainContent.style.display = 'none';
+      notAllowedMsg.style.display = '';
+    }
+  }
+}
+
+function updateSignInUI() {
+  const email = (localStorage.getItem('userEmail') || '').toUpperCase();
+  const isAllowed = allowedEmails.includes(email);
+  const isLoggedIn = !!localStorage.getItem('userEmail') && isAllowed;
+  const signOutBtn = document.getElementById('signOutBtn');
+  const signInBtn = document.getElementById('googleSignInBtn');
+  if (signOutBtn) signOutBtn.style.display = isLoggedIn ? 'inline-block' : 'none';
+  if (signInBtn) signInBtn.style.display = isLoggedIn ? 'none' : 'block';
+}
+
+window.onGoogleSignIn = function(response) {
+  const id_token = response.credential;
+  const payload = JSON.parse(atob(id_token.split('.')[1]));
+  const email = payload.email.toUpperCase();
+
+  if (!allowedEmails.includes(email)) {
+    // לא מורשה – לא שומר כלום, מציג הודעה, מסתיר פיצ'רים
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('googleToken');
+    showMainContent && showMainContent(false);
+    updateSignInUI && updateSignInUI();
+    updateSendButtonsState && updateSendButtonsState();
+    showNotification && showNotification('אין לך הרשאה להתחבר לאתר', 'red');
+    return;
+  }
+
+  // מורשה – המשך רגיל
+  localStorage.setItem('userEmail', payload.email);
+  localStorage.setItem('googleToken', id_token);
+  showMainContent && showMainContent(true);
+  updateSignInUI && updateSignInUI();
+  updateSendButtonsState && updateSendButtonsState();
+  showNotification && showNotification('התחברת בהצלחה!', 'green');
+};
+
+function isUserLoggedIn() {
+    return !!localStorage.getItem('userEmail');
+}
+
+function getUserEmail() {
+    return localStorage.getItem('userEmail') || '';
+}
+
+function updateSendButtonsState() {
+    // לא משבית כפתורים, רק משנה title
+    const sendBtns = document.querySelectorAll('.send-btn, .send-fruits-btn, .send-bakery-btn, .send-amar-btn, .send-sushi-btn, .send-warehouse-btn, .send-general-btn');
+    sendBtns.forEach(btn => {
+        btn.disabled = false;
+        btn.title = isUserLoggedIn() ? '' : 'יש להתחבר עם גוגל כדי לשלוח';
+    });
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+    insertGoogleSignInButton();
+    updateSendButtonsState();
+    // בדוק אם יש התחברות קיימת ומורשית
+    const email = (localStorage.getItem('userEmail') || '').toUpperCase();
+    showMainContent(allowedEmails.includes(email));
+});
+
+// הפוך את כל פונקציות השליחה לפעילים תמיד, ואם לוחצים ולא מחוברים, תוצג הודעה מתאימה
+function requireLoginOr(fn) {
+    return function(...args) {
+        if (!isUserLoggedIn()) {
+            showNotification('יש להתחבר עם גוגל כדי לשלוח!', 'red');
+            return;
+        }
+        return fn.apply(this, args);
+    }
+}
+// עטוף את כל פונקציות השליחה
+window.sendWhatsAppMessage = requireLoginOr(sendWhatsAppMessage);
+window.sendWhatsAppFruitsMessage = requireLoginOr(sendWhatsAppFruitsMessage);
+window.sendWhatsAppBakeryMessage = requireLoginOr(sendWhatsAppBakeryMessage);
+window.sendWhatsAppAmarMessage = requireLoginOr(sendWhatsAppAmarMessage);
+window.sendWhatsAppSushiMessage = requireLoginOr(sendWhatsAppSushiMessage);
+window.sendWhatsAppWarehouseMessage = requireLoginOr(sendWhatsAppWarehouseMessage);
+window.sendWhatsAppGeneralMessage = requireLoginOr(sendWhatsAppGeneralMessage);
+
+function requireSendPermission(fn) {
+  return function(...args) {
+    const email = (localStorage.getItem('userEmail') || '').toUpperCase();
+    if (!email) {
+      showNotification('כדי לשלוח לוואטסאפ, יש להתחבר עם חשבון מורשה!', 'red');
+      return;
+    }
+    if (!allowedEmails.includes(email)) {
+      showNotification('אין לך הרשאה לשלוח הודעות לוואטסאפ!', 'red');
+      return;
+    }
+    return fn.apply(this, args);
+  }
+}
+
+window.sendWhatsAppMessage = requireSendPermission(sendWhatsAppMessage);
+window.sendWhatsAppFruitsMessage = requireSendPermission(sendWhatsAppFruitsMessage);
+window.sendWhatsAppBakeryMessage = requireSendPermission(sendWhatsAppBakeryMessage);
+window.sendWhatsAppAmarMessage = requireSendPermission(sendWhatsAppAmarMessage);
+window.sendWhatsAppSushiMessage = requireSendPermission(sendWhatsAppSushiMessage);
+window.sendWhatsAppWarehouseMessage = requireSendPermission(sendWhatsAppWarehouseMessage);
+window.sendWhatsAppGeneralMessage = requireSendPermission(sendWhatsAppGeneralMessage);
 
 
 
