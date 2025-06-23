@@ -755,12 +755,6 @@ background-color: #c1232324;}
   box-shadow: 0 4px 18px 0 #b2e59e66;
   outline: none;
 }
-
-
-
-
-
-
     </style>
 
 
@@ -785,17 +779,17 @@ background-color: #c1232324;}
 
 
 
-      
       <div id="googleSignInWrapper" style="display: flex; justify-content: center; align-items: center; gap: 16px; margin: 10px 0;">
         <div id="notAllowedMsg" style="display:none; color: red; font-size: 1.2em; text-align: center; margin: 30px 0;">
           אין לך הרשאה לגשת לאתר זה. פנה למנהל.
         </div>
-
+      
         <div id="googleSignInBtn"></div>
         <button id="signOutBtn" style="display:none; background: #e53935; color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 16px; cursor: pointer;">התנתק</button>
       </div>
       <script src="https://accounts.google.com/gsi/client" async defer></script>
-      <script>
+      
+      <!-- <script>
       
       
         window.onload = function() {
@@ -817,7 +811,7 @@ background-color: #c1232324;}
           if (typeof updateSendButtonsState === 'function') updateSendButtonsState();
           if (typeof showNotification === 'function') showNotification('התנתקת מהחשבון', 'red');
         };
-      </script>
+      </script> -->
       <h1>ניהול הזמנות</h1>
       <!-- שאר הקוד שלך ממשיך כאן -->
       <div>
@@ -848,8 +842,9 @@ background-color: #c1232324;}
 
         <br/><br/>
 
-
         <button style="background-color: rgba(245, 66, 66, 0.98);" onclick="newOrder()">התחל הזמנה חדשה</button>
+        <button id="orderHistoryBtn" onclick="showOrderHistory()">היסטוריית הזמנות</button>
+
              <!-- הוסף את זה מתחת לכפתור "הזמנה חדשה" -->
      <div id="orderNotification" class="notification order-notification" style="display: none; background-color: #ff0000; color: #010911;">
       ההזמנה אופסה בהצלחה! 
@@ -5536,7 +5531,7 @@ function copyOrderSummary() {
 document.getElementById('temperature').addEventListener('change', generateOrderSummary);
 
 // כפתור העתקה שמעתיק את הסיכום
-document.getElementById('copy-button').addEventListener('click', copyOrderSummary);
+// document.getElementById('copy-button').addEventListener('click', copyOrderSummary);
 
 
 
@@ -5811,7 +5806,24 @@ function openWhatsAppFruitsModal() {
     });
 })();
 
-// ... existing code ...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     </script>
 

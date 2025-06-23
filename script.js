@@ -160,6 +160,7 @@ window.addEventListener('click', function(event) {
   });
 
 function sendWhatsAppMessage() {
+    saveCurrentOrderToHistory();
     const waEditable = document.getElementById('waEditable');
     const sendButton = document.querySelector('.send-btn');
     
@@ -360,6 +361,15 @@ function copyCurrentSummary() {
 }
 
 function newOrder() {
+    // שמור היסטוריה רק אם יש יותר משני מוצרים (לפני איפוס)
+    const totalProducts = ['kitchenList','bakeryList','onlineList','warehouseList','amarList','sushiList']
+      .map(id => {
+        const ul = document.getElementById(id);
+        return ul ? ul.children.length : 0;
+      })
+      .reduce((a, b) => a + b, 0);
+    if (totalProducts > 2) saveCurrentOrderToHistory();
+    
     // איפוס כל השדות
     document.getElementById("orderNumber").value = "";
     document.getElementById("orderDate").value = "";
@@ -616,6 +626,7 @@ function closeDuplicateBakeryModal() {
 }
 
 function sendWhatsAppBakeryMessage() {
+    saveCurrentOrderToHistory();
     const waEditable = document.getElementById('waEditableBakery');
     const sendButton = document.querySelector('.send-bakery-btn');
     if (!waEditable) {
@@ -756,6 +767,7 @@ function closeDuplicateAmarModal() {
 }
 
 function sendWhatsAppAmarMessage() {
+    saveCurrentOrderToHistory();
     const waEditable = document.getElementById('waEditableAmar');
     const sendButton = document.querySelector('.send-amar-btn');
     if (!waEditable) {
@@ -858,6 +870,7 @@ function closeDuplicateSushiModal() {
 }
 
 function sendWhatsAppSushiMessage() {
+    saveCurrentOrderToHistory();
     const waEditable = document.getElementById('waEditableSushi');
     const sendButton = document.querySelector('.send-sushi-btn');
     
@@ -1004,6 +1017,7 @@ function closeDuplicateWarehouseModal() {
 }
 
 function sendWhatsAppWarehouseMessage() {
+    saveCurrentOrderToHistory();
     const waEditable = document.getElementById('waEditableWarehouse');
     const sendButton = document.querySelector('.send-warehouse-btn');
     
@@ -1206,6 +1220,7 @@ function closeWhatsAppGeneralModal() {
 }
 
 function sendWhatsAppGeneralMessage() {
+    saveCurrentOrderToHistory();
     const waEditable = document.getElementById('waEditableGeneral');
     const daySelect = document.getElementById('waDaySelect');
     const sendButton = document.querySelector('.send-general-btn');
@@ -1365,31 +1380,28 @@ function displayOrderInfo() {
 const GOOGLE_CLIENT_ID = '530661972828-l9qgtsui9d3aj40pbdnn6rvv15fr82kf.apps.googleusercontent.com';
 
 function insertGoogleSignInButton() {
-    if (document.getElementById('googleSignInBtn')) return;
-    const btn = document.createElement('div');
-    btn.id = 'googleSignInBtn';
-    btn.style.display = 'flex';
-    btn.style.justifyContent = 'center';
-    btn.style.margin = '20px 0';
-    btn.innerHTML = `<div id="g_id_onload"
-        data-client_id="${GOOGLE_CLIENT_ID}"
-        data-callback="onGoogleSignIn"
-        data-auto_prompt="false">
-    </div>
-    <div class="g_id_signin"
-        data-type="standard"
-        data-shape="pill"
-        data-theme="filled_blue"
-        data-text="sign_in_with"
-        data-size="large"
-        data-logo_alignment="left">
-    </div>`;
-    // הוסף ל-container במקום ל-body
-    const container = document.querySelector('.container');
-    if (container) {
-        container.insertBefore(btn, container.firstChild.nextSibling); // אחרי הלוגו/כותרת
-    } else {
-        document.body.prepend(btn);
+    // אתחל את Google Sign-In
+    if (typeof google !== 'undefined' && google.accounts) {
+        google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: onGoogleSignIn
+        });
+        google.accounts.id.renderButton(
+            document.getElementById('googleSignInBtn'),
+            { theme: 'filled_blue', size: 'large', shape: 'pill', text: 'sign_in_with' }
+        );
+    }
+    
+    // הוסף event listener לכפתור התנתקות
+    const signOutBtn = document.getElementById('signOutBtn');
+    if (signOutBtn) {
+        signOutBtn.onclick = function() {
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('googleToken');
+            updateSignInUI();
+            updateSendButtonsState();
+            showNotification('התנתקת מהחשבון', 'red');
+        };
     }
 }
 
@@ -1424,28 +1436,33 @@ function updateSignInUI() {
 }
 
 window.onGoogleSignIn = function(response) {
-  const id_token = response.credential;
-  const payload = JSON.parse(atob(id_token.split('.')[1]));
-  const email = payload.email.toUpperCase();
+  try {
+    const id_token = response.credential;
+    const payload = JSON.parse(atob(id_token.split('.')[1]));
+    const email = payload.email.toUpperCase();
 
-  if (!allowedEmails.includes(email)) {
-    // לא מורשה – לא שומר כלום, מציג הודעה, מסתיר פיצ'רים
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('googleToken');
-    showMainContent && showMainContent(false);
+    if (!allowedEmails.includes(email)) {
+      // לא מורשה – לא שומר כלום, מציג הודעה, מסתיר פיצ'רים
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('googleToken');
+      showMainContent && showMainContent(false);
+      updateSignInUI && updateSignInUI();
+      updateSendButtonsState && updateSendButtonsState();
+      showNotification && showNotification('אין לך הרשאה להתחבר לאתר', 'red');
+      return;
+    }
+
+    // מורשה – המשך רגיל
+    localStorage.setItem('userEmail', payload.email);
+    localStorage.setItem('googleToken', id_token);
+    showMainContent && showMainContent(true);
     updateSignInUI && updateSignInUI();
     updateSendButtonsState && updateSendButtonsState();
-    showNotification && showNotification('אין לך הרשאה להתחבר לאתר', 'red');
-    return;
+    showNotification && showNotification('התחברת בהצלחה!', 'green');
+  } catch (error) {
+    console.error('Google Sign-In Error:', error);
+    showNotification('שגיאה בהתחברות, נסה שוב', 'red');
   }
-
-  // מורשה – המשך רגיל
-  localStorage.setItem('userEmail', payload.email);
-  localStorage.setItem('googleToken', id_token);
-  showMainContent && showMainContent(true);
-  updateSignInUI && updateSignInUI();
-  updateSendButtonsState && updateSendButtonsState();
-  showNotification && showNotification('התחברת בהצלחה!', 'green');
 };
 
 function isUserLoggedIn() {
@@ -1466,36 +1483,81 @@ function updateSendButtonsState() {
 }
 
 window.addEventListener('DOMContentLoaded', function() {
-    insertGoogleSignInButton();
+    // חכה ל-Google API לטעון
+    if (typeof google !== 'undefined' && google.accounts) {
+        insertGoogleSignInButton();
+    } else {
+        // אם Google API לא נטען עדיין, חכה קצת ונסה שוב
+        setTimeout(() => {
+            if (typeof google !== 'undefined' && google.accounts) {
+                insertGoogleSignInButton();
+            }
+        }, 1000);
+    }
+    
     updateSendButtonsState();
     // בדוק אם יש התחברות קיימת ומורשית
     const email = (localStorage.getItem('userEmail') || '').toUpperCase();
     showMainContent(allowedEmails.includes(email));
 });
 
-// הפוך את כל פונקציות השליחה לפעילים תמיד, ואם לוחצים ולא מחוברים, תוצג הודעה מתאימה
-function requireLoginOr(fn) {
-    return function(...args) {
-        if (!isUserLoggedIn()) {
-            showNotification('יש להתחבר עם גוגל כדי לשלוח!', 'red');
-            return;
-        }
-        return fn.apply(this, args);
-    }
+// בדיקת תוקף טוקן Google
+function checkTokenValidity() {
+  const token = localStorage.getItem('googleToken');
+  const email = localStorage.getItem('userEmail');
+  
+  // אם אין מייל, אין התחברות
+  if (!email) return false;
+  
+  // אם אין טוקן, אבל יש מייל - נניח שההתחברות תקינה (למקרה של בעיות עם Google)
+  if (!token) return true;
+  
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const currentTime = Math.floor(Date.now() / 1000);
+    return payload.exp > currentTime;
+  } catch (error) {
+    // אם יש שגיאה בפענוח הטוקן, אבל יש מייל - נניח שההתחברות תקינה
+    return true;
+  }
 }
-// עטוף את כל פונקציות השליחה
-window.sendWhatsAppMessage = requireLoginOr(sendWhatsAppMessage);
-window.sendWhatsAppFruitsMessage = requireLoginOr(sendWhatsAppFruitsMessage);
-window.sendWhatsAppBakeryMessage = requireLoginOr(sendWhatsAppBakeryMessage);
-window.sendWhatsAppAmarMessage = requireLoginOr(sendWhatsAppAmarMessage);
-window.sendWhatsAppSushiMessage = requireLoginOr(sendWhatsAppSushiMessage);
-window.sendWhatsAppWarehouseMessage = requireLoginOr(sendWhatsAppWarehouseMessage);
-window.sendWhatsAppGeneralMessage = requireLoginOr(sendWhatsAppGeneralMessage);
+
+// עוטף פונקציות שדורשות התחברות לבדוק תוקף טוקן
+function requireValidLogin(fn) {
+  return function(...args) {
+    console.log('requireValidLogin called');
+    const email = localStorage.getItem('userEmail');
+    console.log('Current email:', email);
+    
+    // אם יש מייל תקין, תן לעבור (גם אם הטוקן פג תוקף)
+    if (email && allowedEmails.includes(email.toUpperCase())) {
+      console.log('Email is valid, proceeding');
+      return fn.apply(this, args);
+    }
+    
+    // אם אין מייל או המייל לא מורשה
+    if (!checkTokenValidity()) {
+      console.log('Token invalid, logging out');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('googleToken');
+      showNotification('התחברות פגה, יש להתחבר מחדש', 'red');
+      updateSignInUI && updateSignInUI();
+      return;
+    }
+    
+    console.log('Proceeding with function call');
+    return fn.apply(this, args);
+  }
+}
 
 function requireSendPermission(fn) {
   return function(...args) {
+    console.log('requireSendPermission called');
     const email = (localStorage.getItem('userEmail') || '').toUpperCase();
+    console.log('Email in requireSendPermission:', email);
+    
     if (!email) {
+      console.log('No email found');
       showNotification('כדי לשלוח לוואטסאפ, יש להתחבר עם חשבון מורשה!', 'red');
       return;
     }
@@ -1507,13 +1569,130 @@ function requireSendPermission(fn) {
   }
 }
 
-window.sendWhatsAppMessage = requireSendPermission(sendWhatsAppMessage);
-window.sendWhatsAppFruitsMessage = requireSendPermission(sendWhatsAppFruitsMessage);
-window.sendWhatsAppBakeryMessage = requireSendPermission(sendWhatsAppBakeryMessage);
-window.sendWhatsAppAmarMessage = requireSendPermission(sendWhatsAppAmarMessage);
-window.sendWhatsAppSushiMessage = requireSendPermission(sendWhatsAppSushiMessage);
-window.sendWhatsAppWarehouseMessage = requireSendPermission(sendWhatsAppWarehouseMessage);
-window.sendWhatsAppGeneralMessage = requireSendPermission(sendWhatsAppGeneralMessage);
+// עטוף את כל פונקציות השליחה רק פעם אחת
+window.sendWhatsAppMessage = requireValidLogin(sendWhatsAppMessage);
+window.sendWhatsAppFruitsMessage = requireValidLogin(sendWhatsAppFruitsMessage);
+window.sendWhatsAppBakeryMessage = requireValidLogin(sendWhatsAppBakeryMessage);
+window.sendWhatsAppAmarMessage = requireValidLogin(sendWhatsAppAmarMessage);
+window.sendWhatsAppSushiMessage = requireValidLogin(sendWhatsAppSushiMessage);
+window.sendWhatsAppWarehouseMessage = requireValidLogin(sendWhatsAppWarehouseMessage);
+window.sendWhatsAppGeneralMessage = requireValidLogin(sendWhatsAppGeneralMessage);
+
+// בדוק תוקף טוקן כל 5 דקות
+setInterval(() => {
+  const email = localStorage.getItem('userEmail');
+  
+  // אם יש מייל תקין, אל תנתק (גם אם הטוקן פג תוקף)
+  if (email && allowedEmails.includes(email.toUpperCase())) {
+    return;
+  }
+  
+  // אם אין מייל או המייל לא מורשה, בדוק טוקן
+  if (isUserLoggedIn() && !checkTokenValidity()) {
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('googleToken');
+    showNotification('התחברות פגה, יש להתחבר מחדש', 'red');
+    updateSignInUI && updateSignInUI();
+  }
+}, 5 * 60 * 1000);
+
+// === Order History (localStorage) ===
+function saveCurrentOrderToHistory() {
+  const email = localStorage.getItem('userEmail');
+  if (!email) return;
+  const order = {
+    orderNumber: document.getElementById('orderNumber').value,
+    orderDate: document.getElementById('orderDate').value,
+    orderTime: document.getElementById('orderTime').value,
+    temperature: document.getElementById('temperature') ? document.getElementById('temperature').value : '',
+    kitchen: getListItems('kitchenList'),
+    bakery: getListItems('bakeryList'),
+    online: getListItems('onlineList'),
+    warehouse: getListItems('warehouseList'),
+    amar: getListItems('amarList'),
+    sushi: getListItems('sushiList')
+  };
+  const key = 'orders_' + email;
+  const allOrders = JSON.parse(localStorage.getItem(key) || '[]');
+  allOrders.push(order);
+  localStorage.setItem(key, JSON.stringify(allOrders));
+}
+
+function getListItems(listId) {
+  const ul = document.getElementById(listId);
+  if (!ul) return [];
+  return Array.from(ul.children).map(li => li.innerHTML);
+}
+
+function loadOrderHistory() {
+  const email = localStorage.getItem('userEmail');
+  if (!email) return [];
+  const key = 'orders_' + email;
+  return JSON.parse(localStorage.getItem(key) || '[]');
+}
+
+function deleteOrderFromHistory(idx) {
+  const email = localStorage.getItem('userEmail');
+  if (!email) return;
+  const key = 'orders_' + email;
+  const allOrders = JSON.parse(localStorage.getItem(key) || '[]');
+  allOrders.splice(idx, 1);
+  localStorage.setItem(key, JSON.stringify(allOrders));
+  showOrderHistory();
+}
+
+function showOrderHistory() {
+  const orders = loadOrderHistory();
+  if (!orders.length) {
+    showNotification('אין היסטוריית הזמנות', 'red');
+    return;
+  }
+  let html = '<h3>היסטוריית הזמנות</h3>';
+  orders.forEach((order, idx) => {
+    html += `<div style="border-bottom:1px solid #ccc;padding:8px;">
+      <b>הזמנה #${order.orderNumber}</b> | תאריך: ${order.orderDate} | שעה: ${order.orderTime}
+      <button onclick="restoreOrderFromHistory(${idx})">שחזר</button>
+      <button onclick="deleteOrderFromHistory(${idx})" style="color:red;">מחק</button>
+    </div>`;
+  });
+  // תוכל להציג את זה במודל/דיב קופץ
+  const modal = document.createElement('div');
+  modal.id = 'orderHistoryModal';
+  modal.style = 'position:fixed;top:10%;left:50%;transform:translateX(-50%);background:#fff;padding:20px;z-index:9999;max-width:400px;box-shadow:0 0 20px #0003;';
+  modal.innerHTML = html + '<button onclick="document.body.removeChild(this.parentNode)">סגור</button>';
+  document.body.appendChild(modal);
+}
+
+function restoreOrderFromHistory(idx) {
+    const orders = loadOrderHistory();
+    const order = orders[idx];
+    if (!order) return;
+    document.getElementById('orderNumber').value = order.orderNumber;
+    document.getElementById('orderDate').value = order.orderDate;
+    document.getElementById('orderTime').value = order.orderTime;
+    if (document.getElementById('temperature')) document.getElementById('temperature').value = order.temperature || '';
+    // שחזור כל קטגוריה
+    ['kitchen','bakery','online','warehouse','amar','sushi'].forEach(cat => {
+      const ul = document.getElementById(cat + 'List');
+      ul.innerHTML = '';
+      (order[cat] || []).forEach(html => {
+        const li = document.createElement('li');
+        li.innerHTML = html;
+        ul.appendChild(li);
+      });
+    });
+    // סגור את המודל
+    const modal = document.getElementById('orderHistoryModal');
+    if (modal) document.body.removeChild(modal);
+    showNotification('ההזמנה שוחזרה!', 'green');
+  }
 
 
+  console.log('userEmail before newOrder:', localStorage.getItem('userEmail'));
+console.log('googleToken before newOrder:', localStorage.getItem('googleToken'));
+
+console.log('userEmail before newOrder:', localStorage.getItem('userEmail'));
+setTimeout(() => {
+  console.log('userEmail after newOrder:', localStorage.getItem('userEmail'));
+}, 2000);
 
