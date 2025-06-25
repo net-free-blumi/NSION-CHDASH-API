@@ -1,3 +1,155 @@
+// Google Sign-In and Authorization System
+let currentUser = null;
+let isUserAuthorized = false;
+
+// רשימת המיילים המורשים (צריכה להיות זהה לשרת)
+const ALLOWED_EMAILS = [
+    'BLUMI@GOLDYS.CO.IL',
+    'SERVICE@GOLDYS.CO.IL',
+    'tzvi@goldys.co.il',
+'zadok@goldys.co.il'
+
+
+
+
+    // הוסף כאן מיילים נוספים לפי הצורך
+];
+
+// בדיקה אם המייל מורשה
+function isEmailAuthorized(email) {
+    return ALLOWED_EMAILS.includes(email.toUpperCase());
+}
+
+// טיפול בתגובה מהתחברות Google
+function handleCredentialResponse(response) {
+    // פענוח ה-JWT token
+    const responsePayload = decodeJwtResponse(response.credential);
+    
+    console.log("ID: " + responsePayload.sub);
+    console.log('Full Name: ' + responsePayload.name);
+    console.log('Given Name: ' + responsePayload.given_name);
+    console.log('Family Name: ' + responsePayload.family_name);
+    console.log("Image URL: " + responsePayload.picture);
+    console.log("Email: " + responsePayload.email);
+    
+    const userEmail = responsePayload.email;
+    currentUser = {
+        email: userEmail,
+        name: responsePayload.name,
+        picture: responsePayload.picture
+    };
+    
+    // שמירת פרטי המשתמש ב-localStorage
+    localStorage.setItem('userEmail', userEmail);
+    localStorage.setItem('userName', responsePayload.name);
+    
+    // בדיקה אם המייל מורשה
+    isUserAuthorized = isEmailAuthorized(userEmail);
+    
+    // הצגת הממשק המתאים
+    updateAuthUI();
+}
+
+// פענוח JWT token
+function decodeJwtResponse(token) {
+    var base64Url = token.split('.')[1];
+    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+}
+
+// התנתקות
+function signOut() {
+    currentUser = null;
+    isUserAuthorized = false;
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
+    
+    // איפוס Google Sign-In
+    google.accounts.id.disableAutoSelect();
+    google.accounts.id.revoke(currentUser?.email, () => {
+        console.log('User signed out');
+    });
+    
+    updateAuthUI();
+}
+
+// עדכון ממשק המשתמש לפי מצב ההתחברות
+function updateAuthUI() {
+    const loginSection = document.getElementById('loginSection');
+    const userSection = document.getElementById('userSection');
+    const unauthorizedSection = document.getElementById('unauthorizedSection');
+    const mainContent = document.getElementById('mainContent');
+    const userEmailElement = document.getElementById('userEmail');
+    
+    if (currentUser) {
+        loginSection.style.display = 'none';
+        userEmailElement.textContent = currentUser.email;
+        
+        if (isUserAuthorized) {
+            userSection.style.display = 'block';
+            unauthorizedSection.style.display = 'none';
+            mainContent.style.display = 'block';
+            showNotification('התחברת בהצלחה! אתה מורשה לשלוח הודעות WhatsApp', 'green');
+        } else {
+            userSection.style.display = 'none';
+            unauthorizedSection.style.display = 'block';
+            mainContent.style.display = 'block';
+            showNotification('התחברת בהצלחה, אך המייל שלך אינו מורשה לשלוח הודעות WhatsApp', 'orange');
+        }
+    } else {
+        loginSection.style.display = 'block';
+        userSection.style.display = 'none';
+        unauthorizedSection.style.display = 'none';
+        mainContent.style.display = 'block';
+    }
+}
+
+// בדיקת התחברות בטעינת הדף
+function checkAuthOnLoad() {
+    const savedEmail = localStorage.getItem('userEmail');
+    const savedName = localStorage.getItem('userName');
+    
+    if (savedEmail) {
+        currentUser = {
+            email: savedEmail,
+            name: savedName
+        };
+        isUserAuthorized = isEmailAuthorized(savedEmail);
+        updateAuthUI();
+    }
+}
+
+// הוספת המייל לכל בקשה לשרת
+function addUserEmailToRequest(requestBody) {
+    if (currentUser) {
+        requestBody.userEmail = currentUser.email;
+    }
+    return requestBody;
+}
+
+// בדיקה לפני שליחת הודעות WhatsApp
+function checkAuthBeforeSending() {
+    if (!currentUser) {
+        showNotification('נדרשת התחברות לשליחת הודעות WhatsApp', 'red');
+        return false;
+    }
+    
+    if (!isUserAuthorized) {
+        showNotification('המייל שלך אינו מורשה לשלוח הודעות WhatsApp', 'red');
+        return false;
+    }
+    
+    return true;
+}
+
+// אתחול המערכת בטעינת הדף
+document.addEventListener('DOMContentLoaded', function() {
+    checkAuthOnLoad();
+});
+
 function copyBakerySummary() {
     const orderNumber = localStorage.getItem("orderNumber") || "";
     const orderDate = localStorage.getItem("orderDate") || "";
@@ -201,6 +353,11 @@ function sendWhatsAppMessage() {
 }
 
 function sendMessageToWhatsApp(message, currentMessage) {
+    // בדיקת הרשאה לפני שליחה
+    if (!checkAuthBeforeSending()) {
+        return;
+    }
+    
     const sendButton = document.querySelector('.send-btn');
     
     // עדכון מצב הכפתור
@@ -209,18 +366,25 @@ function sendMessageToWhatsApp(message, currentMessage) {
     sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
     showNotification('שולח הודעה...', 'info');
     
+    // הכנת הבקשה עם המייל
+    const requestBody = addUserEmailToRequest({ 
+        message,
+        groupId: "120363414923943659@g.us" // קבוצת הקונדיטוריה
+    });
+    
     fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-            message,
-            groupId: "120363414923943659@g.us" // קבוצת הקונדיטוריה
-        })
+        body: JSON.stringify(requestBody)
     })
     .then(response => {
-        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || 'שגיאה בשליחת ההודעה');
+            });
+        }
         return response.json();
     })
     .then(() => {
@@ -231,7 +395,7 @@ function sendMessageToWhatsApp(message, currentMessage) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+        showNotification(`❌ ${error.message}`, 'red');
     })
     .finally(() => {
         // איפוס מצב הכפתור
@@ -450,6 +614,11 @@ function closeDuplicateFruitsModal() {
 
 // פונקציה לשליחת הודעת פירות
 function sendWhatsAppFruitsMessage() {
+    // בדיקת הרשאה לפני שליחה
+    if (!checkAuthBeforeSending()) {
+        return;
+    }
+    
     const waEditable = document.getElementById('waEditableFruits');
     const sendButton = document.querySelector('.send-fruits-btn');
     
@@ -493,18 +662,25 @@ function sendWhatsAppFruitsMessage() {
     sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
     showNotification('שולח הודעה...', 'info');
     
+    // הכנת הבקשה עם המייל
+    const requestBody = addUserEmailToRequest({ 
+        message,
+        groupId: "120363314468223287@g.us" // קבוצת הפירות
+    });
+    
     fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-            message,
-            groupId: "120363314468223287@g.us" // קבוצת הפירות
-        })
+        body: JSON.stringify(requestBody)
     })
     .then(response => {
-        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || 'שגיאה בשליחת ההודעה');
+            });
+        }
         return response.json();
     })
     .then(() => {
@@ -515,7 +691,7 @@ function sendWhatsAppFruitsMessage() {
     })
     .catch(error => {
         console.error('Error:', error);
-        showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+        showNotification(`❌ ${error.message}`, 'red');
     })
     .finally(() => {
         // איפוס מצב הכפתור
@@ -614,6 +790,11 @@ function closeDuplicateBakeryModal() {
 }
 
 function sendWhatsAppBakeryMessage() {
+    // בדיקת הרשאה לפני שליחה
+    if (!checkAuthBeforeSending()) {
+        return;
+    }
+    
     const waEditable = document.getElementById('waEditableBakery');
     const sendButton = document.querySelector('.send-bakery-btn');
     if (!waEditable) {
@@ -646,18 +827,26 @@ function sendWhatsAppBakeryMessage() {
     sendButton.disabled = true;
     sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
     showNotification('שולח הודעה...', 'info');
+    
+    // הכנת הבקשה עם המייל
+    const requestBody = addUserEmailToRequest({ 
+        message,
+        groupId: "120363314468223287@g.us" // קבוצת הקונדיטוריה
+    });
+    
     fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-            message,
-            groupId: "120363314468223287@g.us" // קבוצת הקונדיטוריה
-        })
+        body: JSON.stringify(requestBody)
     })
     .then(response => {
-        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || 'שגיאה בשליחת ההודעה');
+            });
+        }
         return response.json();
     })
     .then(() => {
@@ -667,7 +856,7 @@ function sendWhatsAppBakeryMessage() {
     })
     .catch(error => {
         console.error('Error:', error);
-        showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+        showNotification(`❌ ${error.message}`, 'red');
     })
     .finally(() => {
         isSendingBakeryMessage = false;
@@ -753,6 +942,11 @@ function closeDuplicateAmarModal() {
 }
 
 function sendWhatsAppAmarMessage() {
+    // בדיקת הרשאה לפני שליחה
+    if (!checkAuthBeforeSending()) {
+        return;
+    }
+    
     const waEditable = document.getElementById('waEditableAmar');
     const sendButton = document.querySelector('.send-amar-btn');
     if (!waEditable) {
@@ -785,18 +979,26 @@ function sendWhatsAppAmarMessage() {
     sendButton.disabled = true;
     sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
     showNotification('שולח הודעה...', 'info');
+    
+    // הכנת הבקשה עם המייל
+    const requestBody = addUserEmailToRequest({ 
+        message,
+        groupId: "120363314468223287@g.us" // קבוצת עמר
+    });
+    
     fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-            message,
-            groupId: "120363314468223287@g.us" // קבוצת עמר
-        })
+        body: JSON.stringify(requestBody)
     })
     .then(response => {
-        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || 'שגיאה בשליחת ההודעה');
+            });
+        }
         return response.json();
     })
     .then(() => {
@@ -806,7 +1008,7 @@ function sendWhatsAppAmarMessage() {
     })
     .catch(error => {
         console.error('Error:', error);
-        showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+        showNotification(`❌ ${error.message}`, 'red');
     })
     .finally(() => {
         isSendingAmarMessage = false;
@@ -854,6 +1056,11 @@ function closeDuplicateSushiModal() {
 }
 
 function sendWhatsAppSushiMessage() {
+    // בדיקת הרשאה לפני שליחה
+    if (!checkAuthBeforeSending()) {
+        return;
+    }
+    
     const waEditable = document.getElementById('waEditableSushi');
     const sendButton = document.querySelector('.send-sushi-btn');
     
@@ -897,18 +1104,25 @@ function sendWhatsAppSushiMessage() {
     sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
     showNotification('שולח הודעה...', 'info');
     
+    // הכנת הבקשה עם המייל
+    const requestBody = addUserEmailToRequest({ 
+        message,
+        groupId: "120363314468223287@g.us" // קבוצת הסושי
+    });
+    
     fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-            message,
-            groupId: "120363314468223287@g.us" // קבוצת הסושי
-        })
+        body: JSON.stringify(requestBody)
     })
     .then(response => {
-        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || 'שגיאה בשליחת ההודעה');
+            });
+        }
         return response.json();
     })
     .then(() => {
@@ -919,7 +1133,7 @@ function sendWhatsAppSushiMessage() {
     })
     .catch(error => {
         console.error('Error:', error);
-        showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+        showNotification(`❌ ${error.message}`, 'red');
     })
     .finally(() => {
         isSendingSushiMessage = false;
@@ -999,6 +1213,11 @@ function closeDuplicateWarehouseModal() {
 }
 
 function sendWhatsAppWarehouseMessage() {
+    // בדיקת הרשאה לפני שליחה
+    if (!checkAuthBeforeSending()) {
+        return;
+    }
+    
     const waEditable = document.getElementById('waEditableWarehouse');
     const sendButton = document.querySelector('.send-warehouse-btn');
     
@@ -1042,18 +1261,25 @@ function sendWhatsAppWarehouseMessage() {
     sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
     showNotification('שולח הודעה...', 'info');
     
+    // הכנת הבקשה עם המייל
+    const requestBody = addUserEmailToRequest({ 
+        message,
+        groupId: "120363314468223287@g.us" // קבוצת המחסן
+    });
+    
     fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-            message,
-            groupId: "120363314468223287@g.us" // קבוצת המחסן
-        })
+        body: JSON.stringify(requestBody)
     })
     .then(response => {
-        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || 'שגיאה בשליחת ההודעה');
+            });
+        }
         return response.json();
     })
     .then(() => {
@@ -1064,7 +1290,7 @@ function sendWhatsAppWarehouseMessage() {
     })
     .catch(error => {
         console.error('Error:', error);
-        showNotification('❌ שגיאה בשליחת ההודעה', 'red');
+        showNotification(`❌ ${error.message}`, 'red');
     })
     .finally(() => {
         isSendingWarehouseMessage = false;
@@ -1200,6 +1426,11 @@ function closeWhatsAppGeneralModal() {
 }
 
 function sendWhatsAppGeneralMessage() {
+    // בדיקת הרשאה לפני שליחה
+    if (!checkAuthBeforeSending()) {
+        return;
+    }
+    
     const waEditable = document.getElementById('waEditableGeneral');
     const daySelect = document.getElementById('waDaySelect');
     const sendButton = document.querySelector('.send-general-btn');
@@ -1231,13 +1462,24 @@ function sendWhatsAppGeneralMessage() {
     sendButton.disabled = true;
     sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
     showNotification('שולח הודעה...', 'info');
+    
+    // הכנת הבקשה עם המייל
+    const requestBody = addUserEmailToRequest({ 
+        message, 
+        groupId 
+    });
+    
     fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, groupId })
+        body: JSON.stringify(requestBody)
     })
     .then(response => {
-        if (!response.ok) throw new Error('שגיאה בשליחת ההודעה');
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || 'שגיאה בשליחת ההודעה');
+            });
+        }
         return response.json();
     })
     .then(() => {
@@ -1245,8 +1487,9 @@ function sendWhatsAppGeneralMessage() {
         closeWhatsAppGeneralModal();
         lastSentGeneralMessage = message;
     })
-    .catch(() => {
-        showNotification('שגיאה בשליחת ההודעה', 'red');
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification(`❌ ${error.message}`, 'red');
     })
     .finally(() => {
         isSendingGeneralMessage = false;

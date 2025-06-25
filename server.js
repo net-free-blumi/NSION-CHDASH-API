@@ -36,6 +36,20 @@ const GROUPS = {
     FRUITS: "120363314468223287@g.us" //פירות
 };
 
+// רשימת המיילים המורשים לשליחת הודעות WhatsApp
+const ALLOWED_EMAILS = [
+    'BLUMI@GOLDYS.CO.IL',
+    'SERVICE@GOLDYS.CO.IL',
+'tzvi@goldys.co.il',
+    'zadok@goldys.co.il'
+    // הוסף כאן מיילים נוספים לפי הצורך
+];
+
+// Function to check if email is authorized
+function isEmailAuthorized(email) {
+    return ALLOWED_EMAILS.includes(email.toUpperCase());
+}
+
 // Function to check message status
 async function checkMeageStatus(messageId) {
     try {
@@ -53,6 +67,22 @@ app.post('/send-whatsapp', async (req, res) => {
     console.log('Received request:', req.body);
     
     try {
+        // בדיקת המייל המורשה
+        const userEmail = req.body.userEmail;
+        if (!userEmail) {
+            return res.status(401).json({ 
+                error: 'אין מייל משתמש בבקשה',
+                details: 'נדרשת התחברות עם Google' 
+            });
+        }
+        
+        if (!isEmailAuthorized(userEmail)) {
+            return res.status(403).json({ 
+                error: 'מייל לא מורשה',
+                details: `המייל ${userEmail} אינו מורשה לשלוח הודעות WhatsApp` 
+            });
+        }
+        
         // קבלת מזהה הקבוצה מהבקשה
         const groupId = req.body.groupId || GROUPS.CONDITORIA; // ברירת מחדל לקבוצת הקונדיטוריה
         
@@ -62,6 +92,7 @@ app.post('/send-whatsapp', async (req, res) => {
         };
         
         console.log('Sending to Green API:', requestBody);
+        console.log('Authorized user:', userEmail);
         
         const response = await fetch(`${BASE_URL}/sendMessage/${API_TOKEN}`, {
             method: 'POST',
@@ -103,4 +134,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Proxy server running on port ${PORT}`);
     console.log(`CORS enabled with specific settings`);
+    console.log(`Authorized emails: ${ALLOWED_EMAILS.join(', ')}`);
 }); 

@@ -14,6 +14,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+
+    <!-- Google Sign-In API -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <meta
+      name="google-site-verification"
+      content="dUgCkLcDLymDM3mSiVs6eFf6bx8KvC9XIbzJrhuDITI"
+    />
+
+
+
+
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
@@ -765,11 +782,55 @@
           />
         </a>
       </div>
+
+
       <h1>ניהול הזמנות</h1>
-      <!-- שאר הקוד שלך ממשיך כאן -->
-      <div>
-        <!-- כותרת לתיבת החיפוש -->
-        <h3>תיבת חיפוש מוצר/מק"ט</h3>
+      
+      <!-- Google Sign-In Section -->
+      <div id="authSection" style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+        <div id="loginSection">
+          <h3>התחברות לשליחת הודעות WhatsApp</h3>
+          <p>רק משתמשים מורשים יכולים לשלוח הודעות לקבוצות WhatsApp</p>
+          <div id="g_id_onload"
+               data-client_id="530661972828-l9qgtsui9d3aj40pbdnn6rvv15fr82kf.apps.googleusercontent.com"
+               data-callback="handleCredentialResponse"
+               data-auto_prompt="false">
+          </div>
+          <div class="g_id_signin"
+               data-type="standard"
+               data-size="large"
+               data-theme="outline"
+               data-text="sign_in_with"
+               data-shape="rectangular"
+               data-logo_alignment="left">
+          </div>
+        </div>
+        
+        <div id="userSection" style="display: none;">
+          <h3>ברוך הבא!</h3>
+          <p id="userEmail"></p>
+          <button onclick="signOut()" style="background-color: #dc3545; margin-top: 10px;">
+            התנתק
+          </button>
+        </div>
+        
+        <div id="unauthorizedSection" style="display: none;">
+          <h3 style="color: #dc3545;">גישה מוגבלת</h3>
+          <p>המייל שלך אינו מורשה לשלוח הודעות WhatsApp</p>
+          <p>אתה יכול לצפות באתר אך לא לשלוח הודעות</p>
+          <button onclick="signOut()" style="background-color: #6c757d;">
+            התנתק
+          </button>
+        </div>
+      </div>
+      
+
+
+            <!-- שאר הקוד שלך ממשיך כאן -->
+      <div id="mainContent">
+        <div>
+          <!-- כותרת לתיבת החיפוש -->
+          <h3>תיבת חיפוש מוצר/מק"ט</h3>
 
         <!-- הודעת העתקה שתופיע בחלק העליון -->
         <div id="copyMessage">הועתק בהצלחה!</div>
@@ -1382,6 +1443,11 @@
         </div>
       </div>
     </div>
+
+
+
+  </div>
+</div> <!-- סוף mainContent -->
 
     <style>
       /* סגנונות קיימים */
