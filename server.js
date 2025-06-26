@@ -41,6 +41,7 @@ const ALLOWED_EMAILS = [
     'BLUMI@GOLDYS.CO.IL',
     'SERVICE@GOLDYS.CO.IL',
 'tzvi@goldys.co.il',
+'ch0548507825@gmail.com',
     'zadok@goldys.co.il'
     // הוסף כאן מיילים נוספים לפי הצורך
 ];
