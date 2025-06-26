@@ -1078,6 +1078,8 @@
           <span id="notesSummary"></span>
         </div>
       </div>
+
+      <div id="order-summary" style="white-space: pre-line; margin-top: 10px;"></div>
       <!-- ליד הכפתורים הקיימים -->
       <!-- <button id="copyButton" onclick="copySummary()">העתק סיכום הזמנה</button> -->
       <!-- <button id="whatsappButton" onclick="openWhatsAppModal()">שליחת והעתקה סיכום כללי</button> -->
@@ -6215,18 +6217,18 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
       }
 
       // קוראים לפונקצייה בעת שינוי מצב החום/קור או שינוי פריט
-      document
-        .getElementById("temperature")
-        .addEventListener("change", generateOrderSummary);
+      // document
+      //   .getElementById("temperature")
+      //   .addEventListener("change", generateOrderSummary);
 
       // אם יש כפתור העתקה
-      document
-        .getElementById("copy-button")
-        .addEventListener("click", copyOrderSummary);
+      // document
+      //   .getElementById("copy-button")
+      //   .addEventListener("click", copyOrderSummary);
 
       // פונקציה שמייצרת את סיכום ההזמנה כולל חם/קר
       function generateOrderSummary() {
-        const orderItems = getOrderItems(); // פונקציה שמחזירה את פרטי המוצרים בהזמנה (תעדכן לפי הצורך)
+        const orderItems = getOrderItems();
         let orderSummary = "";
 
         // הוספת פרטי המוצרים בהזמנה
@@ -6262,24 +6264,24 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
       }
 
       // קריאה לפונקציה של סיכום ההזמנה כאשר יש שינוי במצב חם/קר
-      document
-        .getElementById("temperature")
-        .addEventListener("change", generateOrderSummary);
+      // document
+      //   .getElementById("temperature")
+      //   .addEventListener("change", generateOrderSummary);
 
       // כפתור העתקה שמעתיק את הסיכום
-      document
-        .getElementById("copy-button")
-        .addEventListener("click", copyOrderSummary);
+      // document
+      //   .getElementById("copy-button")
+      //   .addEventListener("click", copyOrderSummary);
 
       // פונקציה שמחזירה את המוצרים בהזמנה (יש לעדכן את הפונקציה הזו לפי איך שאתה שומר את פרטי ההזמנה)
-      function getOrderItems() {
+      // function getOrderItems() {
         // כאן אתה יכול לשים את הדרך בה אתה אוסף את פרטי המוצרים
         // לדוגמה:
-        return [
-          { name: "מוצר 1", code: 'מק"ט123', quantity: 2 },
-          { name: "מוצר 2", code: 'מק"ט124', quantity: 1 },
-        ];
-      }
+      //   return [
+      //     { name: "מוצר 1", code: 'מק"ט123', quantity: 2 },
+      //     { name: "מוצר 2", code: 'מק"ט124', quantity: 1 },
+      //   ];
+      // }
 
       function resetInputStyles() {
         const radioContainers = document.querySelectorAll(".radio-container");
