@@ -1,3 +1,17 @@
+
+window.onload = function () {
+    google.accounts.id.initialize({
+      client_id: "530661972828-l9qgtsui9d3aj40pbdnn6rvv15fr82kf.apps.googleusercontent.com", // ה-Client ID שלך
+      callback: handleCredentialResponse,
+      auto_select: true // זה ינסה לחבר אוטומטית אם המשתמש כבר אישר בעבר
+    });
+    google.accounts.id.renderButton(
+      document.getElementById("loginSection"),
+      { theme: "outline", size: "large" }
+    );
+  };
+
+
 // Google Sign-In and Authorization System
 let currentUser = null;
 let isUserAuthorized = false;
@@ -9,10 +23,6 @@ const ALLOWED_EMAILS = [
     'tzvi@goldys.co.il',
     'ch0548507825@gmail.com',
 'zadok@goldys.co.il'
-
-
-
-
     // הוסף כאן מיילים נוספים לפי הצורך
 ];
 
