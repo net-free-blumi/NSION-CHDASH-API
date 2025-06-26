@@ -5,22 +5,27 @@ import fetch from 'node-fetch';
 const app = express();
 
 // Enable CORS with specific settings
+const allowedOrigins = [
+    'http://localhost:3000',
+    'https://venerable-rugelach-127f4b.netlify.app',
+    'https://online-g.netlify.app/',
+    'http://127.0.0.1:5500'
+  ];
 app.use(cors({
-    origin: true, // Allow all origins
+    origin: function(origin, callback){
+        // allow requests with no origin (like mobile apps, curl, etc.)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true)
+        } else {
+            callback(new Error('Not allowed by CORS'))
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
     maxAge: 86400 // 24 hours
 }));
-
-// Add headers middleware
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    next();
-});
 
 // Parse JSON bodies
 app.use(express.json());
