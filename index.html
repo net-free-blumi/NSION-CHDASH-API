@@ -57,6 +57,7 @@
     </script>
 
     <style>
+
       body {
         font-family: "Rubik", sans-serif;
         display: flex;
@@ -628,6 +629,9 @@
       /* <!-- הסתרת קטגוריות ריקות --> */
       #warehouse:has(ul:empty),
       #amar:has(ul:empty),
+      #online:has(ul:empty),
+      #bakery:has(ul:empty),
+      #kitchenProducts:has(ul:empty),
       #sushi:has(ul:empty) {
         display: none;
       }
@@ -1057,22 +1061,22 @@
           <div class="category-title">מחסן:</div>
           <ul id="warehouseList"></ul>
         </div>
-
         <!-- הוספה אחרי שאר הקטגוריות -->
         <div id="amar">
           <div class="category-title">קונדיטוריית עמר:</div>
           <ul id="amarList"></ul>
           <div
             id="amarSummaryDisplay"
-            style="white-space: pre-line; margin-top: 10px; font-weight: bold"
           ></div>
         </div>
-
         <div id="sushi">
           <div class="category-title">סושי:</div>
           <ul id="sushiList"></ul>
         </div>
-
+        <div id="kitchenProducts">
+          <div class="category-title">מוצרי מטבח:</div>
+          <ul id="kitchenProductsList"></ul>
+        </div>
         <div>
           <strong class="category-title">מצב חם/קר:</strong>
           <span id="notesSummary"></span>
@@ -1083,33 +1087,38 @@
       <!-- ליד הכפתורים הקיימים -->
       <!-- <button id="copyButton" onclick="copySummary()">העתק סיכום הזמנה</button> -->
       <!-- <button id="whatsappButton" onclick="openWhatsAppModal()">שליחת והעתקה סיכום כללי</button> -->
+      <div class="summary-buttons-grid">
+        <button id="whatsappGeneralButton" onclick="openWhatsAppGeneralModal()">
+          <span class="wa-icon">whatsapp</span>
+          שליחת סיכום<br> כללי
+        </button>
+        <button id="whatsappKitchenProductsButton" onclick="openWhatsAppKitchenProductsModal()">
+          <span class="wa-icon">whatsapp</span>
+          שליחת סיכום<br>מוצרי מטבח
+        </button>
+        <button id="whatsappFruitsButton" onclick="openWhatsAppFruitsModal()">
+          <span class="wa-icon">whatsapp</span>
+          שליחת סיכום<br>פירות
+        </button>
+        <button id="whatsappBakeryButton" onclick="openWhatsAppBakeryModal()">
+          <span class="wa-icon">whatsapp</span>
+          שליחת סיכום<br>קונדיטוריה
+        </button>
+        <button id="whatsappWarehouseButton" onclick="openWhatsAppWarehouseModal()">
+          <span class="wa-icon">whatsapp</span>
+          שליחת סיכום<br>מחסן
+        </button>
+        <button id="whatsappSushiButton" onclick="openWhatsAppSushiModal()">
+          <span class="wa-icon">whatsapp</span>
+          שליחת סיכום<br>סושי
+        </button>
+        <button id="whatsappAmarButton" onclick="openWhatsAppAmarModal()">
+          <span class="wa-icon">whatsapp</span>
+          שליחת סיכום<br>קונדיטוריית עמר
+        </button>
+      </div>
+      
 
-      <button id="whatsappGeneralButton" onclick="openWhatsAppGeneralModal()">
-        שליחת סיכום הזמנה כללי
-      </button>
-      <button id="whatsappFruitsButton" onclick="openWhatsAppFruitsModal()">
-        שליחת סיכום פירות
-      </button>
-      <!-- <button id="copyFruitsButton" onclick="copyFruitSummary()">העתק סיכום פירות</button> -->
-      <!-- <button id="copyBakeryButton" onclick="copyBakerySummary()">העתק סיכום קונדיטוריה</button> -->
-      <button id="whatsappBakeryButton" onclick="openWhatsAppBakeryModal()">
-        שליחת סיכום קונדיטוריה
-      </button>
-      <button
-        id="whatsappWarehouseButton"
-        onclick="openWhatsAppWarehouseModal()"
-      >
-        שליחת סיכום מחסן
-      </button>
-      <!-- <button id="copyWarehouseButton" onclick="copyWarehouseSummary()">העתק סיכום מחסן</button> -->
-      <!-- <button id="copySushiButton" onclick="copySushiSummary()">העתק סיכום סושי</button> -->
-      <button id="whatsappSushiButton" onclick="openWhatsAppSushiModal()">
-        שליחת סיכום סושי
-      </button>
-      <!-- <button id="copyAmarButton" onclick="copyAmarSummary()">סיכום קונדיטוריית עמר</button> -->
-      <button id="whatsappAmarButton" onclick="openWhatsAppAmarModal()">
-        שליחת סיכום קונדיטוריית עמר
-      </button>
       <div id="tacton">
         האתר נבנה ועוצב על ידי מוישי ב | mchb0556706325@gmail.com | 0515157166
       </div>
@@ -1409,6 +1418,44 @@
       </div>
     </div>
 
+
+<!-- Kitchen Products WhatsApp Modal -->
+<div id="whatsappKitchenProductsModal" class="modal" style="display: none">
+  <div class="modal-content wa-modal-content">
+    <span class="close" onclick="closeWhatsAppKitchenProductsModal()">&times;</span>
+    <h2>שליחת סיכום מוצרי מטבח לוואטסאפ</h2>
+    <div
+      id="waEditableKitchenProducts"
+      class="wa-preview wa-editable"
+      contenteditable="true"
+      spellcheck="false"
+    ></div>
+    <div class="modal-buttons">
+      <button onclick="sendWhatsAppKitchenProductsMessage()" class="send-kitchen-products-btn">
+        שלח לוואטסאפ
+      </button>
+      <button onclick="copyKitchenProductsSummary()" class="copy-btn">
+        העתק סיכום
+      </button>
+      <button class="cancel-btn" onclick="closeWhatsAppKitchenProductsModal()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="duplicateKitchenProductsModal" class="modal" style="display: none">
+  <div class="modal-content confirmation-modal">
+    <div class="confirmation-icon">⚠️</div>
+    <h3>שליחה חוזרת</h3>
+    <p>ההודעה כבר נשלחה בעבר. האם אתה בטוח שברצונך לשלוח שוב?</p>
+    <div class="confirmation-buttons">
+      <button onclick="confirmKitchenProductsResend()" class="confirm-btn">כן, שלח שוב</button>
+      <button onclick="closeDuplicateKitchenProductsModal()" class="cancel-btn">ביטול</button>
+    </div>
+  </div>
+</div>
+
+
     <!-- WhatsApp General Modal -->
     <div id="whatsappGeneralModal" class="modal" style="display: none">
       <div class="modal-content wa-modal-content">
@@ -1452,6 +1499,83 @@
 </div> <!-- סוף mainContent -->
 
     <style>
+
+
+
+
+
+
+.summary-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  justify-items: center;
+  margin: 10px auto 0 auto;
+  width: 100%;
+  max-width: 1120px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  padding: 18px 10px 10px 10px;
+  direction: rtl;
+}
+
+
+.summary-buttons-grid button {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: linear-gradient(90deg, #1126cc 0%, #6170de 100%);
+  color: #fff;
+  border: none;
+  padding: 14px 8px 12px 8px;
+  font-size: 1.3em;
+  border-radius: 18px;
+  font-weight: bold;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  cursor: pointer;
+  transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
+  min-width: 0;
+  width: 80%;
+  line-height: 1.2;
+  white-space: normal;
+  word-break: break-word;
+  min-height: 54px;
+}
+
+.summary-buttons-grid button:hover {
+  background: linear-gradient(90deg, #128c7e 0%, #25d366 100%);
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.13);
+}
+
+.summary-buttons-grid .wa-icon {
+  font-family: 'Material Icons';
+  font-size: 0.3em;
+  margin-left: 3px;
+  vertical-align: middle;
+}
+
+@media (max-width: 600px) {
+  .summary-buttons-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    max-width: 99vw;
+    padding: 10px 2px 6px 2px;
+  }
+  .summary-buttons-grid button {
+    font-size: 1.1em;
+    padding: 10px 4px;
+    min-height: 28px;
+  }
+}
+
+
+
+
+
       /* סגנונות קיימים */
       .wa-modal-content {
         background-color: #fefefe;
@@ -1642,14 +1766,10 @@
       }
 
       /* עיצוב מודלים של וואטסאפ ושליחה כפולה */
+
+      
       .modal {
-        /* display: none;
-    position: fixed;
-    z-index: 1001;
-    left: 0; top: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.35);
-    justify-content: center;
-    align-items: center; */
+    
         position: fixed;
         z-index: 9999;
         left: 0;
@@ -1658,10 +1778,12 @@
         bottom: 0;
         width: 100vw;
         height: 100vh;
-        background: rgba(0, 0, 0, 0.35); /* רקע כהה */
+        background: rgba(0, 0, 0, 0.685); /* רקע כהה */
         display: none;
         align-items: center;
         justify-content: center;
+        overflow-y: auto;
+
       }
       .modal[style*="display: block"] {
         display: flex !important;
@@ -1670,15 +1792,30 @@
       .confirmation-modal {
         background: #fff;
         border-radius: 18px;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.592);
         padding: 24px 18px 18px 18px;
         max-width: 95vw;
         width: 100%;
-        max-width: 400px;
+        max-width: 500px;
         margin: 0 auto;
         text-align: center;
         direction: rtl;
       }
+      
+@media (max-width: 800px) {
+  .modal-content {
+    max-width: 88vw;
+    width: 80vw;
+    min-width: 0;
+    padding: 14px 4vw 10px 4vw;
+    font-size: 1em;
+    margin: 10px auto;
+    border-radius: 14px;
+  }
+  .modal {
+    padding: 0;
+  }
+}
       .wa-editable {
         min-height: 120px;
         background: #e1ffc7;
@@ -1784,6 +1921,8 @@
         12624: { name: "מגש מאפי בוקר טריים של הבייקרי", category: "amar" },
 
         99110: { name: "חלת חתן", category: "amar" },
+        99109: { name: "חלת חתן", category: "amar" },
+
         42102: { name: "פיצות", category: "amar" },
         11708: { name: "ביס קוקטייל מזונות", category: "amar" },
         22461: { name: "בולקעס", category: "amar" },
@@ -1885,71 +2024,71 @@
           name: "ליטר סלט ירקות ישראלי במרוכז. *רוטב חובה!!*",
           category: "kitchen",
         },
-        22449: { name: "ליטר מרק ירקות כתומים", category: "kitchen" },
-        11119: { name: "ליטר חומוס", category: "kitchen" },
-        11143: { name: "ליטר טחינה אסלית", category: "kitchen" },
-        11127: { name: "ליטר חציל מטוגן בתחמיץ", category: "kitchen" },
-        10634: { name: "ליטר צ'יפס", category: "kitchen" },
-        23164: { name: "ליטר מטבוחה פיקנטית", category: "kitchen" },
-        11149: { name: "ליטר מטבוחה פיקנטית", category: "kitchen" },
-        11130: { name: "ליטר חציל ממי", category: "kitchen" },
+        22449: { name: "ליטר מרק ירקות כתומים", category: "kitchenProducts" },
+        11119: { name: "ליטר חומוס", category: "kitchenProducts" },
+        11143: { name: "ליטר טחינה אסלית", category: "kitchenProducts" },
+        11127: { name: "ליטר חציל מטוגן בתחמיץ", category: "kitchenProducts" },
+        10634: { name: "ליטר צ'יפס", category: "kitchenProducts" },
+        23164: { name: "ליטר מטבוחה פיקנטית", category: "kitchenProducts" },
+        11149: { name: "ליטר מטבוחה פיקנטית", category: "kitchenProducts" },
+        11130: { name: "ליטר חציל ממי", category: "kitchenProducts" },
 
         4310101: { name: "מגש סלט ירקות ישראלי בכוסות", category: "kitchen" },
 
-        10807: { name: "תבנית ענקית לקידוש קוגל תפו'א", category: "kitchen" },
-        10811: { name: "תבנית ענקית לקידוש קוגל ירושלמי", category: "kitchen" },
-        11122: { name: "ליטר חמוצים מנפיס", category: "kitchen" },
-        10801: { name: "ליטר טשולנט בשרי", category: "kitchen" },
-        10803: { name: "ליטר טשולנט מלכים", category: "kitchen" },
-        10800: { name: "ליטר טשולנט פרווה", category: "kitchen" },
-        10628: { name: "ליטר קוביות אנטיפסטי", category: "kitchen" },
-        10603: { name: "ליטר אורז פטריות ובצל", category: "kitchen" },
-        10602: { name: "ליטר אורז מקלובה", category: "kitchen" },
-        11158: { name: "ליטר סלט גולדיס המלכים", category: "kitchen" },
-        10417: { name: "פילה נסיכת הנילוס חריימה", category: "kitchen" },
-        10204: { name: "אסאדו ברוטב פלפלת", category: "kitchen" },
-        10412: { name: "פילה מושט חריימה", category: "kitchen" },
+        10807: { name: "תבנית ענקית לקידוש קוגל תפו'א", category: "kitchenProducts" },
+        10811: { name: "תבנית ענקית לקידוש קוגל ירושלמי", category: "kitchenProducts" },
+        11122: { name: "ליטר חמוצים מנפיס", category: "kitchenProducts" },
+        10801: { name: "ליטר טשולנט בשרי", category: "kitchenProducts" },
+        10803: { name: "ליטר טשולנט מלכים", category: "kitchenProducts" },
+        10800: { name: "ליטר טשולנט פרווה", category: "kitchenProducts" },
+        10628: { name: "ליטר קוביות אנטיפסטי", category: "kitchenProducts" },
+        10603: { name: "ליטר אורז פטריות ובצל", category: "kitchenProducts" },
+        10602: { name: "ליטר אורז מקלובה", category: "kitchenProducts" },
+        11158: { name: "ליטר סלט גולדיס המלכים", category: "kitchenProducts" },
+        10417: { name: "פילה נסיכת הנילוס חריימה", category: "kitchenProducts" },
+        10204: { name: "ליטר אסאדו ברוטב פלפלת", category: "kitchenProducts" },
+        10412: { name: "פילה מושט חריימה", category: "kitchenProducts" },
 
-        10605: { name: "ליטר אורז בטטה וצ'ילי מתוק", category: "kitchen" },
+        10605: { name: "ליטר אורז בטטה וצ'ילי מתוק", category: "kitchenProducts" },
         10415: {
           name: "פילה אמנון מטוגן בציפוי בצק בירה",
-          category: "kitchen",
+          category: "kitchenProducts",
         },
-        11170: { name: "ליטר פלפל צבעוני בתחמיץ", category: "kitchen" },
+        11170: { name: "ליטר פלפל צבעוני בתחמיץ", category: "kitchenProducts" },
 
-        10408: { name: "פילה סלמון בחרדל ודבש", category: "kitchen" },
-        10321: { name: "פרגית על האש", category: "kitchen" },
-        10324: { name: "שיפוד פרגית על האש", category: "kitchen" },
-        10201: { name: "צלי כתף עגל בבישול קדירה", category: "kitchen" },
-        22443: { name: "ליטר תפו''א ובטטה", category: "kitchen" },
-        11137: { name: "ליטר חציל קלוי במיונז", category: "kitchen" },
-        22500: { name: "ליטר עוף סיני מוקפץ", category: "kitchen" },
-        10318: { name: "ליטר עוף סיני מוקפץ", category: "kitchen" },
+        10408: { name: "פילה סלמון בחרדל ודבש", category: "kitchenProducts" },
+        10321: { name: "פרגית על האש", category: "kitchenProducts" },
+        10324: { name: "שיפוד פרגית על האש", category: "kitchenProducts" },
+        10201: { name: "צלי כתף עגל בבישול קדירה", category: "kitchenProducts" },
+        22443: { name: "ליטר תפו''א ובטטה", category: "kitchenProducts" },
+        11137: { name: "ליטר חציל קלוי במיונז", category: "kitchenProducts" },
+        22500: { name: "ליטר עוף סיני מוקפץ", category: "kitchenProducts" },
+        10318: { name: "ליטר עוף סיני מוקפץ", category: "kitchenProducts" },
 
-        11167: { name: "סלק אדום עם בצלים טריים", category: "kitchen" },
+        11167: { name: "סלק אדום עם בצלים טריים", category: "kitchenProducts" },
 
-        10500: { name: "ליטר כבד קצוץ הדגל", category: "kitchen" },
-        10501: { name: "ליטר כבד קצוץ צרפתי מתקתק", category: "kitchen" },
-        10503: { name: "ליטר כבד צלוי ברוטב יין", category: "kitchen" },
-        10504: { name: "ליטר קונפי כבדי עוף", category: "kitchen" },
-        10502: { name: "ליטר כבד עוף צלוי", category: "kitchen" },
-        11123: { name: "ליטר ממרח חציל בטעם כבד", category: "kitchen" },
-        11172: { name: "ליטר קישואים בטעם כבד", category: "kitchen" },
-        112203: { name: "ליטר כבד עוף ברוטב יין", category: "kitchen" },
-        10616: { name: "ליטר פארפל פתיתים של חסידים", category: "kitchen" },
-        10953: { name: "ליטר ארבעס", category: "kitchen" },
-        10954: { name: "ליטר בובעס", category: "kitchen" },
+        10500: { name: "ליטר כבד קצוץ הדגל", category: "kitchenProducts" },
+        10501: { name: "ליטר כבד קצוץ צרפתי מתקתק", category: "kitchenProducts" },
+        10503: { name: "ליטר כבד צלוי ברוטב יין", category: "kitchenProducts" },
+        10504: { name: "ליטר קונפי כבדי עוף", category: "kitchenProducts" },
+        10502: { name: "ליטר כבד עוף צלוי", category: "kitchenProducts" },
+        11123: { name: "ליטר ממרח חציל בטעם כבד", category: "kitchenProducts" },
+        11172: { name: "ליטר קישואים בטעם כבד", category: "kitchenProducts" },
+        112203: { name: "ליטר כבד עוף ברוטב יין", category: "kitchenProducts" },
+        10616: { name: "ליטר פארפל פתיתים של חסידים", category: "kitchenProducts" },
+        10953: { name: "ליטר ארבעס", category: "kitchenProducts" },
+        10954: { name: "ליטר בובעס", category: "kitchenProducts" },
 
-        10400: { name: "פילה סלמוןן חריימה", category: "kitchen" },
-        10405: { name: "פילה סלמון על האש", category: "kitchen" },
-        10402: { name: "פילה סלמון צ'ימיצ'ורי", category: "kitchen" },
+        10400: { name: "פילה סלמוןן חריימה", category: "kitchenProducts" },
+        10405: { name: "פילה סלמון על האש", category: "kitchenProducts" },
+        10402: { name: "פילה סלמון צ'ימיצ'ורי", category: "kitchenProducts" },
         10403: {
           name: "פילה סלמון ברוטב טריאקי וג'ינג'ר",
-          category: "kitchen",
+          category: "kitchenProducts",
         },
-        10404: { name: "פילה סלמון ברוטב צ'ילי והדרים", category: "kitchen" },
-        10406: { name: "פילה סלמון חמוץ מתוק", category: "kitchen" },
-        10409: { name: "פילה סלמון עשבים טריים ולימונים", category: "kitchen" },
+        10404: { name: "פילה סלמון ברוטב צ'ילי והדרים", category: "kitchenProducts" },
+        10406: { name: "פילה סלמון חמוץ מתוק", category: "kitchenProducts" },
+        10409: { name: "פילה סלמון עשבים טריים ולימונים", category: "kitchenProducts" },
 
         0: { name: "", category: "kitchen" },
         1: { name: "", category: "bakery" },
@@ -1957,6 +2096,8 @@
         3: { name: "", category: "warehouse" },
         4: { name: "", category: "sushi" },
         5: { name: "", category: "amar" },
+        6: { name: "", category: "kitchenProducts" },
+
 
         // בייקרי
         12493: { name: "מגש mix טארטלטים", category: "bakery" },
@@ -2003,21 +2144,23 @@
           name: "מגש פירות העונה בכוסות 5 סוגים שונים סה''כ 15 כוסות",
           category: "online",
         },
+        462099: { name: "כוס מוס טריקולו", category: "bakery" },
 
 
-        18970: { name: "קישקע פרווה", category: "kitchen" },
-10921: { name: "ליטר מרק מינסטרונה איטלקי", category: "kitchen" },
-22530: { name: "ליטר פרחי ברוקולי", category: "kitchen" },
-10639: { name: "ליטר פרחי ברוקולי", category: "kitchen" },
-10640: { name: "ליטר פרחי כרובית קלויים", category: "kitchen" },
-10343: { name: "קריספוני עגל בציפוי פיסטוק", category: "kitchen" },
-10609: { name: "ליטר ספגטי ברוטב עגבניות", category: "kitchen" },
-10614: { name: "ליטר פסטה מוקפצת בירקות", category: "kitchen" },
-462099: { name: "כוס מוס טריקולו", category: "bakery" },
-11157: { name: "ליטר גואקמולי אבוקדו", category: "kitchen" },
-11152: { name: "ליטר מעדן אבוקדו ביתי", category: "kitchen" },
-11144: { name: "ליטר טחינה ירוקה", category: "kitchen" },
-10629: { name: "ליטר צימעס", category: "kitchen" },
+        
+
+        18970: { name: "קישקע פרווה", category: "kitchenProducts" },
+10921: { name: "ליטר מרק מינסטרונה איטלקי", category: "kitchenProducts" },
+22530: { name: "ליטר פרחי ברוקולי", category: "kitchenProducts" },
+10639: { name: "ליטר פרחי ברוקולי", category: "kitchenProducts" },
+10640: { name: "ליטר פרחי כרובית קלויים", category: "kitchenProducts" },
+10343: { name: "קריספוני עגל בציפוי פיסטוק", category: "kitchenProducts" },
+10609: { name: "ליטר ספגטי ברוטב עגבניות", category: "kitchenProducts" },
+10614: { name: "ליטר פסטה מוקפצת בירקות", category: "kitchenProducts" },
+11157: { name: "ליטר גואקמולי אבוקדו", category: "kitchenProducts" },
+11152: { name: "ליטר מעדן אבוקדו ביתי", category: "kitchenProducts" },
+11144: { name: "ליטר טחינה ירוקה", category: "kitchenProducts" },
+10629: { name: "ליטר צימעס", category: "kitchenProducts" },
 
 
 
@@ -2061,33 +2204,33 @@
 
         // 222222: { name: "", category: "sushi" },
 
-        10701: { name: "פלפל ממולא של בית", category: "kitchen" },
-        11168: { name: "ליטר סלט ערבי", category: "kitchen" },
-        10310: { name: "ליטר שניצלונים בטמפורה", category: "kitchen" },
+        10701: { name: "פלפל ממולא של בית", category: "kitchenProducts" },
+        11168: { name: "ליטר סלט ערבי", category: "kitchenProducts" },
+        10310: { name: "ליטר שניצלונים בטמפורה", category: "kitchenProducts" },
         11707: { name: "לחמניה מזונות", category: "amar" },
-        10821: { name: "פשטידת בצל אישית", category: "kitchen" },
-        10822: { name: "פשטידת פטריות אישית", category: "kitchen" },
-        10823: { name: "פשטידת קישואים אישית", category: "kitchen" },
-        10820: { name: "פשטידת תפוחי עץ אישית", category: "kitchen" },
+        10821: { name: "פשטידת בצל אישית", category: "kitchenProducts" },
+        10822: { name: "פשטידת פטריות אישית", category: "kitchenProducts" },
+        10823: { name: "פשטידת קישואים אישית", category: "kitchenProducts" },
+        10820: { name: "פשטידת תפוחי עץ אישית", category: "kitchenProducts" },
 
         11751: { name: "לחם דגנים אובלי", category: "warehouse" },
         11754: { name: "לחם כפרי צרפתי", category: "warehouse" },
-        11105: { name: "ליטר גזר מרוקאי אסלי", category: "kitchen" },
+        11105: { name: "ליטר גזר מרוקאי אסלי", category: "kitchenProducts" },
         10623: {
           name: "ליטר שעועית שלמה מוקפצת עם פטריות שמפניון",
-          category: "kitchen",
+          category: "kitchenProducts",
         },
         22467: { name: "סופלה שוקולד", category: "bakery" },
-        10350: { name: "חזה עוף בטעמי המזרח הרחוק", category: "kitchen" },
-        10320: { name: "פרגית בגריל", category: "kitchen" },
-        10327: { name: "מוסקה יוונית בשרית", category: "kitchen" },
-        10702: { name: "מוסקה יוונית פרווה", category: "kitchen" },
+        10350: { name: "חזה עוף בטעמי המזרח הרחוק", category: "kitchenProducts" },
+        10320: { name: "פרגית בגריל", category: "kitchenProducts" },
+        10327: { name: "מוסקה יוונית בשרית", category: "kitchenProducts" },
+        10702: { name: "מוסקה יוונית פרווה", category: "kitchenProducts" },
         11160: {
           name: "ליטר טבולה עם ירקות עונה ופטרוזיליה",
-          category: "kitchen",
+          category: "kitchenProducts",
         },
-        11111: { name: "ליטר פסטו עשבי תיבול", category: "kitchen" },
-        10315: { name: "רבע עוף ברוטב סצ'ואן", category: "kitchen" },
+        11111: { name: "ליטר פסטו עשבי תיבול", category: "kitchenProducts" },
+        10315: { name: "רבע עוף ברוטב סצ'ואן", category: "kitchenProducts" },
 
         12625: {
           name: "מגש מיני מאפים מתוקים (25 יחי') מ 5 סוגים",
@@ -2095,62 +2238,67 @@
         },
         11552: { name: "פרנות לוהטות מהטאבון", category: "warehouse" },
 
-        11146: { name: "ליטר קולסלאו", category: "kitchen" },
-        11101: { name: "כרעיים עוף בגריל", category: "kitchen" },
-        10307: { name: "שניצל עוף קלאסי", category: "kitchen" },
-        111603: { name: "מאפה פילו במילוי עוף מוקפץ", category: "kitchen" },
-        33302: { name: "מוסקה פרווה", category: "kitchen" },
-        111201: { name: "חזה עוף בגריל", category: "kitchen" },
-        10301: { name: "חזה עוף על האש", category: "kitchen" },
-        11164: { name: "ליטר חריין-חזרת", category: "kitchen" },
+        11146: { name: "ליטר קולסלאו", category: "kitchenProducts" },
+        11101: { name: "כרעיים עוף בגריל", category: "kitchenProducts" },
+        10307: { name: "שניצל עוף קלאסי", category: "kitchenProducts" },
+        111603: { name: "מאפה פילו במילוי עוף מוקפץ", category: "kitchenProducts" },
+        33302: { name: "מוסקה פרווה", category: "kitchenProducts" },
+        111201: { name: "חזה עוף בגריל", category: "kitchenProducts" },
+        10301: { name: "חזה עוף על האש", category: "kitchenProducts" },
+        11164: { name: "ליטר חריין-חזרת", category: "kitchenProducts" },
 
-        10425: { name: "קלופס וויט פיש אמריקאי", category: "kitchen" },
-        10421: { name: "קלופס גפילטע פיש קלאסי", category: "kitchen" },
+        10425: { name: "קלופס וויט פיש אמריקאי", category: "kitchenProducts" },
+        10421: { name: "קלופס גפילטע פיש קלאסי", category: "kitchenProducts" },
 
-        11102: { name: "ליטר סלט ביצים ובצל מטוגן", category: "kitchen" },
-        11108: { name: "ליטר טאמאטע דיפ", category: "kitchen" },
-        11147: { name: "ליטר ליפתן תפ''ע", category: "kitchen" },
-        10900: { name: "ליטר מרק עוף של סבתא", category: "kitchen" },
-        22448: { name: "ליטר מרק עוף של סבתא", category: "kitchen" },
-        10950: { name: "ליטר אטריות למרק", category: "kitchen" },
-        10920: { name: "ליטר מרק גולש", category: "kitchen" },
-        10903: { name: "ליטר מרק ירקות עשיר", category: "kitchen" },
-        10921: { name: "ליטר מרק מינסטרונה איטלקי", category: "kitchen" },
-        11168: { name: "ליטר ערבישע סלט-ערבי", category: "kitchen" },
-        11135: { name: "ליטר חציל סצ'ואן", category: "kitchen" },
+        11102: { name: "ליטר סלט ביצים ובצל מטוגן", category: "kitkitchenProductschen" },
+        11108: { name: "ליטר טאמאטע דיפ", category: "kitchenProducts" },
+        11147: { name: "ליטר ליפתן תפ''ע", category: "kitchenProducts" },
+        10900: { name: "ליטר מרק עוף של סבתא", category: "kitchenProducts" },
+        22448: { name: "ליטר מרק עוף של סבתא", category: "kitchenProducts" },
+        10950: { name: "ליטר אטריות למרק", category: "kitchenProducts" },
+        10920: { name: "ליטר מרק גולש", category: "kitchenProducts" },
+        10903: { name: "ליטר מרק ירקות עשיר", category: "kitkitchenProductschen" },
+        10921: { name: "ליטר מרק מינסטרונה איטלקי", category: "kitchenProducts" },
+        11168: { name: "ליטר ערבישע סלט-ערבי", category: "kitchenProducts" },
+        11135: { name: "ליטר חציל סצ'ואן", category: "kitchenProducts" },
 
-        11161: { name: "ליטר סלט טונה קלאסי במיונז", category: "kitchen" },
-        10206: { name: "בקר פראנץ רוסט ברוטב יין", category: "kitchen" },
-        10641: { name: "ליטר סירות בטטה ורוזמרין", category: "kitchen" },
+        11161: { name: "ליטר סלט טונה קלאסי במיונז", category: "kikitchenProductstchen" },
+        10206: { name: "בקר פראנץ רוסט ברוטב יין", category: "kitchenProducts" },
+        10641: { name: "ליטר סירות בטטה ורוזמרין", category: "kitchenProducts" },
         14021: { name: "שטרודל תפוחים אישי", category: "bakery" },
 
-        11151: { name: "ליטר סלט מלפפונים ובצל", category: "kitchen" },
-        11179: { name: "ליטר סלט תפו''א כמו של פעם", category: "kitchen" },
-        11160: { name: "ליטר סלט טבולה טרי", category: "kitchen" },
+        11151: { name: "ליטר סלט מלפפונים ובצל", category: "kitchenProducts" },
+        11179: { name: "ליטר סלט תפו''א כמו של פעם", category: "kitchenProducts" },
+        11160: { name: "ליטר סלט טבולה טרי", category: "kitchenProducts" },
         11710: { name: "חלה מקמח מלא", category: "amar" },
         11703: { name: "חלה מקמח כוסמין", category: "amar" },
         11704: { name: "חצי חלה", category: "amar" },
         11701: { name: "חלה בריוש מתוקה", category: "amar" },
-        33401: { name: "בלינצ'עס תפו''א + רוטב פטריות", category: "kitchen" },
+        33401: { name: "בלינצ'עס תפו''א + רוטב פטריות", category: "kitchenProducts" },
         11777: { name: "חלה אמריקאית", category: "amar" },
-        11103: { name: "ליטר גזר מתוק עם קוביות אננס", category: "kitchen" },
-        11114: { name: "ליטר סלט וולדרוף", category: "kitchen" },
-        10704: { name: "מאפה ירקות מוקפצים", category: "kitchen" },
-        10305: { name: "עוף קייב במילוי בשר עגל", category: "kitchen" },
+        11103: { name: "ליטר גזר מתוק עם קוביות אננס", category: "kitchenProducts" },
+        11114: { name: "ליטר סלט וולדרוף", category: "kitchenProducts" },
+        10704: { name: "מאפה ירקות מוקפצים", category: "kitchenProducts" },
+        10305: { name: "עוף קייב במילוי בשר עגל", category: "kitchenProducts" },
 
-        10304: { name: "שיפוד חזה עוף על האש", category: "kitchen" },
+        10304: { name: "שיפוד חזה עוף על האש", category: "kitchenProducts" },
 
-        312011: { name: "ליטר תפו''א כתום", category: "kitchen" },
-        316061: { name: "ליטר אנטיפסטי ירקות קלויים", category: "kitchen" },
-        10600: { name: "ליטר אורז לבן", category: "kitchen" },
-        11134: { name: "ליטר חציל מרוקאי", category: "kitchen" },
-        22510: { name: "ליטר תפו''א כתום", category: "kitchen" },
-        10632: { name: "ליטר תפו''א צהוב", category: "kitchen" },
-        10309: { name: "ליטר שניצלונים", category: "kitchen" },
-        10319: { name: "ליטר מעורב ירושלמי", category: "kitchen" },
-        10620: { name: "ליטר קוסקוס", category: "kitchen" },
-        10621: { name: "ליטר ירקות לקוסקוס", category: "kitchen" },
+        312011: { name: "ליטר תפו''א כתום", category: "kitchenProducts" },
+        316061: { name: "ליטר אנטיפסטי ירקות קלויים", category: "kitchenProducts" },
+        10600: { name: "ליטר אורז לבן", category: "kitchenProducts" },
+        11134: { name: "ליטר חציל מרוקאי", category: "kitchenProducts" },
+        22510: { name: "ליטר תפו''א כתום", category: "kitchenProducts" },
+        10632: { name: "ליטר תפו''א צהוב", category: "kitchenProducts" },
+        10309: { name: "ליטר שניצלונים", category: "kitchenProducts" },
+        10319: { name: "ליטר מעורב ירושלמי", category: "kitchenProducts" },
+        10620: { name: "ליטר קוסקוס", category: "kitchenProducts" },
+        10621: { name: "ליטר ירקות לקוסקוס", category: "kitchenProducts" },
 
+
+
+
+
+        
         13480: { name: "מגש טאקוס ונאצ'וס בהרכבה אישית", category: "kitchen" },
         13479: { name: "מגש שווארמה כרובית בהרכבה אישית", category: "kitchen" },
         13473: { name: "מגש בורקס פינוקים", category: "kitchen" },
@@ -2484,6 +2632,8 @@
         12424: { type: "none" },
         12615: { type: "none" },
         99110: { type: "none" },
+        99109: { type: "none" },
+
         42102: { type: "none" },
         11708: { type: "none" },
         22461: { type: "none" },
@@ -2588,6 +2738,7 @@
         3: { type: "none" }, // ריק מחסן
         4: { type: "none" }, // ריק סושי
         5: { type: "none" }, // ריק קונדיט. עמר
+        6: { type: "none" }, // ריק מטבח. מוסטפה
 
         11161: { type: "none" },
         10206: { type: "none" },
@@ -2966,7 +3117,7 @@
         localStorage.setItem("temperature", temperature); // שמירת בחירה של חם/קר
 
         // שמירת רשימות המוצרים
-        ["kitchen", "bakery", "online", "warehouse"].forEach((category) => {
+        ["kitchen", "bakery",  "kitchenProducts", "online", "warehouse"].forEach((category) => {
           const items = Array.from(
             document.getElementById(`${category}List`).children
           ).map((li) => li.firstElementChild.textContent);
@@ -2978,7 +3129,7 @@
       function loadSavedOrder() {
         displayOrderInfo();
 
-        ["kitchen", "bakery", "online", "amar", "warehouse"].forEach(
+        ["kitchen", "bakery",  "kitchenProducts", "online", "amar", "warehouse"].forEach(
           (category) => {
             const items = JSON.parse(
               localStorage.getItem(`${category}Items`) || "[]"
@@ -4253,6 +4404,8 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
         document.getElementById("searchInput").value = "";
         document.getElementById("searchResults").innerHTML = "";
+
+
         // איפוס ובחירת אפשרות הכמות
         document.getElementById("quantityOption").checked = true;
         document.getElementById("sizeOption").checked = false;
@@ -4307,6 +4460,9 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         document.getElementById("searchInput").value = "";
         document.getElementById("searchResults").innerHTML = "";
         document.getElementById("breadTypeDiv").style.display = "none"; // הסתרת תיבת סוגי הלחם
+
+        document.getElementById("kitchenProductsList").innerHTML = "";
+
 
         const existingList = document.getElementById("quantityOptionsList");
         const existingButton = document.querySelector(".quantity-toggle-btn");
@@ -4372,7 +4528,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         const formattedDate = orderDate ? formatDateToDDMMYYYY(orderDate) : "";
 
         // בדוק אם יש מוצרים בסיכום ההזמנה
-        const hasProducts = ["kitchen", "bakery", "online", "warehouse"].some(
+        const hasProducts = ["kitchen",  "kitchenProducts", "bakery", "online", "warehouse"].some(
           (category) => {
             return (
               document.getElementById(`${category}List`).children.length > 0
@@ -4388,7 +4544,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         let summary = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${formattedDate}*\n*שעה: ${orderTime}*\n\n`;
 
         // רשימת הקטגוריות שיכללו בסיכום הכללי
-        ["kitchen", "bakery", "online", "warehouse"].forEach((category) => {
+        ["kitchen", "bakery",  "kitchenProducts", "online", "warehouse"].forEach((category) => {
           const categoryItems = Array.from(
             document.getElementById(`${category}List`).children
           )
@@ -4441,6 +4597,8 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           case "kitchen":
             return "מטבח";
           case "bakery":
+          case "kitchenProducts": return "מוצרי מטבח";
+
             return "קונדיטוריה";
           case "online":
             return "אונליין";
@@ -4914,6 +5072,11 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         },
         {
           code: "99110",
+          name: "חלת חתן",
+          sizes: [{ size: "גדול", price: 100 }],
+        },
+        {
+          code: "99109",
           name: "חלת חתן",
           sizes: [{ size: "גדול", price: 100 }],
         },
@@ -5406,6 +5569,13 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           sizes: [{ size: "ריק", price: 0 }],
         },
 
+        {
+          code: "6",
+          name: "ריק מטבח מוסטפה",
+          sizes: [{ size: "ריק", price: 0 }],
+        },
+
+      
         {
           code: "11709",
           name: "לחמנית ביס בריוש",

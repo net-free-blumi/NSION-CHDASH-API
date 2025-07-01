@@ -1,4 +1,3 @@
-
 window.onload = function () {
     google.accounts.id.initialize({
       client_id: "530661972828-l9qgtsui9d3aj40pbdnn6rvv15fr82kf.apps.googleusercontent.com", // ה-Client ID שלך
@@ -208,7 +207,7 @@ function openWhatsAppModal() {
     const orderTime = localStorage.getItem("orderTime") || "";
     const temperature = localStorage.getItem("temperature") || "";
     const formattedDate = orderDate ? formatDateToDDMMYYYY(orderDate) : "";
-    const categories = ["kitchen", "bakery", "online", "warehouse"];
+    const categories = ["kitchen",  "kitchenProducts", "bakery", "online", "warehouse"];
     const hasProducts = categories.some((category) => {
         return document.getElementById(`${category}List`).children.length > 0;
     });
@@ -1582,6 +1581,7 @@ function getCategoryTitle(category) {
     switch (category) {
         case 'kitchen': return 'מטבח';
         case 'bakery': return 'קונדיטוריה';
+        case "kitchenProducts": return "מוצרי מטבח";
         case 'online': return 'אונליין';
         case 'warehouse': return 'מחסן';
         default: return '';
@@ -1608,6 +1608,256 @@ function displayOrderInfo() {
                 <strong>לשעה: ${orderTime}</strong>`;
     document.getElementById("notesSummary").textContent = temperature ? `''${temperature}''` : '';
 }
+
+
+
+// מכאן הכל זה וואטסאפ
+
+
+
+function openWhatsAppKitchenProductsModal() {
+    const modal = document.getElementById('whatsappKitchenProductsModal');
+    const waEditable = document.getElementById('waEditableKitchenProducts');
+    const orderNumber = localStorage.getItem("orderNumber") || "";
+    const orderDate = localStorage.getItem("orderDate") || "";
+    const orderTime = document.getElementById("orderTime")?.value || "";
+    const dayOfWeek = getDayOfWeek(orderDate);
+
+    const kitchenProductsItems = getKitchenProductsItems();
+
+    if (kitchenProductsItems.length === 0) {
+      showNotification("אין מוצרים בקטגוריה זו.", "red");
+      return;
+    }
+
+    let message = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${formatDateToDDMMYYYY(orderDate)} (${dayOfWeek})*\n*שעה: ${orderTime}*\n\n*מוצרי מטבח:*\n${kitchenProductsItems.join("\n\n")}`;
+
+    // הדגשה בתצוגה באתר (כמו בשאר)
+    const htmlSummary = message.replace(/\*([^*]+)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+    waEditable.innerHTML = htmlSummary;
+    modal.style.display = 'block';
+    waEditable.focus();
+}
+
+function copyKitchenProductsSummary() {
+  const waEditable = document.getElementById('waEditableKitchenProducts');
+  if (!waEditable) {
+    showNotification('שגיאה: לא נמצא אזור עריכה', 'red');
+    return;
+  }
+  let summary = waEditable.innerHTML
+    .replace(/<br><br>/g, '\n\n')
+    .replace(/<div>/g, '\n')
+    .replace(/<br>/g, '\n')
+    .replace(/<b>(.*?)<\/b>/g, '*$1*')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  if (!summary) {
+    showNotification('אין טקסט להעתיק', 'error');
+    return;
+  }
+  navigator.clipboard.writeText(summary)
+    .then(() => showCopyNotification('סיכום מוצרי מטבח הועתק בהצלחה!'))
+    .catch(() => showCopyNotification('שגיאה בהעתקת הסיכום.', true));
+}
+
+function getKitchenProductsItems() {
+    return Array.from(document.getElementById("kitchenProductsList").children)
+      .map(li => {
+        const span = li.querySelector('span');
+        return span ? span.textContent.trim() : li.textContent.trim();
+      })
+      .filter(text => text !== "");
+  }
+  
+
+
+// ... existing code ...
+function addToCategoryList(category, productSummary) {
+  const categoryList = document.getElementById(category + "List");
+  const listItem = document.createElement("li");
+  listItem.textContent = productSummary; // תמיד טקסט ישיר, בלי span
+  categoryList.appendChild(listItem);
+  updateCategoryButtonsVisibility();
+}
+
+
+// משתנים גלובליים למעקב אחר הודעות מוצרי מטבח
+let lastSentKitchenProductsMessage = null;
+let isSendingKitchenProductsMessage = false;
+let pendingKitchenProductsMessage = null;
+
+function sendWhatsAppKitchenProductsMessage() {
+  // בדיקת הרשאה לפני שליחה
+  if (typeof checkAuthBeforeSending === 'function' && !checkAuthBeforeSending()) {
+    return;
+  }
+  const waEditable = document.getElementById('waEditableKitchenProducts');
+  const sendButton = document.querySelector('.send-kitchen-products-btn');
+  if (!waEditable) {
+    showNotification('שגיאה: לא נמצא אזור עריכה', 'red');
+    return;
+  }
+  const currentMessage = waEditable.innerHTML;
+  if (lastSentKitchenProductsMessage === currentMessage && lastSentKitchenProductsMessage !== null) {
+    pendingKitchenProductsMessage = currentMessage;
+    showDuplicateKitchenProductsModal();
+    return;
+  }
+  let message = waEditable.innerHTML
+    .replace(/<br><br>/g, '\n\n')
+    .replace(/<div>/g, '\n')
+    .replace(/<br>/g, '\n')
+    .replace(/<b>(.*?)<\/b>/g, '*$1*')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  if (!message) {
+    showNotification('אנא הכנס הודעה', 'error');
+    return;
+  }
+  if (isSendingKitchenProductsMessage) {
+    showNotification('שליחה בתהליך, אנא המתן...', 'info');
+    return;
+  }
+  isSendingKitchenProductsMessage = true;
+  sendButton.disabled = true;
+  sendButton.innerHTML = '<span class="loading-spinner"></span> שולח...';
+  showNotification('שולח הודעה...', 'info');
+
+  // הכנת הבקשה עם המייל (כמו בקונדיטוריה)
+  const requestBody = typeof addUserEmailToRequest === 'function'
+    ? addUserEmailToRequest({
+        message,
+        groupId: '120363414923943659@g.us'   //מטבח מוסטפה
+      })
+    : { message, groupId: '120363414923943659@g.us' };
+
+  fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody)
+  })
+    .then(res => {
+      if (!res.ok) {
+        return res.json().then(errorData => {
+          throw new Error(errorData.error || 'שגיאה בשליחת ההודעה');
+        });
+      }
+      return res.json();
+    })
+    .then(() => {
+      showNotification('✅ ההודעה נשלחה בהצלחה!', 'green');
+      closeWhatsAppKitchenProductsModal();
+      lastSentKitchenProductsMessage = currentMessage;
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showNotification(`❌ ${error.message}`, 'red');
+    })
+    .finally(() => {
+      isSendingKitchenProductsMessage = false;
+      sendButton.disabled = false;
+      sendButton.innerHTML = 'שלח לוואטסאפ';
+    });
+}
+
+function showDuplicateKitchenProductsModal() {
+  const modal = document.getElementById("duplicateKitchenProductsModal");
+  if (modal) {
+    modal.style.display = 'block';
+  }
+}
+
+function closeDuplicateKitchenProductsModal() {
+  const modal = document.getElementById("duplicateKitchenProductsModal");
+  if (modal) {
+    modal.style.display = 'none';
+    pendingKitchenProductsMessage = null;
+  }
+}
+
+function confirmKitchenProductsResend() {
+  if (pendingKitchenProductsMessage) {
+    lastSentKitchenProductsMessage = null;
+    const waEditable = document.getElementById('waEditableKitchenProducts');
+    if (waEditable) {
+      waEditable.innerHTML = pendingKitchenProductsMessage;
+      sendWhatsAppKitchenProductsMessage();
+    }
+    closeDuplicateKitchenProductsModal();
+  }
+}
+
+// סגירה בלחיצה על הרקע (רק מאזין mousedown, כמו בקונדיטוריה)
+window.addEventListener('DOMContentLoaded', function() {
+    const kitchenProductsModal = document.getElementById('whatsappKitchenProductsModal');
+    if (kitchenProductsModal) {
+      kitchenProductsModal.addEventListener('mousedown', function(e) {
+        if (e.target === kitchenProductsModal) closeWhatsAppKitchenProductsModal();
+      });
+    }
+});
+
+function closeWhatsAppKitchenProductsModal() {
+  const modal = document.getElementById('whatsappKitchenProductsModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// ... existing code ...
+window.addEventListener('DOMContentLoaded', function() {
+    const duplicateKitchenProductsModal = document.getElementById('duplicateKitchenProductsModal');
+    if (duplicateKitchenProductsModal) {
+        duplicateKitchenProductsModal.addEventListener('mousedown', function(e) {
+            if (e.target === duplicateKitchenProductsModal) {
+                closeDuplicateKitchenProductsModal();
+            }
+        });
+    }
+});
+
+  // קרא לפונקציה הזו בכל פעם שמוסיפים/מסירים מוצר ממוצרי מטבח!
+
+// ... existing code ...
+function updateCategoryButtonsVisibility() {
+  const categories = [
+    { listId: 'kitchenProductsList', buttonId: 'whatsappKitchenProductsButton' },
+    { listId: 'sushiList', buttonId: 'whatsappSushiButton' },
+    { listId: 'warehouseList', buttonId: 'whatsappWarehouseButton' },
+    { listId: 'onlineList', buttonId: 'whatsappFruitsButton' },
+  ];
+  categories.forEach(({ listId, buttonId }) => {
+    const btn = document.getElementById(buttonId);
+    const list = document.getElementById(listId);
+    if (!btn || !list) return;
+    btn.style.display = list.children.length > 0 ? '' : 'none';
+  });
+}
+// ... existing code ...
+function removeProduct(button, category) {
+  const listItem = button.closest("li");
+  if (listItem) {
+    document.getElementById(`${category}List`).removeChild(listItem);
+    updateCategoryButtonsVisibility();
+    saveOrderDetails();
+  }
+}
+// ... existing code ...
+window.addEventListener('DOMContentLoaded', function() {
+  updateCategoryButtonsVisibility();
+  // MutationObserver לכל קטגוריה
+  ['kitchenProductsList','sushiList','warehouseList','onlineList'].forEach(listId => {
+    const target = document.getElementById(listId);
+    if (target) {
+      const observer = new MutationObserver(updateCategoryButtonsVisibility);
+      observer.observe(target, { childList: true });
+    }
+  });
+});
+// ... existing code ...
 
 
 
