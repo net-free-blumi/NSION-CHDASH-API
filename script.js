@@ -1827,6 +1827,7 @@ function updateCategoryButtonsVisibility() {
     { listId: 'kitchenProductsList', buttonId: 'whatsappKitchenProductsButton' },
     { listId: 'sushiList', buttonId: 'whatsappSushiButton' },
     { listId: 'warehouseList', buttonId: 'whatsappWarehouseButton' },
+    { listId: 'bakeryList', buttonId: 'whatsappBakeryButton' },
     { listId: 'onlineList', buttonId: 'whatsappFruitsButton' },
   ];
   categories.forEach(({ listId, buttonId }) => {
@@ -1849,7 +1850,7 @@ function removeProduct(button, category) {
 window.addEventListener('DOMContentLoaded', function() {
   updateCategoryButtonsVisibility();
   // MutationObserver לכל קטגוריה
-  ['kitchenProductsList','sushiList','warehouseList','onlineList'].forEach(listId => {
+  ['kitchenProductsList','sushiList','bakeryList','warehouseList','onlineList'].forEach(listId => {
     const target = document.getElementById(listId);
     if (target) {
       const observer = new MutationObserver(updateCategoryButtonsVisibility);
