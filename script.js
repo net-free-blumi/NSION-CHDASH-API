@@ -161,35 +161,42 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function copyBakerySummary() {
-    const orderNumber = localStorage.getItem("orderNumber") || "";
-    const orderDate = localStorage.getItem("orderDate") || "";
-    const orderDay = getDayOfWeek(orderDate);
-    const orderTime = document.getElementById("orderTime").value;
-    
-    // מקבל את כל הפריטים מקטגוריית הקונדיטוריה
-    const bakeryItems = Array.from(document.getElementById("bakeryList").children)
-        .map(li => li.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, '').trim());
-
-    if (bakeryItems.length > 0) {
-        const bakerySummary = `
-*ליום ${orderDay} עד השעה: ${orderTime}*
-
-מיהודה
-
-${bakeryItems.join('\n')}
-
-(הזמנה מס' *${orderNumber}*)`;
-        
-        navigator.clipboard.writeText(bakerySummary.trim())
-            .then(() => {
-                showCopyNotification("סיכום קונדיטוריה הועתק בהצלחה!");
-            })
-            .catch((err) => {
-                console.error("שגיאה בהעתקה:", err);
-                showCopyNotification("שגיאה בהעתקת סיכום קונדיטוריה.", true);
-            });
+    const waEditable = document.getElementById('waEditableBakery');
+    const modal = document.getElementById('whatsappBakeryModal');
+    // אם המודל פתוח (כלומר, המשתמש עורך ידנית)
+    if (modal && waEditable && modal.style.display !== "none") {
+        let message = waEditable.innerHTML
+            .replace(/<br><br>/g, '\n\n')
+            .replace(/<div>/g, '\n')
+            .replace(/<br>/g, '\n')
+            .replace(/<b>(.*?)<\/b>/g, '*$1*')
+            .replace(/<[^>]+>/g, '')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+        if (!message) {
+            showNotification('אין מה להעתיק', 'red');
+            return;
+        }
+        navigator.clipboard.writeText(message)
+            .then(() => showCopyNotification("סיכום קונדיטוריה הועתק בהצלחה!"))
+            .catch(() => showCopyNotification("שגיאה בהעתקת סיכום קונדיטוריה.", true));
     } else {
-        showNotification("אין פריטי קונדיטוריה בהזמנה.", "red"); // הודעת שגיאה
+        // אם המודל לא פתוח – העתק סיכום אוטומטי (כמו היום)
+        const orderNumber = localStorage.getItem("orderNumber") || "";
+        const orderDate = localStorage.getItem("orderDate") || "";
+        const orderDay = getDayOfWeek(orderDate);
+        const orderTime = document.getElementById("orderTime").value;
+        const bakeryItems = Array.from(document.getElementById("bakeryList").children)
+            .map(li => li.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, '').trim());
+        if (bakeryItems.length > 0) {
+            const bakerySummary = `*ליום ${orderDay} עד השעה: ${orderTime}*\n\nמיהודה\n\n${bakeryItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
+            navigator.clipboard
+                .writeText(bakerySummary.trim())
+                .then(() => showCopyNotification("סיכום קונדיטוריה הועתק בהצלחה!"))
+                .catch(() => showCopyNotification("שגיאה בהעתקת סיכום קונדיטוריה.", true));
+        } else {
+            showNotification("אין פריטי קונדיטוריה בהזמנה.", "red");
+        }
     }
 }
 
@@ -1860,5 +1867,170 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 // ... existing code ...
 
+function generateAmarSummary() {
+    const amarList = document.getElementById("amarList");
+    const orderDate = new Date(document.getElementById("orderDate").value);
+    const orderTime = document.getElementById("orderTime").value;
+    const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+    const dayName = days[orderDate.getDay()];
+    const orderNumber = document.getElementById("orderNumber").value;
+  
+    let summary = `*ליום ${dayName} עד השעה: ${orderTime}*\n\n`;
+    let corassonTotal = 0, jabettaTotal = 0, grisiniTotal = 0;
+    let focacciaTotal = 0, bakeryTotal = 0, finukimTotal = 0;
+    const bisTypeTotals = {};
+    let hasAmarProducts = false;
+  
+    const corassonCodes = ["12626", "410", "415"];
+    const amarProductCodes = [
+      "12626", "12408", "12409", "12622", "12624", "13473", "410", "415"
+    ];
+    const allLists = [
+      ...document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li"),
+      ...amarList.querySelectorAll("li")
+    ];
+  
+    allLists.forEach((item) => {
+      const codeEl = item.querySelector(".product-code");
+      if (!codeEl) return;
+      const productCode = codeEl.textContent.match(/מק"ט: (\d+)/)?.[1];
+      const itemText = item.getAttribute("data-raw-summary") || item.querySelector("span")?.textContent || "";
+  
+      if (amarProductCodes.includes(productCode) || bisProducts.includes(productCode)) {
+        hasAmarProducts = true;
+      }
+  
+      // כמויות לפי מק"ט
+      let match;
+      if (corassonCodes.includes(productCode)) {
+        match = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'?/) || itemText.match(/(\d+)\s*מגש/);
+        corassonTotal += match ? parseInt(match[1]) * (match[2] ? parseInt(match[2]) : 15) : 0;
+      } else if (productCode === "12409") {
+        match = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'/);
+        jabettaTotal += match ? parseInt(match[1]) * parseInt(match[2]) : 0;
+      } else if (productCode === "12408") {
+        match = itemText.match(/(\d+)\s*מגש/);
+        grisiniTotal += match ? parseInt(match[1]) * 13 : 0;
+      } else if (productCode === "12622") {
+        match = itemText.match(/(\d+)\s*מגש/);
+        focacciaTotal += match ? parseInt(match[1]) * 8 : 0;
+      } else if (productCode === "12624") {
+        match = itemText.match(/(\d+)\s*מגש/);
+        bakeryTotal += match ? parseInt(match[1]) * 9 : 0;
+      } else if (productCode === "13473") {
+        match = itemText.match(/(\d+)\s*מגש/);
+        finukimTotal += match ? parseInt(match[1]) * 20 : 0;
+      }
+  
+      // ביס לפי bread_type
+      if (bisProducts.includes(productCode)) {
+        const qtyMatch = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'/);
+        const breadMatch = itemText.match(/\|BREAD_TYPE:(ביס [^|]+)\|/);
+        if (qtyMatch && breadMatch) {
+          const total = parseInt(qtyMatch[1]) * parseInt(qtyMatch[2]);
+          const breadType = breadMatch[1];
+          bisTypeTotals[breadType] = (bisTypeTotals[breadType] || 0) + total;
+        }
+      }
+    });
+  
+    if (!hasAmarProducts && amarList.children.length === 0) return null;
+  
+    if (corassonTotal) summary += `● ${corassonTotal} קרואסון מיני\n\n`;
+    if (jabettaTotal) summary += `● ${jabettaTotal} ג'בטה מיני\n\n`;
+    if (grisiniTotal) summary += `● ${grisiniTotal} מקלות גריסני\n\n`;
+    if (focacciaTotal) summary += `● ${focacciaTotal} פוקאצות מ4 סוגים\n\n`;
+    if (bakeryTotal) summary += `● ${bakeryTotal} יח' מאפי בוקר טריים של הבייקרי\n\n`;
+    if (finukimTotal) summary += `● ${finukimTotal} בורקס תפו''א משולש מיני\n\n`;
+  
+    // מוצרים ידניים ב־amarList
+    amarList.querySelectorAll("li").forEach((item) => {
+      let text = item.querySelector("span")?.textContent || "";
+      text = text.replace(/\|BREAD_TYPE:[^|]+\|/g, "").trim();
+      summary += `● ${text}\n\n`;
+    });
+  
+    // ביסים לפי סוג
+    Object.entries(bisTypeTotals).forEach(([type, total]) => {
+      summary += `● ${total} ${type}\n\n`;
+    });
+  
+    summary += `(הזמנה מס' *${orderNumber}*)`;
+    return summary.trim();
+  }
+
+  
+  function copyAmarSummary() {
+    const waEditable = document.getElementById('waEditableAmar');
+    const modal = document.getElementById('whatsappAmarModal');
+    // אם המודל פתוח (כלומר, המשתמש עורך ידנית)
+    if (modal && waEditable && modal.style.display !== "none") {
+        let message = waEditable.innerHTML
+            .replace(/<br><br>/g, '\n\n')
+            .replace(/<div>/g, '\n')
+            .replace(/<br>/g, '\n')
+            .replace(/<b>(.*?)<\/b>/g, '*$1*')
+            .replace(/<[^>]+>/g, '')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+        if (!message) {
+            showNotification('אין מה להעתיק', 'red');
+            return;
+        }
+        navigator.clipboard.writeText(message)
+            .then(() => showNotification("הסיכום הערוך הועתק בהצלחה!", "green"))
+            .catch(() => showNotification("שגיאה בהעתקה", "red"));
+    } else {
+        // אם המודל לא פתוח – העתק סיכום אוטומטי
+        const summary = generateAmarSummary();
+        if (!summary) {
+            showNotification("אין מוצרי קונדיטוריית עמר בהזמנה.", "red");
+            return;
+        }
+        navigator.clipboard.writeText(summary)
+            .then(() => showNotification("סיכום קונדיטוריית עמר הועתק בהצלחה!", "green"))
+            .catch(() => showNotification("שגיאה בהעתקת הסיכום", "red"));
+    }
+}
+  
 
 
+
+
+
+  function refreshAmarSummary() {
+    const summary = generateAmarSummary();
+    if (!summary) {
+      document.getElementById("amarSummaryDisplay").innerText = "אין סיכום.";
+      return;
+    }
+    document.getElementById("amarSummaryDisplay").innerText = summary;
+  }
+
+  
+  function openWhatsAppAmarModal() {
+    const summary = generateAmarSummary();
+    const modal = document.getElementById("whatsappAmarModal");
+    const waEditable = document.getElementById("waEditableAmar");
+
+    if (!summary) {
+        showNotification("אין מוצרי קונדיטוריית עמר בהזמנה.", "red");
+        return;
+    }
+    if (!modal || !waEditable) {
+        showNotification("שגיאה בפתיחת סיכום וואטסאפ", "red");
+        return;
+    }
+
+    const htmlSummary = summary.replace(/\*([^*]+)\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
+    waEditable.innerHTML = htmlSummary;
+    modal.style.display = "block";
+    waEditable.focus();
+
+    const orderNumber = document.getElementById("orderNumber").value;
+    window.currentWhatsAppSummary = {
+      type: "amar",
+      text: summary,
+      orderNumber: orderNumber
+    };
+}
