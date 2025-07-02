@@ -1878,12 +1878,13 @@ function generateAmarSummary() {
     let summary = `*ליום ${dayName} עד השעה: ${orderTime}*\n\n`;
     let corassonTotal = 0, jabettaTotal = 0, grisiniTotal = 0;
     let focacciaTotal = 0, bakeryTotal = 0, finukimTotal = 0;
+    let focaccinotTotal = 0;
     const bisTypeTotals = {};
     let hasAmarProducts = false;
   
     const corassonCodes = ["12626", "410", "415"];
     const amarProductCodes = [
-      "12626", "12408", "12409", "12622", "12624", "13473", "410", "415"
+      "12626", "12408", "12409", "12622", "12624", "13473", "410", "415", "19105"
     ];
     const allLists = [
       ...document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li"),
@@ -1920,6 +1921,9 @@ function generateAmarSummary() {
       } else if (productCode === "13473") {
         match = itemText.match(/(\d+)\s*מגש/);
         finukimTotal += match ? parseInt(match[1]) * 20 : 0;
+      } else if (productCode === "19105") {
+        match = itemText.match(/(\d+)\s*מגש/);
+        focaccinotTotal += match ? parseInt(match[1]) * 12 : 0;
       }
   
       // ביס לפי bread_type
@@ -1942,6 +1946,7 @@ function generateAmarSummary() {
     if (focacciaTotal) summary += `● ${focacciaTotal} פוקאצות מ4 סוגים\n\n`;
     if (bakeryTotal) summary += `● ${bakeryTotal} יח' מאפי בוקר טריים של הבייקרי\n\n`;
     if (finukimTotal) summary += `● ${finukimTotal} בורקס תפו''א משולש מיני\n\n`;
+    if (focaccinotTotal) summary += `● ${focaccinotTotal} פוקאצ'ינות קטנות\n\n`;
   
     // מוצרים ידניים ב־amarList
     amarList.querySelectorAll("li").forEach((item) => {
