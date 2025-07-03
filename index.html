@@ -2236,7 +2236,7 @@
         11111: { name: "ליטר פסטו עשבי תיבול", category: "kitchenProducts" },
         10315: { name: "רבע עוף ברוטב סצ'ואן", category: "kitchenProducts" },
 
-        12625: {
+        19100: {
           name: "מגש מיני מאפים מתוקים (25 יחי') מ 5 סוגים",
           category: "amar",
         },
@@ -2303,15 +2303,15 @@
 
         19302: { name: "מגש פיתה שווארמה כרובית", category: "kitchen" },
 19300: { name: "מגש סלט כרוב אסייתי", category: "kitchen" },
-19103: { name: "מגש מיקס טארטלטים", category: "kitchen" },
-19104: { name: "מגש סלט חזה עוף", category: "kitchen" },
+19103: { name: "מגש מיקס טארטלטים מלוחים", category: "kitchen" },
+19104: { name: "מגש סלט עוף אסייתי", category: "kitchen" },
 19105: { name: "מגש פוקאצ'ינות", category: "kitchen" },
 19101: { name: "מגש ביס רוסטביף", category: "kitchen" },
-19102: { name: "מגש ביס אסייתי", category: "kitchen" },
-
-1910499: { name: "ליטר סלט חזה עוף", category: "kitchen" },
-1930099: { name: "ליטר סלט כרוב אסייתי", category: "kitchen" },
-
+19102: { name: "מגש ביס בשרי אסייתי", category: "kitchen" },
+1910499: { name:  "ליטר סלט עוף אסייתי במרוכז. *רוטב חובה!!*", category: "kitchen" },
+1930099: { name:  "ליטר סלט כרוב אסייתי במרוכז. *רוטב חובה!!*", category: "kitchen" },
+19301: { name: "מגש סלט בטטה במייפל", category: "kitchen" },
+1930199: { name:  "ליטר סלט בטטה במייפל במרוכז. *רוטב חובה!!*", category: "kitchen" },
 
 
 
@@ -2586,7 +2586,7 @@
         11709: { type: "none" },
         117083: { type: "none" },
         11552: { type: "none" },
-        12625: { type: "none" },
+        19100: { type: "none" },
         40105: { type: "none" },
         40106: { type: "none" },
         40101: { type: "none" },
@@ -2817,15 +2817,23 @@
 
 
 
-'19302': { type: "size", defaultSize: "large" },
+'19302': { type: "quantity",
+          defaultQuantity: 15,
+          unit: "יחי'",
+          predefinedQuantities: [15, 20], },
 '19300': { type: "quantity",  defaultQuantity: 15, unit: "כוסות", predefinedQuantities: [10, 15], },
 '19103': { type: "size", defaultSize: "large" },
 '19104': { type: "quantity",  defaultQuantity: 15, unit: "כוסות", predefinedQuantities: [10, 15], },
 '19105': { type: "size", defaultSize: "large" },
 '19101': { type: "size", defaultSize: "large" },
-'19102': { type: "size", defaultSize: "large" },
+'19102': {  type: "quantity",
+          defaultQuantity: 15,
+          unit: "יחי'",
+          predefinedQuantities: [15, 20], },
 '1910499': { type: 'none' },
 '1930099': { type: 'none' },
+'19301': { type: "quantity",  defaultQuantity: 15, unit: "כוסות", predefinedQuantities: [10, 15], },
+'1930199': { type: 'none' },
 
 
 
@@ -4056,21 +4064,15 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
       }
 
       function getCategoryTitle(category) {
-        switch (category) {
-          case "kitchen":
-            return "מטבח";
-          case "bakery":
-          case "kitchenProducts": return "מוצרי מטבח";
-
-            return "קונדיטוריה";
-          case "online":
-            return "אונליין";
-          case "warehouse":
-            return "מחסן";
-          default:
-            return category;
-        }
-      }
+  switch (category) {
+    case "kitchen": return "מטבח";
+    case "bakery": return "קונדיטוריה";
+    case "kitchenProducts": return "מוצרי מטבח";
+    case "online": return "אונליין";
+    case "warehouse": return "מחסן";
+    default: return category;
+  }
+}
 
       // החלפת תצוגת שדות על פי בחירה
       document
@@ -5425,7 +5427,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           sizes: [{ size: "יחי'", price: 0 }],
         },
         {
-          code: "12625",
+          code: "19100",
           name: "מגש מיני מאפים מתוקים (25 יחי') מ 5 סוגים",
           sizes: [{ size: "גדול", price: 125 }],
         },
@@ -5740,31 +5742,21 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           sizes: [{ size: "לליטר", price: 0 }],
         },
 
-        {
-          code: "12850",
-          name: "מגש סלט אדמה",
-          sizes: [
-            { size: "10 כוסות", price: 115 },
-            { size: "15 כוסות", price: 172 },
-          ],
-        },
 
-
-
-
-
-
-
-
-
-
-
-        {
+ {
+   code: "12850",
+   name: "מגש סלט אדמה",
+   sizes: [
+     { size: "10 כוסות", price: 115 },
+     { size: "15 כוסות", price: 172 },
+   ],
+ },
+ {
   code: "19302",
   name: "מגש פיתה שווארמה כרובית",
   sizes: [
-    { size: "גדול", price: 0 },
-  ],
+  { size: "15 יחי", price: 0 },
+   ],
 },
 {
   code: "19300",
@@ -5775,52 +5767,67 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 },
 {
   code: "19103",
-  name: "מגש מיקס טארטלטים",
+  name: "מגש מיקס טארטלטים מלוחים",
   sizes: [
-    { size: "גדול", price: 0 },
+    { size: "גדול", price: 240 },
   ],
 },
 {
   code: "19104",
-  name: "מגש סלט חזה עוף",
+  name: "מגש סלט עוף אסייתי",
   sizes: [
-    { size: "10 כוסות", price: 0 },
-    { size: "15 כוסות", price: 0 },
+    { size: "10 כוסות", price: 180 },
+    { size: "15 כוסות", price: 270 },
   ],
 },
 {
   code: "19105",
   name: "מגש פוקאצ'ינות",
   sizes: [
-    { size: "גדול", price: 0 },
-    { size: "בינוני", price: 0 },
+    { size: "גדול", price: 139 },
   ],
 },
 {
   code: "19101",
   name: "מגש ביס רוסטביף",
   sizes: [
-    { size: "גדול", price: 0 },
+  { size: "20 יחי", price: 240 },
   ],
 },
 {
   code: "19102",
-  name: "מגש ביס אסייתי",
+  name: "מגש ביס בשרי אסייתי",
   sizes: [
-    { size: "גדול", price: 0 },
+  { size: "15 יחי", price: 280 },
   ],
 },
-
 {
   code: "1910499",
-  name: "ליטר סלט חזה עוף",
+  name: "ליטר סלט עוף אסייתי + קערה וכף ורטבים",
   sizes: [
     { size: "לליטר", price: 0 },
   ],
 },
 {
   code: "1930099",
-  name: "ליטר סלט כרוב אסייתי",
+  name: "ליטר סלט כרוב אסייתי + קערה וכף ורטבים",
+  sizes: [
+    { size: "לליטר", price: 0 },
+  ],
+},
+
+
+{
+  code: "19301",
+  name: "מגש סלט בטטה במייפל",
+  sizes: [
+    { size: "10 כוסות", price: 115 },
+    { size: "15 כוסות", price: 172 },
+  ],
+},
+{
+  code: "1930199",
+  name: "ליטר סלט בטטה במייפל + קערה וכף ורטבים",
   sizes: [
     { size: "לליטר", price: 0 },
   ],
