@@ -1884,7 +1884,7 @@ function generateAmarSummary() {
   
     const corassonCodes = ["12626", "410", "415"];
     const amarProductCodes = [
-      "12626", "12408", "12409", "12622", "12624", "13473", "410", "415", "19105"
+      "12626", "12408", "12409", "19102", "12622", "12624", "13473", "410", "415", "19105"
     ];
     const allLists = [
       ...document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li"),
@@ -1907,6 +1907,9 @@ function generateAmarSummary() {
         match = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'?/) || itemText.match(/(\d+)\s*מגש/);
         corassonTotal += match ? parseInt(match[1]) * (match[2] ? parseInt(match[2]) : 15) : 0;
       } else if (productCode === "12409") {
+        match = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'/);
+        jabettaTotal += match ? parseInt(match[1]) * parseInt(match[2]) : 0;
+    } else if (productCode === "19102") {
         match = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'/);
         jabettaTotal += match ? parseInt(match[1]) * parseInt(match[2]) : 0;
       } else if (productCode === "12408") {
