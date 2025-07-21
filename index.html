@@ -935,7 +935,7 @@
           <select id="breadType">
             <option value="">בחר</option>
             <!-- ברירת מחדל ריקה -->
-            <option value="ביס שומשום">ביס שומשום</option>
+            <option value="9ביס שומשום">ביס שומשום</option>
             <option value="ביס בריוש">ביס בריוש</option>
             <option value="ביס קמח מלא">ביס קמח מלא</option>
             <option value="ביס דגנים">ביס דגנים</option>
@@ -1904,9 +1904,9 @@
 
       // נתוני מוצרים
       const productData = {
-        12628: { name: "מגש כריכוני טונה", category: "kitchen" },
-        12617: { name: "מגש ביס שניצל", category: "kitchen" },
-        12627: { name: "מגש כריכוני סלט ביצים וירקות", category: "kitchen" },
+        12628: { name: "מגש ביס טונה", category: "kitchen" },
+        12617: { name: "מגש ביס בריוש ושניצל", category: "kitchen" },
+        12627: { name: "מגש ביס סלט ביצים וירקות", category: "kitchen" },
         16331: { name: "מגש ביס סלט אבוקדו וביצה", category: "kitchen" },
         12618: { name: "מגש ביס חזה הודו מעושן", category: "kitchen" },
         12616: { name: "מגש ביס במילוי אסאדו", category: "kitchen" },
@@ -2257,16 +2257,15 @@
         10425: { name: "קלופס וויט פיש אמריקאי", category: "kitchenProducts" },
         10421: { name: "קלופס גפילטע פיש קלאסי", category: "kitchenProducts" },
 
-        11102: { name: "ליטר סלט ביצים ובצל מטוגן", category: "kitkitchenProductschen" },
+        11102: { name: "ליטר סלט ביצים ובצל מטוגן", category: "kitchenProducts" },
         11108: { name: "ליטר טאמאטע דיפ", category: "kitchenProducts" },
         11147: { name: "ליטר ליפתן תפ''ע", category: "kitchenProducts" },
         10900: { name: "ליטר מרק עוף של סבתא", category: "kitchenProducts" },
         22448: { name: "ליטר מרק עוף של סבתא", category: "kitchenProducts" },
         10950: { name: "ליטר אטריות למרק", category: "kitchenProducts" },
         10920: { name: "ליטר מרק גולש", category: "kitchenProducts" },
-        10903: { name: "ליטר מרק ירקות עשיר", category: "kitkitchenProductschen" },
+        10903: { name: "ליטר מרק ירקות עשיר", category: "kitchenProducts" },
         10921: { name: "ליטר מרק מינסטרונה איטלקי", category: "kitchenProducts" },
-        11168: { name: "ליטר ערבישע סלט-ערבי", category: "kitchenProducts" },
         11135: { name: "ליטר חציל סצ'ואן", category: "kitchenProducts" },
 
         11161: { name: "ליטר סלט טונה קלאסי במיונז", category: "kikitchenProductstchen" },
@@ -2408,9 +2407,9 @@
         },
         12627: {
           type: "quantity",
-          defaultQuantity: 20,
+          defaultQuantity: 24,
           unit: "יחי'",
-          predefinedQuantities: [12, 20],
+          predefinedQuantities: [12, 24],
         },
         12618: {
           type: "quantity",
@@ -2432,9 +2431,9 @@
         },
         12617: {
           type: "quantity",
-          defaultQuantity: 20,
+          defaultQuantity: 24,
           unit: "יחי'",
-          predefinedQuantities: [12, 20],
+          predefinedQuantities: [12, 24],
         },
         12480: {
           type: "quantity",
@@ -2815,7 +2814,6 @@
         10920: { type: "none" },
         10903: { type: "none" },
         10921: { type: "none" },
-        11168: { type: "none" },
         11135: { type: "none" },
 
 
@@ -4218,7 +4216,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         },
         {
           code: "12628",
-          name: "מגש כריכוני טונה",
+          name: "מגש ביס טונה",
           sizes: [
             { size: "12 יחי", price: 170 },
             { size: "20 יחי", price: 285 },
@@ -4263,10 +4261,10 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         },
         {
           code: "12627",
-          name: "מגש כריכוני סלט ביצים וירקות",
+          name: "מגש ביס סלט ביצים וירקות",
           sizes: [
             { size: "12 יחי", price: 135 },
-            { size: "20 יחי", price: 247 },
+            { size: "24 יחי", price: 270 },
           ],
         },
         {
@@ -4470,10 +4468,10 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         },
         {
           code: "12617",
-          name: "מגש ביס שניצל",
+          name: "מגש ביס בריוש ושניצל",
           sizes: [
             { size: "12 יחי", price: 216 },
-            { size: "20 יחי", price: 360 },
+            { size: "24 יחי", price: 432 },
           ],
         },
         {
@@ -5751,11 +5749,6 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           sizes: [{ size: "לליטר", price: 0 }],
         },
         {
-          code: "11168",
-          name: "ליטר ערבישע סלט-ערבי",
-          sizes: [{ size: "לליטר", price: 0 }],
-        },
-        {
           code: "11135",
           name: "ליטר חציל סצ'ואן",
           sizes: [{ size: "לליטר", price: 0 }],
@@ -5810,7 +5803,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
   code: "19101",
   name: "מגש ביס רוסטביף ניו יורק",
   sizes: [
-  { size: "20 יחי", price: 240 },
+  { size: "20 יחי", price: 380 },
   ],
 },
 {
