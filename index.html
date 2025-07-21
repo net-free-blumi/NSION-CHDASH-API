@@ -933,16 +933,16 @@
         <div id="breadTypeDiv" style="display: none">
           <label for="breadType">סוג לחם:</label>
           <select id="breadType">
-            <option value="">בחר</option>
+            <!-- <option value="">בחר</option> -->
             <!-- ברירת מחדל ריקה -->
-            <option value="9ביס שומשום">ביס שומשום</option>
-            <option value="ביס בריוש">ביס בריוש</option>
+            <option value="ביס שומשום">ביס שומשום</option>
+            <option value="ביס בריוש מלבן">ביס בריוש מלבן</option>
+            <!-- <option value="ביס בריוש">ביס בריוש</option> -->
             <option value="ביס קמח מלא">ביס קמח מלא</option>
             <option value="ביס דגנים">ביס דגנים</option>
             <option value="ביס פרג">ביס פרג</option>
-            <option value="ביס שחור">ביס שחור</option>
+            <option value="ביס שחור">ביס שחור (אבץ מחמצת)</option>
             <option value="ביס אדום-סלק">ביס אדום-סלק</option>
-            <option value="ביס בריוש מלבן">ביס בריוש מלבן</option>
           </select>
         </div>
 
@@ -1901,6 +1901,46 @@
       // הגדרת משתנים גלובליים בתחילת הסקריפט
       window.currentEditItem = null;
       window.currentEditCategory = null;
+
+
+
+// תמיכה ב-Enter להוספת מוצר לסיכום (רק בשדות הרלוונטיים)
+['productCode', 'productQuantity', 'productNote', 'productSize', 'breadType', 'unitQuantity', 'unitType'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        var popupOpen = document.querySelector('.modal[style*="display: block"]');
+        if (!popupOpen) {
+          addProduct();
+        }
+      }
+    });
+  }
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    // בדוק שאין פופאפ פתוח
+    var popupOpen = document.querySelector('.modal[style*="display: block"]');
+    // בדוק שאין פוקוס על אחד מהשדות (כדי לא להפעיל פעמיים)
+    var active = document.activeElement;
+    var relevantIds = ['productCode', 'productQuantity', 'productNote', 'productSize', 'breadType', 'unitQuantity', 'unitType'];
+    if (!popupOpen && !relevantIds.includes(active.id)) {
+      // בדוק שכל השדות הנדרשים מלאים (למשל productCode וכמות)
+      var code = document.getElementById('productCode').value.trim();
+      var qty = document.getElementById('productQuantity').value.trim();
+      if (code && qty) {
+        addProduct();
+      }
+    }
+  }
+});
+// הוספה אוטומטית לסיכום רק כאשר מדביקים מק״ט (paste)
+
+
+
 
       // נתוני מוצרים
       const productData = {
