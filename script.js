@@ -771,7 +771,7 @@ function openWhatsAppBakeryModal() {
     const bakeryItems = Array.from(document.getElementById("bakeryList").children)
         .map(li => li.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, '').trim());
     if (bakeryItems.length > 0) {
-        const bakerySummary = `*ליום ${orderDay} עד השעה: ${orderTime}*\n\nמיהודה\n\n${bakeryItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
+        const bakerySummary = `*הזמנה אונליין ליום ${orderDay} עד השעה: ${orderTime}*\n\nמיהודה\n\n${bakeryItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
         // המרה ל-HTML עם הדגשות נכונות לוואטסאפ
         const htmlSummary = bakerySummary
             .replace(/\*([^*]+)\*/g, '<b>$1</b>')
