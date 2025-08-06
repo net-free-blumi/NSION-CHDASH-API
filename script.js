@@ -155,9 +155,18 @@ function checkAuthBeforeSending() {
     return true;
 }
 
+// פונקציה להעיר את השרת
+function wakeUpServer() {
+    fetch('https://whatsapp-order-system.onrender.com/health')
+        .then(() => console.log('Server is awake'))
+        .catch(() => console.log('Server waking up...'));
+}
+
 // אתחול המערכת בטעינת הדף
 document.addEventListener('DOMContentLoaded', function() {
     checkAuthOnLoad();
+    // העיר את השרת בטעינת הדף
+    wakeUpServer();
 });
 
 function copyBakerySummary() {
@@ -540,6 +549,9 @@ function copyCurrentSummary() {
 }
 
 function newOrder() {
+    // העיר את השרת בהתחלת הזמנה חדשה
+    wakeUpServer();
+    
     // איפוס כל השדות
     document.getElementById("orderNumber").value = "";
     document.getElementById("orderDate").value = "";
