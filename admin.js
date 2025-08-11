@@ -110,11 +110,11 @@ class ProductManager {
                     const price = s.price === 0 ? 'חינם' : `₪${s.price}`;
                     return `${s.size}: ${price}`;
                 }).join(', ');
-                productInfo += `<p><strong>מחירים:</strong> ${pricesDisplay}</p>`;
+                productInfo += `<p><strong>גדלים ומחירים:</strong> ${pricesDisplay}</p>`;
             }
         } else if (product.price !== undefined && product.price !== null) {
             const price = product.price === 0 ? 'חינם' : `₪${product.price}`;
-            productInfo += `<p><strong>מחיר בסיסי:</strong> ${price}</p>`;
+            productInfo += `<p><strong>מחיר:</strong> ${price}</p>`;
         }
         
         // הצגת יחידת מידה אם קיימת
