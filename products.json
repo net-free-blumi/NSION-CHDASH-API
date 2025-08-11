@@ -1,200 +1,77 @@
 {
   "products": {
-
-
-
-"12628": {
-    "name": "מגש ביס טונה",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 20,
-    "unit": "יחי'",
-    "predefinedQuantities": [12, 20],
-    "sizes": [
-      { "size": "12 יחי", "price": 170 },
-      { "size": "20 יחי", "price": 285 }
-    ]
-  },
-  "12617": {
-    "name": "מגש ביס בריוש ושניצל",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 24,
-    "unit": "יחי'",
-    "predefinedQuantities": [12, 24],
-    "sizes": [
-      { "size": "12 יחי", "price": 216 },
-      { "size": "24 יחי", "price": 432 }
-    ]
-  },
-  "12627": {
-    "name": "מגש ביס סלט ביצים וירקות",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 24,
-    "unit": "יחי'",
-    "predefinedQuantities": [12, 24],
-    "sizes": [
-      { "size": "12 יחי", "price": 135 },
-      { "size": "24 יחי", "price": 270 }
-    ]
-  },
-  "16331": {
-    "name": "מגש ביס סלט אבוקדו וביצה",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 20,
-    "unit": "יחי'",
-    "predefinedQuantities": [12, 20],
-    "sizes": [
-      { "size": "12 יחי", "price": 168 },
-      { "size": "20 יחי", "price": 280 }
-    ]
-  },
-
-
-"12618": {
-    "name": "מגש ביס חזה הודו מעושן",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 20,
-    "unit": "יחי'",
-    "predefinedQuantities": [12, 20],
-    "sizes": [
-      { "size": "12 יחי", "price": 216 },
-      { "size": "20 יחי", "price": 360 }
-    ]
-  },
-  "12616": {
-    "name": "מגש ביס במילוי אסאדו",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 20,
-    "unit": "יחי'",
-    "predefinedQuantities": [12, 20],
-    "sizes": [
-      { "size": "12 יחי", "price": 240 },
-      { "size": "20 יחי", "price": 400 }
-    ]
-  },
-  "12626": {
-    "name": "מגש סמוק סלמון בקרואסון",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 15,
-    "unit": "יחי'",
-    "predefinedQuantities": [9, 15],
-    "sizes": [
-      { "size": "9 יחי", "price": 162 },
-      { "size": "15 יחי", "price": 265 }
-    ]
-  },
-  "12408": {
-    "name": "מגש מקלות גריסני בסמוק סלמון ורוטב דיז׳ון",
-    "category": "kitchen",
-    "type": "size",
-    "defaultSize": "large",
-    "sizes": [{ "size": "גדול", "price": 148 }]
-  },
-  "12409": {
-    "name": "מגש סביח בג'בטה",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 15,
-    "unit": "יחי'",
-    "predefinedQuantities": [15],
-    "sizes": [{ "size": "15 יחי", "price": 180 }]
-  },
-  "12622": {
-    "name": "מגש פוקאצ'ות הבית + מטבלים",
-    "category": "kitchen",
-    "type": "size",
-    "defaultSize": "large",
-    "sizes": [{ "size": "גדול", "price": 115 }]
-  },
-  "12602": {
-    "name": "מגש ניגוב למתקדמים",
-    "category": "kitchen",
-    "type": "size",
-    "defaultSize": "large",
-    "sizes": [{ "size": "גדול", "price": 149 }]
-  },
- 
-
-  "12628": {
-    "name": "מגש ביס טונה",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 20,
-    "unit": "יחי'",
-    "predefinedQuantities": [12, 20],
-    "sizes": [
-      { "size": "12 יחי", "price": 170 },
-      { "size": "20 יחי", "price": 285 }
-    ]
-  },
-  "12617": {
-    "name": "מגש ביס בריוש ושניצל",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 24,
-    "unit": "יחי'",
-    "predefinedQuantities": [12, 24],
-    "sizes": [
-      { "size": "12 יחי", "price": 216 },
-      { "size": "24 יחי", "price": 432 }
-    ]
-  },
-  "12627": {
-    "name": "מגש ביס סלט ביצים וירקות",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 24,
-    "unit": "יחי'",
-    "predefinedQuantities": [12, 24],
-    "sizes": [
-      { "size": "12 יחי", "price": 135 },
-      { "size": "24 יחי", "price": 270 }
-    ]
-  },
-  "16331": {
-    "name": "מגש ביס סלט אבוקדו וביצה",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 20,
-    "unit": "יחי'",
-    "predefinedQuantities": [12, 20],
-    "sizes": [
-      { "size": "12 יחי", "price": 168 },
-      { "size": "20 יחי", "price": 280 }
-    ]
-  },
-  "12618": {
-    "name": "מגש ביס חזה הודו מעושן",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 20,
-    "unit": "יחי'",
-    "predefinedQuantities": [12, 20],
-    "sizes": [
-      { "size": "12 יחי", "price": 216 },
-      { "size": "20 יחי", "price": 360 }
-    ]
-  },
-
-
-  "12616": {
-    "name": "מגש ביס במילוי אסאדו",
-    "category": "kitchen",
-    "type": "quantity",
-    "defaultQuantity": 20,
-    "unit": "יחי'",
-    "predefinedQuantities": [12, 20],
-    "sizes": [
-      { "size": "12 יחי", "price": 240 },
-      { "size": "20 יחי", "price": 400 }
-    ]
-  },
+    "12628": {
+      "name": "מגש ביס טונה",
+      "category": "kitchen",
+      "type": "quantity",
+      "defaultQuantity": 20,
+      "unit": "יחי'",
+      "predefinedQuantities": [12, 20],
+      "sizes": [
+        { "size": "12 יחי", "price": 170 },
+        { "size": "20 יחי", "price": 285 }
+      ]
+    },
+    "12617": {
+      "name": "מגש ביס בריוש ושניצל",
+      "category": "kitchen",
+      "type": "quantity",
+      "defaultQuantity": 24,
+      "unit": "יחי'",
+      "predefinedQuantities": [12, 24],
+      "sizes": [
+        { "size": "12 יחי", "price": 216 },
+        { "size": "24 יחי", "price": 432 }
+      ]
+    },
+    "12627": {
+      "name": "מגש ביס סלט ביצים וירקות",
+      "category": "kitchen",
+      "type": "quantity",
+      "defaultQuantity": 24,
+      "unit": "יחי'",
+      "predefinedQuantities": [12, 24],
+      "sizes": [
+        { "size": "12 יחי", "price": 135 },
+        { "size": "24 יחי", "price": 270 }
+      ]
+    },
+    "16331": {
+      "name": "מגש ביס סלט אבוקדו וביצה",
+      "category": "kitchen",
+      "type": "quantity",
+      "defaultQuantity": 20,
+      "unit": "יחי'",
+      "predefinedQuantities": [12, 20],
+      "sizes": [
+        { "size": "12 יחי", "price": 168 },
+        { "size": "20 יחי", "price": 280 }
+      ]
+    },
+    "12618": {
+      "name": "מגש ביס חזה הודו מעושן",
+      "category": "kitchen",
+      "type": "quantity",
+      "defaultQuantity": 20,
+      "unit": "יחי'",
+      "predefinedQuantities": [12, 20],
+      "sizes": [
+        { "size": "12 יחי", "price": 216 },
+        { "size": "20 יחי", "price": 360 }
+      ]
+    },
+    "12616": {
+      "name": "מגש ביס במילוי אסאדו",
+      "category": "kitchen",
+      "type": "quantity",
+      "defaultQuantity": 20,
+      "unit": "יחי'",
+      "predefinedQuantities": [12, 20],
+      "sizes": [
+        { "size": "12 יחי", "price": 240 },
+        { "size": "20 יחי", "price": 400 }
+      ]
+    },
   "12626": {
     "name": "מגש סמוק סלמון בקרואסון",
     "category": "kitchen",

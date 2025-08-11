@@ -260,6 +260,28 @@ app.post('/api/products/restore', async (req, res) => {
     }
 });
 
+// ייבוא מוצרים
+app.post('/api/products/import', async (req, res) => {
+    try {
+        const importData = req.body;
+        
+        if (!importData.products) {
+            return res.status(400).json({ error: 'נתוני ייבוא לא תקינים' });
+        }
+        
+        // שמירה לקובץ
+        await fs.writeFile(PRODUCTS_FILE, JSON.stringify(importData, null, 2), 'utf8');
+        
+        res.json({ 
+            message: 'מוצרים יובאו בהצלחה',
+            importedProducts: Object.keys(importData.products).length
+        });
+    } catch (error) {
+        console.error('Error importing products:', error);
+        res.status(500).json({ error: 'שגיאה בייבוא המוצרים' });
+    }
+});
+
 // סטטיסטיקות מערכת
 app.get('/api/stats', async (req, res) => {
     try {
@@ -386,8 +408,8 @@ app.post('/send-whatsapp', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📱 WhatsApp API: Active`);
     console.log(`🛍️ Products API: Active`);
