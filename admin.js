@@ -97,6 +97,11 @@ class ProductManager {
             productInfo += `<p><strong>גודל ברירת מחדל:</strong> ${product.defaultSize}</p>`;
         }
         
+        // הצגת יחידת מידה לכל סוגי המוצרים אם קיימת
+        if (product.unit && productType !== 'quantity') {
+            productInfo += `<p><strong>יחידת מידה:</strong> ${product.unit}</p>`;
+        }
+        
         // הצגת מחירים - תמיכה בכל הפורמטים
         if (product.sizes && product.sizes.length > 0) {
             const validSizes = product.sizes.filter(s => s.size && (s.price !== undefined && s.price !== null));
@@ -377,11 +382,35 @@ class ProductManager {
             document.getElementById('productQuantity').value = product.defaultQuantity || '';
             const unitSelect = document.getElementById('unitType');
             if (unitSelect && product.unit) {
-                unitSelect.value = product.unit;
+                // תמיכה בכל יחידות המידה הקיימות
+                if (unitSelect.querySelector(`option[value="${product.unit}"]`)) {
+                    unitSelect.value = product.unit;
+                } else {
+                    // הוספת יחידת מידה חדשה אם לא קיימת ברשימה
+                    const newOption = document.createElement('option');
+                    newOption.value = product.unit;
+                    newOption.textContent = product.unit;
+                    unitSelect.appendChild(newOption);
+                    unitSelect.value = product.unit;
+                }
             }
         } else {
             // עבור מוצרים אחרים - נבדוק אם יש כמות רגילה
             document.getElementById('productQuantity').value = product.quantity || product.defaultQuantity || '';
+            
+            // טעינת יחידת מידה גם למוצרים שאינם מסוג quantity
+            const unitSelect = document.getElementById('unitType');
+            if (unitSelect && product.unit) {
+                if (unitSelect.querySelector(`option[value="${product.unit}"]`)) {
+                    unitSelect.value = product.unit;
+                } else {
+                    const newOption = document.createElement('option');
+                    newOption.value = product.unit;
+                    newOption.textContent = product.unit;
+                    unitSelect.appendChild(newOption);
+                    unitSelect.value = product.unit;
+                }
+            }
         }
         
         // טעינת מחיר בסיסי
@@ -476,10 +505,12 @@ class ProductManager {
             if (quantityFields) quantityFields.style.display = 'block';
             if (sizesSection) sizesSection.style.display = 'block';
         } else if (productType === 'size') {
-            // מוצרי גודל - רק טבלת גדלים ומחירים
+            // מוצרי גודל - טבלת גדלים ומחירים + יחידת מידה (אופציונלי)
+            if (quantityFields) quantityFields.style.display = 'block'; // מציג גם יחידת מידה
             if (sizesSection) sizesSection.style.display = 'block';
         } else if (productType === 'none') {
-            // מוצרים ללא כמות/גודל - יכולים להיות עם או בלי מחיר
+            // מוצרים ללא כמות/גודל - יכולים להיות עם או בלי מחיר + יחידת מידה
+            if (quantityFields) quantityFields.style.display = 'block'; // מציג גם יחידת מידה
             if (sizesSection) sizesSection.style.display = 'block';
             if (basePriceField) basePriceField.style.display = 'block';
         }
@@ -501,17 +532,17 @@ class ProductManager {
             // הוספת נתונים ספציפיים לפי סוג המוצר
             const quantity = formData.get('productQuantity');
             
+            // הוספת יחידת מידה לכל סוגי המוצרים
+            const unitType = document.getElementById('unitType');
+            if (unitType && unitType.value) {
+                productData.unit = unitType.value;
+            }
+            
             if (productData.type === 'quantity') {
                 if (quantity) {
                     productData.defaultQuantity = parseInt(quantity);
                     // אם יש כמויות מוגדרות מראש, נוסיף אותן
                     productData.predefinedQuantities = [parseInt(quantity)];
-                }
-                
-                // הוספת יחידת מידה
-                const unitType = document.getElementById('unitType');
-                if (unitType && unitType.value) {
-                    productData.unit = unitType.value;
                 }
             } else if (productData.type === 'size') {
                 // עבור מוצרי גודל, נשמור את הגודל הברירת מחדל אם הוגדר

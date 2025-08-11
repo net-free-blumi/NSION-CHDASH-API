@@ -79,7 +79,7 @@
                 <h2 id="modal-title">הוספת מוצר חדש</h2>
                 <span class="close" onclick="productManager.closeProductModal()">&times;</span>
             </div>
-            
+
             <form id="productForm" class="product-form">
                 <input type="hidden" id="editMode" name="editMode" value="false">
                 <div class="form-row">
@@ -87,7 +87,7 @@
                         <label for="productCode">קוד מוצר</label>
                         <input type="text" id="productCode" name="productCode">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="productName">שם המוצר:</label>
                         <input type="text" id="productName" name="productName">
@@ -113,7 +113,7 @@
                             <option value="warehouse">מחסן</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="productType">סוג מוצר</label>
                         <select id="productType" name="productType">
@@ -129,19 +129,24 @@
                     <div id="quantity-fields" class="form-group" style="display:none;">
                         <label for="productQuantity">כמות ברירת מחדל</label>
                         <input type="number" id="productQuantity" name="productQuantity" placeholder="למשל: 20" min="1">
-                        
+
                         <label for="unitType" style="margin-top: 10px;">יחידת מידה</label>
                         <select id="unitType" name="unitType">
-                            <option value="">בחר יחידת מידה</option>
-                            <option value="יחי'">יחידות</option>
+                            <option value="">בחר יחידה</option>
+                            <option value="יחי'">יחי'</option>
                             <option value="כוסות">כוסות</option>
-                            <option value="מגשים">מגשים</option>
                             <option value="ליטר">ליטר</option>
-                            <option value="קג">קילוגרם</option>
-                            <option value="חתיכות">חתיכות</option>
+                            <option value="ק"ג">ק"ג</option>
+                            <option value="גרם">גרם</option>
+                            <option value="מ"ל">מ"ל</option>
+                            <option value="חבילה">חבילה</option>
+                            <option value="קופסה">קופסה</option>
+                            <option value="איש">איש</option>
+                            <option value="ליחי'">ליחי'</option>
+                            <option value="סכ'ום">סכ'ום</option>
                         </select>
                     </div>
-                    
+
                     <div id="base-price-field" class="form-group" style="display:none;">
                         <label for="productPrice">מחיר בסיסי (אופציונלי)</label>
                         <input type="number" id="productPrice" name="productPrice" placeholder="₪" step="0.01" min="0">
@@ -154,7 +159,7 @@
                         <h3>📏 גדלים/כמויות ומחירים</h3>
                         <button type="button" onclick="productManager.addSizeRow()" class="btn btn-success">➕ הוסף שורה</button>
                     </div>
-                    
+
                     <div id="sizes-container" class="sizes-container">
                         <!-- הגדלים יוצגו כאן -->
                     </div>
@@ -175,12 +180,12 @@
                 <h2>🗑️ אישור מחיקה</h2>
                 <span class="close" onclick="productManager.closeDeleteModal()">&times;</span>
             </div>
-            
+
             <div class="modal-body">
                 <p>האם אתה בטוח שברצונך למחוק מוצר זה?</p>
                 <p><strong id="delete-product-name"></strong></p>
             </div>
-            
+
             <div class="modal-actions">
                 <button onclick="productManager.confirmDelete()" class="btn btn-danger">כן, מחק</button>
                 <button onclick="productManager.closeDeleteModal()" class="btn btn-secondary">ביטול</button>
