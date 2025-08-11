@@ -1928,6 +1928,19 @@
       window.currentEditItem = null;
       window.currentEditCategory = null;
 
+      // טיפול בשגיאות JavaScript לא מטופלות
+      window.addEventListener('unhandledrejection', function(event) {
+        console.warn('Unhandled promise rejection:', event.reason);
+        // מנע הצגת השגיאה בקונסולה של הדפדפן
+        event.preventDefault();
+      });
+
+      window.addEventListener('error', function(event) {
+        console.warn('JavaScript error:', event.error);
+        // מנע הצגת השגיאה בקונסולה של הדפדפן
+        event.preventDefault();
+      });
+
 
 
 // תמיכה ב-Enter להוספת מוצר לסיכום (רק בשדות הרלוונטיים)
@@ -4697,8 +4710,17 @@ document.addEventListener('keydown', function(e) {
             clearTimeout(timeoutId);
           }
 
+          const inputValue = e.target.value.trim();
+
+          // בדיקה שהקלט אינו URL
+          if (inputValue.startsWith('http://') || inputValue.startsWith('https://')) {
+            e.target.value = '';
+            showNotification('לא ניתן להזין URL, יש להזין רק מק"ט', 'red');
+            return;
+          }
+
           // אם השדה ריק - מאפס את הבחירה
-          if (!e.target.value.trim()) {
+          if (!inputValue) {
             // מסמן את כפתור "לפי כמות" כברירת מחדל
             const quantityRadio = document.getElementById("quantityOption");
             if (quantityRadio) {
@@ -4733,16 +4755,47 @@ document.addEventListener('keydown', function(e) {
 
       // מעדכנים את פונקציית pasteFromClipboard
       window.pasteFromClipboard = async function () {
-        if (originalPasteFunction) {
-          await originalPasteFunction();
-        }
+        try {
+          const text = await navigator.clipboard.readText();
+          
+          // בדיקה שהטקסט אינו URL
+          if (text.startsWith('http://') || text.startsWith('https://')) {
+            showNotification('לא ניתן להדביק URL, יש להדביק רק מק"ט', 'red');
+            return;
+          }
+          
+          const searchInput = document.getElementById("searchInput");
+          const productCodeInput = document.getElementById("productCode");
+          
+          // בדיקה שהטקסט מכיל רק מספרים (מק"ט תקין)
+          const cleanCode = text.trim();
+          if (!/^\d+$/.test(cleanCode)) {
+            showNotification('מק"ט חייב להכיל רק מספרים', 'red');
+            return;
+          }
 
-        // לא צריך להמתין כאן כי זו הדבקה
-        const searchInput = document.querySelector('input[type="text"]');
-        if (searchInput && searchInput.value) {
-          const code = searchInput.value.trim();
-          console.log('נמצא מק"ט (הדבקה):', code);
-          configureProduct(code);
+          if (searchInput) searchInput.value = cleanCode;
+          if (productCodeInput) productCodeInput.value = cleanCode;
+
+          // הפעלת החיפוש
+          if (typeof searchProduct === 'function') {
+            searchProduct();
+          }
+
+          // בדיקה אם זה מק"ט של ביסים
+          if (typeof checkBisProduct === 'function') {
+            checkBisProduct(cleanCode);
+          }
+          
+          // הגדרת המוצר
+          if (typeof configureProduct === 'function') {
+            configureProduct(cleanCode);
+          }
+
+          showNotification('הודבק בהצלחה!', 'green');
+        } catch (err) {
+          console.error('Failed to read clipboard:', err);
+          showNotification('לא הצלחנו לגשת ללוח ההעתקה', 'red');
         }
       };
 
