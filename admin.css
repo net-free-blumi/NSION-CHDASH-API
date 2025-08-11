@@ -1083,6 +1083,17 @@
 }
 
 /* הצגת שם החיפוש בכרטיס המוצר */
+.search-name {
+    font-size: 0.9em;
+    color: #28a745;
+    font-style: italic;
+    font-weight: 500;
+    background-color: #e8f5e8;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #c3e6c3;
+}
+
 .product-search-name {
     font-size: 0.9em;
     color: #6c757d;
@@ -1093,6 +1104,17 @@
     border-radius: 12px;
     display: inline-block;
     border-left: 3px solid #28a745;
+}
+
+/* שיפור תצוגת פרטי המוצר */
+.product-details p {
+    margin: 8px 0;
+    line-height: 1.4;
+}
+
+.product-details strong {
+    color: #495057;
+    margin-left: 5px;
 }
 
 .quantity-fields,

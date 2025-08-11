@@ -127,13 +127,25 @@
 
                 <div class="form-row">
                     <div id="quantity-fields" class="form-group" style="display:none;">
-                        <label for="productQuantity">כמות (לחיפוש באתר)</label>
-                        <input type="text" id="productQuantity" name="productQuantity" placeholder="למשל: 20 יחידות, בינוני, גדול">
+                        <label for="productQuantity">כמות ברירת מחדל</label>
+                        <input type="number" id="productQuantity" name="productQuantity" placeholder="למשל: 20" min="1">
+                        
+                        <label for="unitType" style="margin-top: 10px;">יחידת מידה</label>
+                        <select id="unitType" name="unitType">
+                            <option value="">בחר יחידת מידה</option>
+                            <option value="יחי'">יחידות</option>
+                            <option value="כוסות">כוסות</option>
+                            <option value="מגשים">מגשים</option>
+                            <option value="ליטר">ליטר</option>
+                            <option value="קג">קילוגרם</option>
+                            <option value="חתיכות">חתיכות</option>
+                        </select>
                     </div>
                     
                     <div id="base-price-field" class="form-group" style="display:none;">
                         <label for="productPrice">מחיר בסיסי (אופציונלי)</label>
                         <input type="number" id="productPrice" name="productPrice" placeholder="₪" step="0.01" min="0">
+                        <small class="form-text">השאר ריק אם המחירים מוגדרים בטבלת הגדלים</small>
                     </div>
                 </div>
 

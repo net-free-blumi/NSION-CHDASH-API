@@ -64,7 +64,9 @@ class ProductManager {
     createProductCard(code, product) {
         const card = document.createElement('div');
         card.className = 'product-card';
-        card.innerHTML = `
+        
+        // בניית מידע על המוצר
+        let productInfo = `
             <div class="product-header">
                 <h3>${product.name}</h3>
                 <span class="product-code">${code}</span>
@@ -72,16 +74,40 @@ class ProductManager {
             <div class="product-details">
                 <p><strong>קטגוריה:</strong> ${this.categories[product.category] || 'לא מוגדר'}</p>
                 <p><strong>סוג:</strong> ${this.getTypeDisplay(product.type)}</p>
-                ${product.sizes && product.sizes.length > 0 ?
-                    `<p><strong>מחירים:</strong> ${product.sizes.map(s => `${s.size}: ₪${s.price}`).join(', ')}</p>`
-                    : ''
-                }
+        `;
+        
+        // הוספת שם חיפוש אם קיים
+        if (product.searchName) {
+            productInfo += `<p><strong>שם לחיפוש:</strong> <span class="search-name">${product.searchName}</span></p>`;
+        }
+        
+        // הצגת פרטים לפי סוג המוצר
+        if (product.type === 'quantity') {
+            productInfo += `<p><strong>כמות ברירת מחדל:</strong> ${product.defaultQuantity || 'לא מוגדר'} ${product.unit || ''}</p>`;
+            if (product.predefinedQuantities && product.predefinedQuantities.length > 0) {
+                productInfo += `<p><strong>כמויות זמינות:</strong> ${product.predefinedQuantities.join(', ')} ${product.unit || ''}</p>`;
+            }
+        } else if (product.type === 'size' && product.defaultSize) {
+            productInfo += `<p><strong>גודל ברירת מחדל:</strong> ${product.defaultSize}</p>`;
+        }
+        
+        // הצגת מחירים
+        if (product.sizes && product.sizes.length > 0) {
+            const pricesDisplay = product.sizes.map(s => `${s.size}: ₪${s.price}`).join(', ');
+            productInfo += `<p><strong>מחירים:</strong> ${pricesDisplay}</p>`;
+        } else if (product.price) {
+            productInfo += `<p><strong>מחיר בסיסי:</strong> ₪${product.price}</p>`;
+        }
+        
+        productInfo += `
             </div>
             <div class="product-actions">
                 <button onclick="productManager.editProduct('${code}')" class="btn btn-primary">✏️ עריכה</button>
                 <button onclick="productManager.deleteProductConfirm('${code}')" class="btn btn-danger">🗑️ מחיקה</button>
             </div>
         `;
+        
+        card.innerHTML = productInfo;
         return card;
     }
 
@@ -318,7 +344,18 @@ class ProductManager {
         document.getElementById('productCategory').value = product.category;
         document.getElementById('searchName').value = product.searchName || '';
         document.getElementById('productType').value = product.type || '';
-        document.getElementById('productQuantity').value = product.quantity || '';
+        
+        // טעינת נתונים ספציפיים לפי סוג המוצר
+        if (product.type === 'quantity') {
+            document.getElementById('productQuantity').value = product.defaultQuantity || '';
+            const unitSelect = document.getElementById('unitType');
+            if (unitSelect && product.unit) {
+                unitSelect.value = product.unit;
+            }
+        } else {
+            document.getElementById('productQuantity').value = product.quantity || '';
+        }
+        
         document.getElementById('productPrice').value = (product.price ?? '');
 
         this.toggleQuantityFields();
@@ -390,22 +427,22 @@ class ProductManager {
         const basePriceField = document.getElementById('base-price-field');
         const sizesSection = document.getElementById('sizes-section');
 
+        // הסתרת כל השדות תחילה
         if (quantityFields) quantityFields.style.display = 'none';
         if (sizeFields) sizeFields.style.display = 'none';
         if (basePriceField) basePriceField.style.display = 'none';
         if (sizesSection) sizesSection.style.display = 'none';
 
+        // הצגת שדות לפי סוג המוצר
         if (productType === 'quantity') {
+            // מוצרי כמות - מציגים שדה כמות + יחידת מידה + טבלת מחירים
             if (quantityFields) quantityFields.style.display = 'block';
-            if (basePriceField) basePriceField.style.display = 'block';
-        } else if (productType === 'size') {
-            if (sizeFields) sizeFields.style.display = 'block';
             if (sizesSection) sizesSection.style.display = 'block';
-            if (basePriceField) basePriceField.style.display = 'block';
-        } else if (productType === 'unit') {
-            if (quantityFields) quantityFields.style.display = 'block';
-            if (basePriceField) basePriceField.style.display = 'block';
+        } else if (productType === 'size') {
+            // מוצרי גודל - רק טבלת גדלים ומחירים
+            if (sizesSection) sizesSection.style.display = 'block';
         } else if (productType === 'none') {
+            // מוצרים ללא כמות/גודל - יכולים להיות עם או בלי מחיר
             if (sizesSection) sizesSection.style.display = 'block';
             if (basePriceField) basePriceField.style.display = 'block';
         }
@@ -421,15 +458,48 @@ class ProductManager {
                 category: formData.get('productCategory'),
                 searchName: formData.get('searchName'),
                 type: formData.get('productType'),
-                quantity: formData.get('productQuantity'),
-                price: (() => {
-                    const val = formData.get('productPrice');
-                    if (val === null || val === undefined || val === '') return '';
-                    const num = parseFloat(val);
-                    return isNaN(num) ? '' : num;
-                })(),
                 sizes: []
             };
+            
+            // הוספת נתונים ספציפיים לפי סוג המוצר
+            if (productData.type === 'quantity') {
+                const quantity = formData.get('productQuantity');
+                if (quantity) {
+                    productData.defaultQuantity = parseInt(quantity);
+                }
+                
+                // הוספת יחידת מידה
+                const unitType = document.getElementById('unitType');
+                if (unitType && unitType.value) {
+                    productData.unit = unitType.value;
+                }
+                
+                // אם יש כמויות מוגדרות מראש, נוסיף אותן
+                if (quantity) {
+                    productData.predefinedQuantities = [parseInt(quantity)];
+                }
+            } else if (productData.type === 'size') {
+                // עבור מוצרי גודל, נשמור את הגודל הברירת מחדל אם הוגדר
+                const defaultSize = document.getElementById('defaultSize');
+                if (defaultSize && defaultSize.value) {
+                    productData.defaultSize = defaultSize.value;
+                }
+            } else {
+                // עבור מוצרים אחרים
+                const quantity = formData.get('productQuantity');
+                if (quantity) {
+                    productData.quantity = quantity;
+                }
+            }
+            
+            // מחיר בסיסי (רק אם הוזן)
+            const priceValue = formData.get('productPrice');
+            if (priceValue && priceValue.trim() !== '') {
+                const num = parseFloat(priceValue);
+                if (!isNaN(num)) {
+                    productData.price = num;
+                }
+            }
 
             if (!productData.name || !productData.category) {
                 this.showNotification('❌ יש למלא את כל השדות הנדרשים', 'error');
