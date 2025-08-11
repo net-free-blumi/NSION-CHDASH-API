@@ -36,6 +36,9 @@ app.use(cors({
 // Parse JSON bodies
 app.use(express.json());
 
+// הגשת קבצים סטטיים
+app.use(express.static('.'));
+
 // נתיב לקובץ המוצרים
 const PRODUCTS_FILE = path.join(__dirname, 'products.json');
 
