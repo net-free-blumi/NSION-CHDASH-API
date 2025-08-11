@@ -10,13 +10,15 @@
     />
     <title>ניהול הזמנות ג אונליין</title>
     <script src="script.js"></script>
+    <script src="products-loader.js"></script>
     <link rel="stylesheet" href="style.css" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- קישור למערכת ניהול מוצרים -->
+    <link rel="stylesheet" href="admin.css" />
 
-
-<!-- קישור לפונט -->
+    <!-- קישור לפונט -->
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
@@ -29,9 +31,6 @@
       name="google-site-verification"
       content="dUgCkLcDLymDM3mSiVs6eFf6bx8KvC9XIbzJrhuDITI"
     />
-
-
-
 
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
@@ -59,7 +58,6 @@
     </script>
 
     <style>
-
       body {
         font-family: "Rubik", sans-serif;
         display: flex;
@@ -793,6 +791,33 @@
 
 
       <h1>ניהול הזמנות</h1>
+      
+      <!-- כפתור ניהול מוצרים (מוסתר כברירת מחדל) -->
+      <div style="text-align: center; margin: 20px 0;">
+        <button 
+          id="product-management-btn"
+          onclick="openProductManagement()" 
+          style="
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+            transition: all 0.3s ease;
+            margin: 10px;
+            display: none;
+          "
+          onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,123,255,0.4)'"
+          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,123,255,0.3)'"
+        >
+          🛍️ ניהול מוצרים
+        </button>
+    
+      </div>
       
       <!-- Google Sign-In Section -->
       <div id="authSection" style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">

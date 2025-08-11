@@ -94,6 +94,31 @@ function updateAuthUI() {
     const mainContent = document.getElementById('mainContent');
     const userEmailElement = document.getElementById('userEmail');
     
+    // בדיקת כפתור ניהול המוצרים
+    // יצירת כפתור ניהול מוצרים אם לא קיים
+    let productManagementBtn = document.getElementById('product-management-btn');
+    if (!productManagementBtn) {
+        productManagementBtn = document.createElement('button');
+        productManagementBtn.id = 'product-management-btn';
+        productManagementBtn.textContent = 'ניהול מוצרים';
+        productManagementBtn.onclick = openProductManagement;
+        productManagementBtn.style.cssText = `
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 999;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            display: none;
+        `;
+        document.body.appendChild(productManagementBtn);
+    }
+    
     if (currentUser) {
         loginSection.style.display = 'none';
         userEmailElement.textContent = currentUser.email;
@@ -103,17 +128,31 @@ function updateAuthUI() {
             unauthorizedSection.style.display = 'none';
             mainContent.style.display = 'block';
             showNotification('התחברת בהצלחה! אתה מורשה לשלוח הודעות WhatsApp', 'green');
+            
+            // הצגת כפתור ניהול מוצרים רק למנהל המערכת
+            if (currentUser.email && currentUser.email.toUpperCase() === 'BLUMI@GOLDYS.CO.IL') {
+                if (productManagementBtn) {
+                    productManagementBtn.style.display = 'inline-block';
+                    productManagementBtn.style.animation = 'fadeIn 0.5s ease-in';
+                }
+            }
         } else {
             userSection.style.display = 'none';
             unauthorizedSection.style.display = 'block';
             mainContent.style.display = 'block';
             showNotification('התחברת בהצלחה, אך המייל שלך אינו מורשה לשלוח הודעות WhatsApp', 'orange');
+            
+            // הסתרת כפתור ניהול מוצרים למשתמשים לא מורשים
+            if (productManagementBtn) productManagementBtn.style.display = 'none';
         }
     } else {
         loginSection.style.display = 'block';
         userSection.style.display = 'none';
         unauthorizedSection.style.display = 'none';
         mainContent.style.display = 'block';
+        
+        // הסתרת כפתור ניהול מוצרים כשהמשתמש לא מחובר
+        if (productManagementBtn) productManagementBtn.style.display = 'none';
     }
 }
 
@@ -2053,4 +2092,33 @@ function generateAmarSummary() {
       text: summary,
       orderNumber: orderNumber
     };
+}
+
+// פונקציה לפתיחת מערכת ניהול המוצרים
+function openProductManagement() {
+    // פתיחת מערכת הניהול בחלון חדש
+    const adminWindow = window.open('admin.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+    
+    if (adminWindow) {
+        // הודעה למשתמש
+        showNotification('מערכת ניהול המוצרים נפתחה בחלון חדש', 'green');
+        
+        // עדכון אוטומטי של המוצרים באתר הראשי כשהחלון נסגר
+        adminWindow.onbeforeunload = function() {
+            // רענון המוצרים באתר הראשי
+            if (typeof refreshProductsData === 'function') {
+                refreshProductsData();
+            }
+            
+            // רענון תיבת החיפוש
+            if (typeof searchProduct === 'function') {
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput && searchInput.value) {
+                    searchProduct();
+                }
+            }
+        };
+    } else {
+        showNotification('לא ניתן לפתוח חלון חדש. בדוק את חסימת החלונות הקופצים', 'red');
+    }
 }

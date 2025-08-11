@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he-il">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ניהול מוצרים - גולד</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <div class="header">
+            <h1>🛍️ מערכת ניהול מוצרים - גולד</h1>
+            <p>ניהול מתקדם של כל המוצרים והמגשים </p>
+        </div>
+
+        <div class="admin-panel">
+            <div class="sidebar">
+                <div class="stats" id="stats-container">
+                    <div class="stat-item">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">סה"כ מוצרים</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">מוצרי גדלים</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">מוצרי כמות</span>
+                    </div>
+                    <!-- <div class="stat-item">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">מוצרי יחידות</span>
+                    </div> -->
+                    <div class="stat-item">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">ללא כמות</span>
+                    </div>
+                </div>
+
+                <div class="quick-action-buttons">
+                    <button onclick="productManager.openAddProductModal()" class="btn">➕ הוספת מוצר חדש</button>
+                    <button onclick="productManager.refreshProducts()" class="btn btn-success">🔄 רענון מוצרים</button>
+                    <button onclick="productManager.saveProductsToFile()" class="btn btn-info">💾 שמור לקובץ</button>
+                    <button onclick="productManager.exportProducts()" class="btn btn-warning">📤 ייצוא מוצרים</button>
+                    <button onclick="productManager.importProducts()" class="btn btn-warning">📥 ייבוא מוצרים</button>
+                    <button onclick="productManager.backupProducts()" class="btn btn-info">💾 יצירת גיבוי</button>
+                </div>
+
+                <div class="search-section">
+                    <h3>🔍 חיפוש מוצרים</h3>
+                    <input type="text" id="search-input" placeholder="חפש לפי שם, קוד או קטגוריה..." class="search-input">
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="content-header">
+                    <h2>📋 רשימת המוצרים</h2>
+                    <div class="header-actions">
+                        <input type="file" id="file-input" accept=".json" style="display: none;" onchange="productManager.loadProductsFromFile(this.files[0])">
+                        <button onclick="document.getElementById('file-input').click()" class="btn btn-info">📁 טען מקובץ</button>
+                    </div>
+                </div>
+
+                <div id="products-container" class="products-grid">
+                    <!-- המוצרים יוצגו כאן -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- מיכל להודעות מערכת -->
+    <div id="notifications-container"></div>
+
+    <!-- Modal להוספת/עריכת מוצר -->
+    <div id="productModal" class="modal" onclick="if(event.target.id === 'productModal') productManager.closeProductModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">הוספת מוצר חדש</h2>
+                <span class="close" onclick="productManager.closeProductModal()">&times;</span>
+            </div>
+            
+            <form id="productForm" class="product-form">
+                <input type="hidden" id="editMode" name="editMode" value="false">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productCode">קוד מוצר</label>
+                        <input type="text" id="productCode" name="productCode">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="productName">שם המוצר:</label>
+                        <input type="text" id="productName" name="productName">
+                    </div>
+                    <div class="form-group">
+                        <label for="searchName">שם לחיפוש:</label>
+                        <input type="text" id="searchName" name="searchName" placeholder="שם שונה לחיפוש (אופציונלי)">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productCategory">קטגוריה *</label>
+                        <select id="productCategory" name="productCategory" required>
+                            <option value="">בחר קטגוריה</option>
+                            <option value="kitchen">מוצרי מטבח</option>
+                            <option value="bakery">קונדיטורייה</option>
+                            <option value="fruits">פירות</option>
+                            <option value="sushi">סושי</option>
+                            <option value="amar">קונדיטורייה עמר</option>
+                            <option value="kitchenProducts">מטבח מוסטפה</option>
+                            <option value="online">אונליין</option>
+                            <option value="warehouse">מחסן</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="productType">סוג מוצר</label>
+                        <select id="productType" name="productType">
+                            <option value="">בחר</option>
+                            <option value="size">גודל</option>
+                            <option value="quantity">כמות</option>
+                            <option value="none">ללא כמות/גודל</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div id="quantity-fields" class="form-group" style="display:none;">
+                        <label for="productQuantity">כמות (לחיפוש באתר)</label>
+                        <input type="text" id="productQuantity" name="productQuantity" placeholder="למשל: 20 יחידות, בינוני, גדול">
+                    </div>
+                    
+                    <div id="base-price-field" class="form-group" style="display:none;">
+                        <label for="productPrice">מחיר בסיסי (אופציונלי)</label>
+                        <input type="number" id="productPrice" name="productPrice" placeholder="₪" step="0.01" min="0">
+                    </div>
+                </div>
+
+                <div class="sizes-section" id="sizes-section" style="display: none;">
+                    <div class="sizes-header">
+                        <h3>📏 גדלים/כמויות ומחירים</h3>
+                        <button type="button" onclick="productManager.addSizeRow()" class="btn btn-success">➕ הוסף שורה</button>
+                    </div>
+                    
+                    <div id="sizes-container" class="sizes-container">
+                        <!-- הגדלים יוצגו כאן -->
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">💾 שמור מוצר</button>
+                    <button type="button" class="btn btn-secondary" onclick="productManager.closeProductModal()">ביטול</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal לאישור מחיקה -->
+    <div id="delete-modal" class="modal" onclick="if(event.target.id === 'delete-modal') productManager.closeDeleteModal()">
+        <div class="modal-content delete-modal">
+            <div class="modal-header">
+                <h2>🗑️ אישור מחיקה</h2>
+                <span class="close" onclick="productManager.closeDeleteModal()">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <p>האם אתה בטוח שברצונך למחוק מוצר זה?</p>
+                <p><strong id="delete-product-name"></strong></p>
+            </div>
+            
+            <div class="modal-actions">
+                <button onclick="productManager.confirmDelete()" class="btn btn-danger">כן, מחק</button>
+                <button onclick="productManager.closeDeleteModal()" class="btn btn-secondary">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- הודעות מערכת -->
+    <div id="notifications-container"></div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
