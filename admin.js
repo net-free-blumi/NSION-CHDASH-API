@@ -395,7 +395,7 @@ class ProductManager {
     document.getElementById('editMode').value = 'true';
     const codeInput = document.getElementById('productCode');
     codeInput.value = code;
-    codeInput.disabled = false; // ודא שהשדה לא נעול לעריכה
+    codeInput.removeAttribute('disabled'); // ודא שהשדה לא נעול לעריכה
         document.getElementById('productName').value = productName;
         document.getElementById('productCategory').value = product.category || '';
         document.getElementById('searchName').value = product.searchName || '';
