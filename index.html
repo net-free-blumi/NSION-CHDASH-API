@@ -865,6 +865,26 @@
           <!-- כותרת לתיבת החיפוש -->
           <h3>תיבת חיפוש מוצר/מק"ט</h3>
 
+          <!-- כפתור סנכרון מוצרים -->
+          <button id="syncProductsBtn" style="background-color:#28a745; color:#fff; margin-bottom:10px;" onclick="syncProducts()">🔄 סנכרון מוצרים</button>
+          <span id="syncProductsMsg" style="display:none; color:#28a745; font-weight:bold; margin-right:10px;">המוצרים סונכרנו בהצלחה!</span>
+<script>
+// כפתור סנכרון מוצרים
+function syncProducts() {
+  if (window.productsLoader && typeof window.productsLoader.refreshData === 'function') {
+    window.productsLoader.refreshData().then(() => {
+      const msg = document.getElementById('syncProductsMsg');
+      if (msg) {
+        msg.style.display = 'inline';
+        setTimeout(() => { msg.style.display = 'none'; }, 2000);
+      }
+    });
+  } else {
+    alert('מערכת המוצרים לא נטענה.');
+  }
+}
+</script>
+
         <!-- הודעת העתקה שתופיע בחלק העליון -->
         <div id="copyMessage">הועתק בהצלחה!</div>
 
