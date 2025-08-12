@@ -667,7 +667,7 @@ class ProductManager {
                 // Update local state and UI
                 if (isEdit) {
                     this.products[productCode] = { ...this.products[productCode], ...productData };
-                } else {
+            } else {
                     // Assuming the API returns the new product with its code
                     const newProductCode = result.code || this.generateProductCode(); // Fallback to generate if API doesn't return it
                     this.products[newProductCode] = { ...productData, code: newProductCode };
