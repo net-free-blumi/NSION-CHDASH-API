@@ -14,16 +14,24 @@ const app = express();
 const allowedOrigins = [
     'http://localhost:3000',
     'https://venerable-rugelach-127f4b.netlify.app',
-    'https://online-g.netlify.app/',
-     'https://nsaion-golsya.netlify.app/',
+    'https://online-g.netlify.app',
+    'https://nsaion-golsya.netlify.app',
     'http://127.0.0.1:5500',
     'http://localhost:5000'
   ];
 app.use(cors({
-    origin: true,
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
     maxAge: 86400 // 24 hours
 }));
