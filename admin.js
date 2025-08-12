@@ -806,7 +806,6 @@ class ProductManager {
 
     // generateProductCode() and isProductCodeExists() are likely not needed if API handles code generation
     // Keeping them commented out for now, but they might be useful for fallback or specific client-side logic.
-    /*
     generateProductCode() {
         let code = 10000;
         while (this.products[code.toString()]) {
@@ -821,7 +820,6 @@ class ProductManager {
     isProductCodeExists(code) {
         return this.products[code.toString()] !== undefined;
     }
-    */
 
 
     setupEventListeners() {
