@@ -18,6 +18,16 @@ class ProductManager {
     }
 
     async init() {
+        // Keep backend awake by pinging it
+        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:5000' 
+            : 'https://nsion-chdash-api.onrender.com';
+        try {
+            await fetch(`${API_BASE_URL}/api/stats`);
+        } catch (error) {
+            console.warn('Keep-alive ping failed:', error);
+        }
+
         await this.loadProducts();
         this.setupEventListeners();
         // this.displayProducts(); // Removed: Replaced by updateProductsDisplay
@@ -346,7 +356,6 @@ class ProductManager {
         document.getElementById('editMode').value = 'false';
         document.getElementById('productCode').value = '';
         document.getElementById('productQuantity').value = '';
-        document.getElementById('productPrice').value = '';
         this.resetSizeInputs();
         const modalTitle = document.getElementById('modal-title');
         if (modalTitle) {
@@ -419,7 +428,6 @@ class ProductManager {
         }
         
         // טעינת מחיר בסיסי
-        document.getElementById('productPrice').value = (product.price !== undefined && product.price !== null) ? product.price : '';
 
         this.toggleQuantityFields();
 
@@ -571,13 +579,7 @@ class ProductManager {
             }
             
             // מחיר בסיסי (רק אם הוזן)
-            const priceValue = formData.get('productPrice');
-            if (priceValue && priceValue.trim() !== '') {
-                const num = parseFloat(priceValue);
-                if (!isNaN(num)) {
-                    productData.price = num;
-                }
-            }
+          
 
             if (!productData.name || !productData.category) {
                 this.showNotification('❌ יש למלא את כל השדות הנדרשים', 'error');

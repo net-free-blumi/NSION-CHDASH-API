@@ -138,10 +138,7 @@
                     </select>
                 </div>
 
-                <div id="base-price-field" class="form-group" style="display:none;">
-                    <!-- Base price field is optional and hidden by default -->
-                    <input type="number" id="productPrice" name="productPrice" placeholder="₪" step="0.01" min="0">
-                </div>
+                
                 </div>
 
                 <div class="sizes-section" id="sizes-section" style="display: none;">
@@ -151,7 +148,12 @@
                     </div>
 
                     <div id="sizes-container" class="sizes-container">
-                        <!-- הגדלים יוצגו כאן -->
+                        <!-- גדלים יוחלפו לבחירת גודל מתוך רשימה -->
+                        <select id="sizeSelect" name="sizeSelect" style="display:none;">
+                            <option value="">בחר גודל</option>
+                            <option value="גדול">גדול</option>
+                            <option value="בינוני">בינוני</option>
+                        </select>
                     </div>
                 </div>
 
