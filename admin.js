@@ -718,7 +718,11 @@ class ProductManager {
     // Function to actually delete the product (API call)
     async deleteProduct(code) {
         try {
-            const response = await fetch(`/api/products/${code}`, {
+            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:5000' 
+                : 'https://nsion-chdash-api.onrender.com';
+
+            const response = await fetch(`${API_BASE_URL}/api/products/${code}`, {
                 method: 'DELETE'
             });
 
@@ -731,8 +735,15 @@ class ProductManager {
                 this.displayProducts(); // Update UI
                 this.updateStats();
             } else {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'שגיאה במחיקת מוצר מהשרת');
+                const errorText = await response.text();
+                let errorMessage = 'שגיאה במחיקת מוצר מהשרת';
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.message || errorMessage;
+                } catch {
+                    errorMessage = errorText || errorMessage;
+                }
+                throw new Error(errorMessage);
             }
         } catch (error) {
             console.error('שגיאה במחיקת מוצר:', error);
