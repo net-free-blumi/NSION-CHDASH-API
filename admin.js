@@ -666,42 +666,50 @@ class ProductManager {
                 }
             }
 
-            const url = isEdit ? `${API_BASE_URL}/api/products/${productCode}` : `${API_BASE_URL}/api/products`;
-            const method = isEdit ? 'PUT' : 'POST';
-
-            // Prepare data for API call
-            const apiPayload = { ...productData };
-            apiPayload.code = productCode; // Always include code
-
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(apiPayload)
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                const message = result.message || (isEdit ? '✅ מוצר עודכן בהצלחה' : '✅ מוצר נוסף בהצלחה');
-                this.showNotification(message, 'success');
-
-                // Update local state and UI
-                if (isEdit) {
-                    this.products[productCode] = { ...this.products[productCode], ...productData };
-            } else {
-                    // Assuming the API returns the new product with its code
-                    const newProductCode = result.code || this.generateProductCode(); // Fallback to generate if API doesn't return it
-                    this.products[newProductCode] = { ...productData, code: newProductCode };
+            let response, result, message;
+            if (isEdit && this.lastEditedProductCode && this.lastEditedProductCode !== productCode) {
+                // מחיקת המוצר הישן
+                await fetch(`${API_BASE_URL}/api/products/${this.lastEditedProductCode}`, { method: 'DELETE' });
+                // יצירת מוצר חדש
+                response = await fetch(`${API_BASE_URL}/api/products`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...productData, code: productCode })
+                });
+                if (response.ok) {
+                    result = await response.json();
+                    message = result.message || '✅ מוצר עודכן בהצלחה';
+                    this.showNotification(message, 'success');
+                    this.products[productCode] = { ...productData, code: productCode };
+                    delete this.products[this.lastEditedProductCode];
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'שגיאה בשמירת המוצר');
                 }
-
-                this.displayProducts(); // Refresh display
-                this.updateStats();
-                this.closeProductModal();
             } else {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'שגיאה בשמירת המוצר');
+                // עדכון רגיל או יצירה
+                const url = isEdit ? `${API_BASE_URL}/api/products/${productCode}` : `${API_BASE_URL}/api/products`;
+                const method = isEdit ? 'PUT' : 'POST';
+                const apiPayload = { ...productData };
+                apiPayload.code = productCode;
+                response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(apiPayload)
+                });
+                if (response.ok) {
+                    result = await response.json();
+                    message = result.message || (isEdit ? '✅ מוצר עודכן בהצלחה' : '✅ מוצר נוסף בהצלחה');
+                    this.showNotification(message, 'success');
+                    this.products[productCode] = { ...this.products[productCode], ...productData };
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'שגיאה בשמירת המוצר');
+                }
             }
+            this.displayProducts();
+            this.updateStats();
+            this.closeProductModal();
 
         } catch (error) {
             console.error('שגיאה בשמירת מוצר:', error);
