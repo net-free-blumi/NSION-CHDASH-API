@@ -316,20 +316,24 @@ class ProductManager {
 
     searchProducts(query) {
         if (!query.trim()) {
-            this.displayProducts(); // Fallback to original display if query is empty
+            this.displayProducts();
             return;
         }
 
         const filteredProducts = {};
         Object.entries(this.products).forEach(([code, product]) => {
-            if (product.name.toLowerCase().includes(query.toLowerCase()) ||
+            const name = product.name || '';
+            const searchName = product.searchName || '';
+            if (
+                name.toLowerCase().includes(query.toLowerCase()) ||
                 code.includes(query) ||
-                (product.searchName && product.searchName.toLowerCase().includes(query.toLowerCase()))) {
+                searchName.toLowerCase().includes(query.toLowerCase())
+            ) {
                 filteredProducts[code] = product;
             }
         });
 
-        this.displayProducts(filteredProducts); // Use the existing displayProducts which now calls updateProductsDisplay
+        this.displayProducts(filteredProducts);
     }
 
     displayProducts(productsToDisplay = null) {
