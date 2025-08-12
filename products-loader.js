@@ -14,17 +14,17 @@ class ProductsLoader {
         await this.loadProducts();
         this.replaceExistingData();
         this.setupProductSearch();
-        
+
         // הוספת כפתור רענון מהיר לממשק
         this.addQuickRefreshButton();
-        
+
         // הוספת סטטוס מערכת
         this.addSystemStatus();
-        
+
         // הודעה על אתחול מוצלח
         console.log('🚀 מערכת ניהול המוצרים אותחלה בהצלחה!');
     }
-    
+
     // הגדרת חיפוש מוצרים
     setupProductSearch() {
         // חיפוש תיבת חיפוש קיימת
@@ -35,7 +35,7 @@ class ProductsLoader {
             searchInput.addEventListener('input', (e) => {
                 this.handleSearchInput(e.target.value);
             });
-            
+
             console.log('🔍 תיבת חיפוש מוצרים הוגדרה בהצלחה');
         } else {
             console.log('⚠️ לא נמצאה תיבת חיפוש מוצרים');
@@ -70,6 +70,10 @@ class ProductsLoader {
                 this.products = data.products || {};
                 this.categories = data.categories || {};
                 this.saveToLocalStorage();
+            } else {
+                console.error(`שגיאה בטעינת קובץ מוצרים: ${response.status} ${response.statusText}`);
+                // יצירת נתונים בסיסיים אם הקובץ לא קיים או יש שגיאה
+                this.createDefaultData();
             }
         } catch (error) {
             console.error('שגיאה בטעינת קובץ מוצרים:', error);
@@ -126,10 +130,10 @@ class ProductsLoader {
 
         // החלפת פונקציות חיפוש קיימות
         this.replaceSearchFunctions();
-        
+
         // עדכון ממשק המשתמש
         this.updateUI();
-        
+
         // הודעה על הצלחה
         console.log('✅ מערכת המוצרים הוחלפה בהצלחה');
         console.log('📊 סה"כ מוצרים:', Object.keys(this.products).length);
@@ -152,21 +156,24 @@ class ProductsLoader {
         // פונקציה לחיפוש מוצר לפי מק"ט או שם
         window.searchProduct = (query) => {
             if (!query) return null;
-            
+
             const searchTerm = query.toLowerCase();
-            
+
             // חיפוש לפי מק"ט
             if (this.products[query]) {
-                return this.products[query];
+                return { ...this.products[query], code: query };
             }
-            
+
             // חיפוש לפי שם
             for (const [code, product] of Object.entries(this.products)) {
-                if (product.name.toLowerCase().includes(searchTerm)) {
-                    return product;
+                if (product.name && product.name.toLowerCase().includes(searchTerm)) {
+                    return { ...product, code: code };
+                }
+                if (product.searchName && product.searchName.toLowerCase().includes(searchTerm)) {
+                    return { ...product, code: code };
                 }
             }
-            
+
             return null;
         };
 
@@ -195,14 +202,17 @@ class ProductsLoader {
         window.getProductPrice = (code, size = null) => {
             const product = this.products[code];
             if (!product) return null;
-            
+
             if (size) {
                 const sizeObj = product.sizes.find(s => s.size === size);
                 return sizeObj ? sizeObj.price : null;
             }
-            
+
             // החזרת המחיר הנמוך ביותר אם לא צוין גודל
-            return Math.min(...product.sizes.map(s => s.price));
+            if (product.sizes && product.sizes.length > 0) {
+                return Math.min(...product.sizes.map(s => s.price));
+            }
+            return null;
         };
 
         // פונקציה לקבלת גדלים זמינים
@@ -308,11 +318,11 @@ class ProductsLoader {
 
         // עדכון רשימות מוצרים אם קיימות
         this.updateProductLists();
-        
+
         // הודעה על עדכון מוצלח
         this.showSystemNotification('מערכת המוצרים עודכנה בהצלחה!', 'success');
     }
-    
+
     // הצגת הודעת מערכת
     showSystemNotification(message, type = 'info') {
         // בדיקה אם כבר קיימת הודעה
@@ -323,11 +333,11 @@ class ProductsLoader {
             notification.className = `system-notification ${type}`;
             document.body.appendChild(notification);
         }
-        
+
         notification.textContent = message;
         notification.className = `system-notification ${type}`;
         notification.classList.add('show');
-        
+
         // הסתרת ההודעה אחרי 3 שניות
         setTimeout(() => {
             notification.classList.remove('show');
@@ -344,13 +354,13 @@ class ProductsLoader {
         // חיפוש מהיר במוצרים
         const results = this.searchProduct(query);
         this.displaySearchResults(results, query);
-        
+
         // הוספת אפקט חיפוש
         const searchInput = document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');
         if (searchInput) {
             searchInput.style.borderColor = results ? '#28a745' : '#dc3545';
             searchInput.style.boxShadow = results ? '0 0 0 3px rgba(40,167,69,0.1)' : '0 0 0 3px rgba(220,53,69,0.1)';
-            
+
             // החזרה למצב רגיל אחרי 2 שניות
             setTimeout(() => {
                 searchInput.style.borderColor = '';
@@ -381,7 +391,7 @@ class ProductsLoader {
                 overflow-y: auto;
                 animation: fadeIn 0.3s ease-in;
             `;
-            
+
             const searchInput = document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');
             if (searchInput && searchInput.parentElement) {
                 searchInput.parentElement.style.position = 'relative';
@@ -393,9 +403,9 @@ class ProductsLoader {
             resultsContainer.innerHTML = `
                 <div style="padding: 15px; border-bottom: 1px solid #eee;">
                     <div style="font-weight: bold; color: #333; font-size: 1.1rem;">${results.name}</div>
-                    <div style="color: #666; font-size: 0.9em; margin: 5px 0;">מק"ט: ${query}</div>
+                    <div style="color: #666; font-size: 0.9em; margin: 5px 0;">מק"ט: ${results.code || query}</div>
                     <div style="color: #28a745; font-weight: bold; margin-top: 8px;">
-                        💰 מחירים: ${results.sizes.map(s => `${s.size} - ₪${s.price}`).join(', ')}
+                        💰 מחירים: ${results.sizes && results.sizes.length > 0 ? results.sizes.map(s => `${s.size} - ₪${s.price}`).join(', ') : 'ללא מחירים'}
                     </div>
                     <div style="color: #6c757d; font-size: 0.9em; margin-top: 5px;">
                         📁 קטגוריה: ${this.categories[results.category] || 'לא מוגדר'}
@@ -408,7 +418,7 @@ class ProductsLoader {
                 </div>
             `;
             resultsContainer.style.display = 'block';
-            
+
             // הוספת אפקט הצלחה
             resultsContainer.style.borderColor = '#28a745';
             resultsContainer.style.boxShadow = '0 4px 15px rgba(40,167,69,0.2)';
@@ -423,12 +433,12 @@ class ProductsLoader {
                 </div>
             `;
             resultsContainer.style.display = 'block';
-            
+
             // הוספת אפקט שגיאה
             resultsContainer.style.borderColor = '#dc3545';
             resultsContainer.style.boxShadow = '0 4px 15px rgba(220,53,69,0.2)';
         }
-        
+
         // הוספת אנימציה
         resultsContainer.classList.add('fade-in');
     }
@@ -445,7 +455,7 @@ class ProductsLoader {
     updateProductLists() {
         // עדכון רשימת מוצרי מטבח
         this.updateKitchenProductsList();
-        
+
         // עדכון רשימות אחרות אם קיימות
         this.updateOtherProductLists();
     }
@@ -457,14 +467,14 @@ class ProductsLoader {
             // רק מוצרים שצריכים להיות מוצגים בממשק הראשי
             const visibleKitchenProducts = this.getVisibleKitchenProducts();
             kitchenList.innerHTML = '';
-            
+
             Object.entries(visibleKitchenProducts).forEach(([code, product]) => {
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <span>${product.name}</span>
                     <span style="color: #666; font-size: 0.9em;">(${code})</span>
                     <span style="color: #28a745; font-weight: bold;">
-                        ₪${Math.min(...product.sizes.map(s => s.price))}
+                        ₪${product.sizes && product.sizes.length > 0 ? Math.min(...product.sizes.map(s => s.price)) : 'N/A'}
                     </span>
                 `;
                 kitchenList.appendChild(li);
@@ -478,14 +488,14 @@ class ProductsLoader {
         const visibleCodes = [
             '12628', '12617', '12627', '16331', '12618', '12616', '12626', '12408', '12409'
         ];
-        
+
         const visibleProducts = {};
         visibleCodes.forEach(code => {
             if (this.products[code]) {
                 visibleProducts[code] = this.products[code];
             }
         });
-        
+
         return visibleProducts;
     }
 
@@ -508,50 +518,50 @@ class ProductsLoader {
             totalProducts: Object.keys(this.products).length,
             totalCategories: Object.keys(this.categories).length,
             categories: this.categories,
-            lastUpdated: localStorage.getItem('goldis_products') ? 
+            lastUpdated: localStorage.getItem('goldis_products') ?
                 JSON.parse(localStorage.getItem('goldis_products')).lastUpdated : null
         };
     }
-    
+
     // הוספת כפתור רענון מהיר לממשק
     addQuickRefreshButton() {
         // בדיקה אם כבר קיים כפתור
         if (document.getElementById('quickRefreshBtn')) return;
-        
+
         const refreshBtn = document.createElement('button');
         refreshBtn.id = 'quickRefreshBtn';
         refreshBtn.className = 'quick-refresh-btn';
         refreshBtn.innerHTML = '🔄';
         refreshBtn.title = 'רענן מוצרים';
         refreshBtn.onclick = () => this.refreshData();
-        
+
         document.body.appendChild(refreshBtn);
     }
-    
+
     // הוספת סטטוס מערכת
     addSystemStatus() {
         // בדיקה אם כבר קיים סטטוס
         if (document.getElementById('systemStatus')) return;
-        
+
         const statusDiv = document.createElement('div');
         statusDiv.id = 'systemStatus';
         statusDiv.className = 'system-status online';
         statusDiv.innerHTML = `
             <div>🟢 מערכת מוצרים פעילה</div>
             <div style="font-size: 0.8rem; margin-top: 5px;">
-                ${Object.keys(this.products).length} מוצרים | 
+                ${Object.keys(this.products).length} מוצרים |
                 ${Object.keys(this.categories).length} קטגוריות
             </div>
         `;
-        
+
         document.body.appendChild(statusDiv);
-        
+
         // עדכון אוטומטי כל 30 שניות
         setInterval(() => {
             this.updateSystemStatus();
         }, 30000);
     }
-    
+
     // עדכון סטטוס מערכת
     updateSystemStatus() {
         const statusDiv = document.getElementById('systemStatus');
@@ -560,13 +570,13 @@ class ProductsLoader {
             statusDiv.innerHTML = `
                 <div>🟢 מערכת מוצרים פעילה</div>
                 <div style="font-size: 0.8rem; margin-top: 5px;">
-                    ${stats.totalProducts} מוצרים | 
+                    ${stats.totalProducts} מוצרים |
                     ${stats.totalCategories} קטגוריות
                 </div>
             `;
         }
     }
-    
+
     // פונקציה לרענון מהיר
     async quickRefresh() {
         try {
@@ -575,9 +585,9 @@ class ProductsLoader {
                 statusDiv.innerHTML = '<div>🔄 מרענן...</div>';
                 statusDiv.className = 'system-status offline';
             }
-            
+
             await this.refreshData();
-            
+
             if (statusDiv) {
                 statusDiv.innerHTML = `
                     <div>✅ רוענן בהצלחה</div>
@@ -586,7 +596,7 @@ class ProductsLoader {
                     </div>
                 `;
                 statusDiv.className = 'system-status online';
-                
+
                 // החזרה למצב רגיל אחרי 3 שניות
                 setTimeout(() => {
                     this.updateSystemStatus();
@@ -602,17 +612,6 @@ class ProductsLoader {
         }
     }
 }
-
-// יצירת מופע של מערכת הטעינה
-let productsLoader;
-
-// אתחול המערכת כשהדף נטען
-document.addEventListener('DOMContentLoaded', () => {
-    productsLoader = new ProductsLoader();
-    
-    // הוספת כפתור רענון לממשק (אופציונלי)
-    this.addRefreshButton();
-});
 
 // הוספת כפתור רענון לממשק
 function addRefreshButton() {
@@ -638,9 +637,36 @@ function addRefreshButton() {
                 productsLoader.refreshData();
             }
         };
-        
+
         header.parentElement.style.position = 'relative';
         header.parentElement.appendChild(refreshBtn);
+    }
+}
+
+// אתחול המערכת כשהדף נטען
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔄 מאתחל מערכת טעינת מוצרים...');
+    productsLoader = new ProductsLoader();
+
+    // הוספת כפתור רענון לממשק (אופציונלי)
+    setTimeout(() => {
+        addRefreshButton();
+    }, 1000);
+});
+
+// ודוא שהמערכת נטענת גם אם DOMContentLoaded כבר עבר
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!window.productsLoader) {
+            console.log('🔄 מאתחל מערכת טעינת מוצרים (fallback)...');
+            productsLoader = new ProductsLoader();
+        }
+    });
+} else {
+    // הדף כבר נטען
+    if (!window.productsLoader) {
+        console.log('🔄 מאתחל מערכת טעינת מוצרים (immediate)...');
+        productsLoader = new ProductsLoader();
     }
 }
 

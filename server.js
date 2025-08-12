@@ -39,6 +39,18 @@ app.use(express.json());
 // הגשת קבצים סטטיים
 app.use(express.static('.'));
 
+// נתיב ספציפי לקובץ המוצרים
+app.get('/products.json', async (req, res) => {
+    try {
+        const data = await fs.readFile(PRODUCTS_FILE, 'utf8');
+        res.setHeader('Content-Type', 'application/json');
+        res.send(data);
+    } catch (error) {
+        console.error('Error serving products.json:', error);
+        res.status(500).json({ error: 'שגיאה בטעינת קובץ המוצרים' });
+    }
+});
+
 // נתיב לקובץ המוצרים
 const PRODUCTS_FILE = path.join(__dirname, 'products.json');
 

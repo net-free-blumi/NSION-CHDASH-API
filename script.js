@@ -206,6 +206,16 @@ document.addEventListener('DOMContentLoaded', function() {
     checkAuthOnLoad();
     // העיר את השרת בטעינת הדף
     wakeUpServer();
+    
+    // וידוא שמערכת המוצרים נטענת
+    setTimeout(() => {
+        if (!window.productsLoader && !window.unifiedProductData) {
+            console.warn('⚠️ מערכת המוצרים לא נטענה, מנסה לטעון שוב...');
+            if (typeof ProductsLoader !== 'undefined') {
+                window.productsLoader = new ProductsLoader();
+            }
+        }
+    }, 2000);
 });
 
 function copyBakerySummary() {
