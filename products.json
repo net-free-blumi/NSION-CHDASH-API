@@ -1,11 +1,12 @@
 {
   "products": {
     "1": {
-      "name": "",
+      "name": "ללא שם",
       "searchName": "ריק קונדיטורייה",
       "category": "bakery",
       "type": "none",
-      "sizes": []
+      "sizes": [],
+      "code": "1"
     },
     "2": {
       "name": "",
