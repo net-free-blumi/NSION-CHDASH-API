@@ -306,6 +306,14 @@
       "type": "none",
       "sizes": []
     },
+    "111": {
+      "name": "555",
+      "category": "kitchen",
+      "searchName": "",
+      "type": "",
+      "sizes": [],
+      "code": "111"
+    },
     "410": {
       "name": "מגש קרואסון סלט ביצים",
       "category": "kitchen",
@@ -2573,7 +2581,6 @@
       "defaultQuantity": 20,
       "unit": "יחי'",
       "predefinedQuantities": [
-        12,
         20
       ],
       "sizes": [
@@ -2585,7 +2592,9 @@
           "size": "20 יחי",
           "price": 285
         }
-      ]
+      ],
+      "searchName": "",
+      "code": "12628"
     },
     "12800": {
       "name": "מגש סלט בורמזי בכוסות",
@@ -3507,6 +3516,21 @@
       "category": "kitchen",
       "type": "none",
       "sizes": []
+    },
+    "55555555": {
+      "name": "55555555",
+      "category": "kitchen",
+      "searchName": "",
+      "type": "size",
+      "sizes": [
+        {
+          "size": "20",
+          "price": 20
+        }
+      ],
+      "unit": "כוסות",
+      "quantity": "20",
+      "code": "55555555"
     }
   },
   "categories": {

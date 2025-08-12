@@ -206,22 +206,6 @@ class ProductsLoader {
             return filtered;
         };
 
-        // פונקציה לקבלת מחיר מוצר
-        window.getProductPrice = (code, size = null) => {
-            const product = this.products[code];
-            if (!product) return null;
-
-            if (size) {
-                const sizeObj = product.sizes.find(s => s.size === size);
-                return sizeObj ? sizeObj.price : null;
-            }
-
-            // החזרת המחיר הנמוך ביותר אם לא צוין גודל
-            if (product.sizes && product.sizes.length > 0) {
-                return Math.min(...product.sizes.map(s => s.price));
-            }
-            return null;
-        };
 
         // פונקציה לקבלת גדלים זמינים
         window.getProductSizes = (code) => {
