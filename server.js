@@ -444,4 +444,4 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`   POST /api/products/backup - יצירת גיבוי`);
     console.log(`   POST /api/products/restore - שחזור מגיבוי`);
     console.log(`   GET  /api/stats - סטטיסטיקות מערכת`);
-}); 
+});

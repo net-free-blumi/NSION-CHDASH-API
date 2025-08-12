@@ -28,7 +28,11 @@ class ProductManager {
     // פונקציה לטעינת מוצרים מ-API
     async loadProducts() {
         try {
-            const response = await fetch('/api/products');
+            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:5000' 
+                : 'https://nsion-chdash-api.onrender.com';
+
+            const response = await fetch(`${API_BASE_URL}/api/products`);
             if (!response.ok) {
                 throw new Error('שגיאה בטעינת מוצרים מהשרת');
             }
@@ -78,6 +82,7 @@ class ProductManager {
             <div class="product-details">
                 <p><strong>קטגוריה:</strong> ${this.categories[product.category] || 'לא מוגדר'}</p>
                 <p><strong>סוג:</strong> ${this.getTypeDisplay(productType)}</p>
+                <!-- Removed redundant line about base price -->
         `;
         
         // הוספת שם חיפוש אם קיים
