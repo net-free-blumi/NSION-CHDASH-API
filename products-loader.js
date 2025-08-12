@@ -52,20 +52,34 @@ class ProductsLoader {
 
     // טעינת מוצרים מ-localStorage או מקובץ JSON
     async loadProducts() {
+        // נסה קודם למשוך מהשרת (products.json)
+        let loaded = false;
         try {
-            // נסה לטעון מ-localStorage קודם
-            const savedProducts = localStorage.getItem('goldis_products');
-            if (savedProducts) {
-                const data = JSON.parse(savedProducts);
+            const response = await fetch('products.json', { cache: 'reload' });
+            if (response.ok) {
+                const data = await response.json();
                 this.products = data.products || {};
                 this.categories = data.categories || {};
-            } else {
-                // אם אין ב-localStorage, טען מהקובץ
+                this.saveToLocalStorage();
+                loaded = true;
+            }
+        } catch (err) {
+            console.warn('טעינת products.json מהשרת נכשלה, מנסה localStorage...');
+        }
+        if (!loaded) {
+            try {
+                const savedProducts = localStorage.getItem('goldis_products');
+                if (savedProducts) {
+                    const data = JSON.parse(savedProducts);
+                    this.products = data.products || {};
+                    this.categories = data.categories || {};
+                } else {
+                    await this.loadFromFile();
+                }
+            } catch (error) {
+                console.error('שגיאה בטעינת מוצרים מה-localStorage:', error);
                 await this.loadFromFile();
             }
-        } catch (error) {
-            console.error('שגיאה בטעינת מוצרים:', error);
-            await this.loadFromFile();
         }
     }
 
@@ -524,8 +538,12 @@ class ProductsLoader {
         refreshBtn.id = 'quickRefreshBtn';
         refreshBtn.className = 'quick-refresh-btn';
         refreshBtn.innerHTML = '🔄';
-        refreshBtn.title = 'רענן מוצרים';
-        refreshBtn.onclick = () => this.refreshData();
+        refreshBtn.title = 'רענן מוצרים (מהשרת)';
+        refreshBtn.onclick = () => {
+            // רוקן localStorage ונסה למשוך מהשרת
+            localStorage.removeItem('goldis_products');
+            this.refreshData();
+        };
 
         document.body.appendChild(refreshBtn);
     }

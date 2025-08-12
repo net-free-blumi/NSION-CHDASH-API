@@ -396,6 +396,7 @@ class ProductManager {
     const codeInput = document.getElementById('productCode');
     codeInput.value = code;
     codeInput.removeAttribute('disabled'); // ודא שהשדה לא נעול לעריכה
+    this.lastEditedProductCode = code; // שמור את הקוד המקורי לעריכה
         document.getElementById('productName').value = productName;
         document.getElementById('productCategory').value = product.category || '';
         document.getElementById('searchName').value = product.searchName || '';
