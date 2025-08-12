@@ -126,22 +126,22 @@
                 </div>
 
                 <div class="form-row">
-                    <div id="quantity-fields" class="form-group" style="display:none;">
-                        <label for="productQuantity">כמות ברירת מחדל</label>
-                        <input type="number" id="productQuantity" name="productQuantity" placeholder="למשל: 20" min="1">
+                <div id="quantity-fields" class="form-group" style="display:none;">
+                    <label for="productQuantity">כמות ברירת מחדל</label>
+                    <input type="number" id="productQuantity" name="productQuantity" placeholder="למשל: 20" min="1">
 
-                        <label for="unitType" style="margin-top: 10px;">יחידת מידה</label>
-                        <select id="unitType" name="unitType">
-                            <option value="">בחר יחידה</option>
-                            <option value="יחי'">יחי'</option>
-                            <option value="כוסות">כוסות</option>
-                        </select>
-                    </div>
+                    <label for="unitType" style="margin-top: 10px;">יחידת מידה</label>
+                    <select id="unitType" name="unitType">
+                        <option value="">בחר יחידה</option>
+                        <option value="יחי'">יחי'</option>
+                        <option value="כוסות">כוסות</option>
+                    </select>
+                </div>
 
-                    <div id="base-price-field" class="form-group" style="display:none;">
-                        <!-- <label for="productPrice">מחיר בסיסי (אופציונלי)</label> -->
-                        <input type="number" id="productPrice" name="productPrice" placeholder="₪" step="0.01" min="0">
-                    </div>
+                <div id="base-price-field" class="form-group" style="display:none;">
+                    <!-- Base price field is optional and hidden by default -->
+                    <input type="number" id="productPrice" name="productPrice" placeholder="₪" step="0.01" min="0">
+                </div>
                 </div>
 
                 <div class="sizes-section" id="sizes-section" style="display: none;">

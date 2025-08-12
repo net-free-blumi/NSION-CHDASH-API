@@ -636,20 +636,30 @@ class ProductManager {
             }
 
             const isEdit = formData.get('editMode') === 'true';
-            const productCode = formData.get('productCode');
+            let productCode = formData.get('productCode');
 
             const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
                 ? 'http://localhost:5000' 
                 : 'https://nsion-chdash-api.onrender.com';
+
+            // Generate product code if not provided for new product
+            if (!isEdit) {
+                if (!productCode || productCode.trim() === '') {
+                    productCode = this.generateProductCode();
+                }
+                // Check if code already exists
+                if (this.products[productCode]) {
+                    this.showNotification('❌ קוד מוצר כבר קיים, אנא בחר קוד אחר', 'error');
+                    return;
+                }
+            }
 
             const url = isEdit ? `${API_BASE_URL}/api/products/${productCode}` : `${API_BASE_URL}/api/products`;
             const method = isEdit ? 'PUT' : 'POST';
 
             // Prepare data for API call
             const apiPayload = { ...productData };
-            if (isEdit) {
-                apiPayload.code = productCode; // Include code for PUT request if needed by API
-            }
+            apiPayload.code = productCode; // Always include code
 
             const response = await fetch(url, {
                 method: method,
