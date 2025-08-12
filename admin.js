@@ -392,8 +392,10 @@ class ProductManager {
             modalTitle.textContent = `עריכת מוצר: ${productName}`;
         }
 
-        document.getElementById('editMode').value = 'true';
-        document.getElementById('productCode').value = code;
+    document.getElementById('editMode').value = 'true';
+    const codeInput = document.getElementById('productCode');
+    codeInput.value = code;
+    codeInput.disabled = false; // ודא שהשדה לא נעול לעריכה
         document.getElementById('productName').value = productName;
         document.getElementById('productCategory').value = product.category || '';
         document.getElementById('searchName').value = product.searchName || '';
