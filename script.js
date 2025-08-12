@@ -213,9 +213,18 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn('⚠️ מערכת המוצרים לא נטענה, מנסה לטעון שוב...');
             if (typeof ProductsLoader !== 'undefined') {
                 window.productsLoader = new ProductsLoader();
+            } else {
+                alert('products-loader.js לא נטען. ודא שהקובץ קיים ושהנתיב נכון ב-index.html');
             }
         }
     }, 2000);
+
+    // נסה לטעון ProductsLoader גם אם לא נטען אוטומטית (למקרה של טעינה איטית)
+    setTimeout(() => {
+        if (!window.productsLoader && typeof ProductsLoader !== 'undefined') {
+            window.productsLoader = new ProductsLoader();
+        }
+    }, 4000);
 });
 
 function copyBakerySummary() {
