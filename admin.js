@@ -350,8 +350,12 @@ class ProductManager {
             return;
         }
 
+        // הצגת כרטיסי מוצרים כ-HTML ולא כאובייקטים
         container.innerHTML = productsArray
-            .map(([code, product]) => this.createProductCard(code, product))
+            .map(([code, product]) => {
+                const card = this.createProductCard(code, product);
+                return card.outerHTML || card; // אם זה DOM, ניקח את ה-outerHTML, אחרת נניח שזה מחרוזת
+            })
             .join('');
     }
 
