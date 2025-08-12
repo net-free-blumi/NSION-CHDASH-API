@@ -14,35 +14,31 @@
         </div>
 
         <!-- אזור עליון קבוע למובייל: סטטיסטיקות, פעולות מהירות, חיפוש -->
-        <!-- אזור עליון למובייל, סיידבר לדסקטופ -->
-        <div class="top-bar-mobile">
-            <div class="stats" id="stats-container-mobile">
-                <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">סה"כ מוצרים</span></div>
-                <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">מוצרי גדלים</span></div>
-                <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">מוצרי כמות</span></div>
-                <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">ללא כמות</span></div>
-            </div>
-            <div class="quick-action-buttons">
-                <button onclick="productManager.openAddProductModal()" class="btn">➕ הוספת מוצר חדש</button>
-                <button onclick="productManager.refreshProducts()" class="btn btn-success">🔄 רענון מוצרים</button>
-                <button onclick="productManager.saveProductsToFile()" class="btn btn-info">💾 שמור לקובץ</button>
-                <button onclick="productManager.exportProducts()" class="btn btn-warning">📤 ייצוא מוצרים</button>
-                <button onclick="productManager.importProducts()" class="btn btn-warning">📥 ייבוא מוצרים</button>
-                <button onclick="productManager.backupProducts()" class="btn btn-info">💾 יצירת גיבוי</button>
-            </div>
-            <div class="search-section">
-                <h3>🔍 חיפוש מוצרים</h3>
-                <input type="text" id="search-input-mobile" placeholder="חפש לפי שם, קוד או קטגוריה..." class="search-input">
-            </div>
-        </div>
         <div class="admin-panel">
-            <div class="sidebar desktop-only">
-                <div class="stats" id="stats-container-desktop">
-                    <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">סה"כ מוצרים</span></div>
-                    <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">מוצרי גדלים</span></div>
-                    <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">מוצרי כמות</span></div>
-                    <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">ללא כמות</span></div>
+            <div class="sidebar">
+                <div class="stats" id="stats-container">
+                    <div class="stat-item">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">סה"כ מוצרים</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">מוצרי גדלים</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">מוצרי כמות</span>
+                    </div>
+                    <!-- <div class="stat-item">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">מוצרי יחידות</span>
+                    </div> -->
+                    <div class="stat-item">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">ללא כמות</span>
+                    </div>
                 </div>
+
                 <div class="quick-action-buttons">
                     <button onclick="productManager.openAddProductModal()" class="btn">➕ הוספת מוצר חדש</button>
                     <button onclick="productManager.refreshProducts()" class="btn btn-success">🔄 רענון מוצרים</button>
@@ -51,11 +47,13 @@
                     <button onclick="productManager.importProducts()" class="btn btn-warning">📥 ייבוא מוצרים</button>
                     <button onclick="productManager.backupProducts()" class="btn btn-info">💾 יצירת גיבוי</button>
                 </div>
+
                 <div class="search-section">
                     <h3>🔍 חיפוש מוצרים</h3>
-                    <input type="text" id="search-input-desktop" placeholder="חפש לפי שם, קוד או קטגוריה..." class="search-input">
+                    <input type="text" id="search-input" placeholder="חפש לפי שם, קוד או קטגוריה..." class="search-input">
                 </div>
             </div>
+
             <div class="main-content">
                 <div class="content-header">
                     <h2>📋 רשימת המוצרים</h2>
@@ -64,6 +62,7 @@
                         <button onclick="document.getElementById('file-input').click()" class="btn btn-info">📁 טען מקובץ</button>
                     </div>
                 </div>
+
                 <div id="products-container" class="products-grid">
                     <!-- המוצרים יוצגו כאן -->
                 </div>
@@ -96,10 +95,7 @@
     <style>
     /* עיצוב רספונסיבי לאזור העליון במובייל */
     .top-bar-mobile { display: none; }
-    .sidebar.desktop-only { display: block; }
     @media (max-width: 900px) {
-        .top-bar-mobile { display: block; background: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px #eee; padding: 10px 0; }
-        .sidebar.desktop-only { display: none; }
         .main-content { margin-top: 10px; }
     }
     </style>
