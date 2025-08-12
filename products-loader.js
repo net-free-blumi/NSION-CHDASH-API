@@ -25,16 +25,24 @@ class ProductsLoader {
         console.log('🚀 מערכת ניהול המוצרים אותחלה בהצלחה!');
     }
 
+    constructor() {
+        this.products = {};
+        this.categories = {};
+        // יצירת גישה גלובלית למופע
+        window.productsLoader = this;
+        // Create bound function reference for event listener
+        this.boundHandleSearchInput = this.handleSearchInput.bind(this);
+        this.init();
+    }
+
     // הגדרת חיפוש מוצרים
     setupProductSearch() {
         // חיפוש תיבת חיפוש קיימת
         const searchInput = document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');
         if (searchInput) {
             // הסרת event listeners קיימים
-            searchInput.removeEventListener('input', this.handleSearchInput.bind(this));
-            searchInput.addEventListener('input', (e) => {
-                this.handleSearchInput(e.target.value);
-            });
+            searchInput.removeEventListener('input', this.boundHandleSearchInput);
+            searchInput.addEventListener('input', this.boundHandleSearchInput);
 
             console.log('🔍 תיבת חיפוש מוצרים הוגדרה בהצלחה');
         } else {
