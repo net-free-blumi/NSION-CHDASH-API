@@ -668,14 +668,25 @@ class ProductManager {
 
             let response, result, message;
             if (isEdit && this.lastEditedProductCode && this.lastEditedProductCode !== productCode) {
+                // אם הקוד החדש לא קיים - צור מוצר חדש (POST), אם קיים - עדכן (PUT)
+                const exists = !!this.products[productCode];
                 // מחיקת המוצר הישן
                 await fetch(`${API_BASE_URL}/api/products/${this.lastEditedProductCode}`, { method: 'DELETE' });
-                // יצירת מוצר חדש
-                response = await fetch(`${API_BASE_URL}/api/products`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...productData, code: productCode })
-                });
+                if (exists) {
+                    // עדכון מוצר קיים (PUT)
+                    response = await fetch(`${API_BASE_URL}/api/products/${productCode}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...productData, code: productCode })
+                    });
+                } else {
+                    // יצירת מוצר חדש (POST)
+                    response = await fetch(`${API_BASE_URL}/api/products`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...productData, code: productCode })
+                    });
+                }
                 if (response.ok) {
                     result = await response.json();
                     message = result.message || '✅ מוצר עודכן בהצלחה';
