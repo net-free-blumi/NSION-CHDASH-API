@@ -15,6 +15,7 @@ const allowedOrigins = [
     'http://localhost:3000',
     'https://venerable-rugelach-127f4b.netlify.app',
     'https://online-g.netlify.app',
+    'https://nsion-chdash-api.onrender.com',
     'https://nsaion-golsya.netlify.app',
     'http://127.0.0.1:5500',
     'http://localhost:5000'
