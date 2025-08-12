@@ -547,7 +547,10 @@ class ProductManager {
                 if (quantity) {
                     productData.defaultQuantity = parseInt(quantity);
                     // אם יש כמויות מוגדרות מראש, נוסיף אותן
-                    productData.predefinedQuantities = [parseInt(quantity)];
+                    productData.predefinedQuantities = productData.predefinedQuantities || [];
+                    if (!productData.predefinedQuantities.includes(parseInt(quantity))) {
+                        productData.predefinedQuantities.push(parseInt(quantity));
+                    }
                 }
             } else if (productData.type === 'size') {
                 // עבור מוצרי גודל, נשמור את הגודל הברירת מחדל אם הוגדר
@@ -635,7 +638,11 @@ class ProductManager {
             const isEdit = formData.get('editMode') === 'true';
             const productCode = formData.get('productCode');
 
-            const url = isEdit ? `/api/products/${productCode}` : '/api/products';
+            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:5000' 
+                : 'https://nsion-chdash-api.onrender.com';
+
+            const url = isEdit ? `${API_BASE_URL}/api/products/${productCode}` : `${API_BASE_URL}/api/products`;
             const method = isEdit ? 'PUT' : 'POST';
 
             // Prepare data for API call
