@@ -8,8 +8,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// נתיב לקובץ המוצרים - חשוב: הקובץ נמצא בתיקייה למעלה
-const PRODUCTS_FILE = path.join(__dirname, '..', 'products.json');
+// נתיב לקובץ המוצרים - שמירה בתיקיית הנתונים של השרת
+const DATA_DIR = process.env.NODE_ENV === 'production' 
+    ? '/data'  // בשרת הייצור
+    : path.join(__dirname, '..', 'data');  // בפיתוח מקומי
+const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 
 const app = express();
 
@@ -45,12 +48,22 @@ app.use(express.json({ limit: '50mb' }));
 // Serve static files from parent directory
 app.use(express.static(path.join(__dirname, '..')));
 
-// Ensure products file exists
+// Ensure data directory and products file exist
 async function ensureProductsFile() {
     try {
-        await fs.access(PRODUCTS_FILE);
-    } catch (error) {
-        console.log('Creating initial products.json file...');
+        // Create data directory if it doesn't exist
+        try {
+            await fs.access(DATA_DIR);
+        } catch {
+            console.log(`Creating data directory at: ${DATA_DIR}`);
+            await fs.mkdir(DATA_DIR, { recursive: true });
+        }
+
+        // Check if products file exists
+        try {
+            await fs.access(PRODUCTS_FILE);
+        } catch (error) {
+            console.log('Creating initial products.json file...');
         const initialData = {
             products: {},
             categories: {

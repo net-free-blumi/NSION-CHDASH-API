@@ -1,0 +1,9 @@
+:$PORT {
+    root * /app/public
+    file_server
+    reverse_proxy /api/* localhost:5000
+    handle_path /data/* {
+        root * /data
+        file_server
+    }
+}
