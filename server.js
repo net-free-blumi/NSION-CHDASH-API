@@ -1,20 +1,16 @@
 // שמירה מיידית של products.json לפי בקשה מהקליינט
-app.post('/api/products/export', async (req, res) => {
+app.post('/api/products/save', async (req, res) => {
     try {
         const { products, categories } = req.body;
         if (!products) {
             return res.status(400).json({ error: 'products missing' });
         }
-        // קריאה לקובץ הקיים
-        const data = await fs.readFile(PRODUCTS_FILE, 'utf8');
-        const fileData = JSON.parse(data);
-        fileData.products = products;
-        if (categories) fileData.categories = categories;
-        await fs.writeFile(PRODUCTS_FILE, JSON.stringify(fileData, null, 2), 'utf8');
-        res.json({ message: 'products.json נשמר בהצלחה' });
+
+        await fs.writeFile(PRODUCTS_FILE, JSON.stringify({ products, categories }, null, 2), 'utf8');
+        res.json({ success: true, message: 'המוצרים נשמרו בהצלחה' });
     } catch (error) {
-        console.error('Error exporting products:', error);
-        res.status(500).json({ error: 'שגיאה בשמירת products.json' });
+        console.error('Error saving products:', error);
+        res.status(500).json({ error: 'שגיאה בשמירת המוצרים' });
     }
 });
 import express from 'express';
