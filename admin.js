@@ -1,5 +1,20 @@
 // מערכת ניהול מוצרים - גולדיס
 class ProductManager {
+    // שמירה מיידית לשרת אחרי כל שינוי
+    async saveAllToServer() {
+        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:5000'
+            : 'https://nsion-chdash-api.onrender.com';
+        try {
+            await fetch(`${API_BASE_URL}/api/products/export`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ products: this.products, categories: this.categories })
+            });
+        } catch (e) {
+            this.showNotification('❌ שגיאה בשמירה לשרת', 'error');
+        }
+    }
     constructor() {
         this.products = {};
         this.categories = {
@@ -541,7 +556,7 @@ class ProductManager {
     }
 
     async saveProduct() {
-        try {
+    try {
             const form = document.getElementById('productForm');
             const formData = new FormData(form);
 
@@ -694,6 +709,7 @@ class ProductManager {
                     this.showNotification(message, 'success');
                     this.products[productCode] = { ...productData, code: productCode };
                     delete this.products[this.lastEditedProductCode];
+                    await this.saveAllToServer();
                 } else {
                     const errorData = await response.json();
                     throw new Error(errorData.message || 'שגיאה בשמירת המוצר');
@@ -714,6 +730,7 @@ class ProductManager {
                     message = result.message || (isEdit ? '✅ מוצר עודכן בהצלחה' : '✅ מוצר נוסף בהצלחה');
                     this.showNotification(message, 'success');
                     this.products[productCode] = { ...this.products[productCode], ...productData };
+                    await this.saveAllToServer();
                 } else {
                     const errorData = await response.json();
                     throw new Error(errorData.message || 'שגיאה בשמירת המוצר');
@@ -747,7 +764,7 @@ class ProductManager {
 
     // Function to actually delete the product (API call)
     async deleteProduct(code) {
-        try {
+    try {
             const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
                 ? 'http://localhost:5000' 
                 : 'https://nsion-chdash-api.onrender.com';
@@ -760,9 +777,9 @@ class ProductManager {
                 const result = await response.json();
                 const message = result.message || `✅ מוצר "${this.products[code]?.name || code}" נמחק בהצלחה`;
                 this.showNotification(message, 'success');
-
-                delete this.products[code]; // Remove from local state
-                this.displayProducts(); // Update UI
+                delete this.products[code];
+                await this.saveAllToServer();
+                this.displayProducts();
                 this.updateStats();
             } else {
                 const errorText = await response.text();
@@ -829,27 +846,10 @@ class ProductManager {
     generateProductCode() {
         let code = 10000;
         while (this.products[code.toString()]) {
-            code++;
-            if (code > 99999) {
-                throw new Error('לא ניתן ליצור קוד חדש - הגעת למגבלת הקודים');
-            }
+            // שמירה אמיתית לשרת
+            this.saveAllToServer();
+            this.showNotification('✅ כל המוצרים נשמרו בקובץ בהצלחה', 'success');
         }
-        return code.toString();
-    }
-
-    isProductCodeExists(code) {
-        return this.products[code.toString()] !== undefined;
-    }
-
-
-    setupEventListeners() {
-        const searchInput = document.getElementById('search-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.searchProducts(e.target.value);
-            });
-        }
-
         const productForm = document.getElementById('productForm');
         if (productForm) {
             productForm.addEventListener('submit', (e) => {
