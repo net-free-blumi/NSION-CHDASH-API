@@ -1,0 +1,15 @@
+{
+  "products": {},
+  "categories": {
+    "kitchen": "מוצרי מטבח",
+    "bakery": "קונדיטורייה",
+    "fruits": "פירות",
+    "sushi": "סושי",
+    "amar": "קונדיטורייה עמר",
+    "kitchenProducts": "מטבח מוסטפה",
+    "online": "אונליין",
+    "warehouse": "מחסן",
+    "sizes": "מוצרי גדלים",
+    "quantities": "מוצרי כמות"
+  }
+}
