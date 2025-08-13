@@ -55,9 +55,30 @@
 
 .products-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 16px;
-    padding: 16px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    padding: 24px 8px 32px 8px;
+    align-items: stretch;
+}
+/* תצוגה מותאמת למובייל - 2 מוצרים בשורה */
+@media (max-width: 700px) {
+    .products-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        padding: 10px 2vw 20px 2vw;
+    }
+    .product-card {
+        min-width: 0;
+        font-size: 0.97em;
+        margin: 0;
+    }
+    .admin-panel {
+        padding: 0;
+        margin: 0;
+    }
+    .sidebar, .main-content {
+        padding: 0 2vw;
+    }
 }
 
 /* הודעות מערכת */
@@ -592,10 +613,23 @@
 
 /* פאנל ניהול ראשי */
 .admin-panel {
-    display: grid;
-    grid-template-columns: 380px 1fr;
-    gap: 30px;
-    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-height: 0;
+    margin-bottom: 0;
+}
+/* סיכום ופעולות תמיד למעלה, מוצרים למטה */
+.admin-panel .sidebar {
+    order: 1;
+    margin-bottom: 0;
+    border-radius: 0 0 20px 20px;
+    box-shadow: none;
+    border-bottom: 2px solid #eee;
+}
+.admin-panel .main-content {
+    order: 2;
+    margin-top: 0;
 }
 
 /* סיידבר */
@@ -609,6 +643,17 @@
     position: sticky;
     top: 20px;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-bottom: 0;
+}
+/* ריווח מקצועי בין סיכום/כפתורים/חיפוש */
+.sidebar .stats {
+    margin-bottom: 18px;
+}
+.sidebar .quick-action-buttons {
+    margin-bottom: 18px;
+}
+.sidebar .search-section {
+    margin-bottom: 0;
 }
 
 /* סטטיסטיקות */
