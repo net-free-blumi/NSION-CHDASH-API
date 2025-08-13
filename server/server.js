@@ -173,12 +173,6 @@ app.post('/api/products/save', async (req, res) => {
             message: 'המוצרים נשמרו בהצלחה',
             timestamp: timestamp || new Date().toISOString()
         });
-
-        res.json({ 
-            success: true, 
-            message: 'המוצרים נשמרו בהצלחה',
-            timestamp: timestamp || new Date().toISOString()
-        });
     } catch (error) {
         console.error('Error saving products:', error);
         res.status(500).json({ error: 'שגיאה בשמירת המוצרים' });
