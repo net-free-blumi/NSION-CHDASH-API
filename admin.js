@@ -43,11 +43,10 @@ class ProductManager {
             console.warn('Keep-alive ping failed:', error);
         }
 
-        await this.loadProducts();
-        this.setupEventListeners();
-        // this.displayProducts(); // Removed: Replaced by updateProductsDisplay
-        this.updateStats();
-        window.productManager = this;
+    await this.loadProducts();
+    // this.displayProducts(); // Removed: Replaced by updateProductsDisplay
+    this.updateStats();
+    window.productManager = this;
     }
 
     // פונקציה לטעינת מוצרים מ-API
