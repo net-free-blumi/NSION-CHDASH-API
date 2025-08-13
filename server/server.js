@@ -1,18 +1,47 @@
 import express from 'express';
 import cors from 'cors';
-import fetch from 'node-fetch';
-import fs from 'fs/promises';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import Product from './models/Product.js';
+import Category from './models/Category.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// נתיב לקובץ המוצרים - שמירה בתיקייה זמנית
-const DATA_DIR = path.join(process.env.NODE_ENV === 'production' 
-    ? process.env.HOME || '/tmp'  // בשרת הייצור - שימוש בתיקיית HOME או tmp
-    : path.join(__dirname, '..'), 'data');  // בפיתוח מקומי
-const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+// Load environment variables
+dotenv.config();
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB successfully'))
+    .catch(err => console.error('MongoDB connection error:', err));
+
+// Load environment variables
+dotenv.config();
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB successfully'))
+    .catch(err => console.error('MongoDB connection error:', err));
+
+// Define MongoDB Schema
+const productSchema = new mongoose.Schema({
+    code: { type: String, required: true, unique: true },
+    name: String,
+    category: String,
+    price: Number,
+    lastUpdate: { type: Date, default: Date.now }
+});
+
+const categorySchema = new mongoose.Schema({
+    code: { type: String, required: true, unique: true },
+    name: String
+});
+
+const Product = mongoose.model('Product', productSchema);
+const Category = mongoose.model('Category', categorySchema);
 
 const app = express();
 
@@ -48,16 +77,32 @@ app.use(express.json({ limit: '50mb' }));
 // Serve static files from parent directory
 app.use(express.static(path.join(__dirname, '..')));
 
-// Ensure data directory and products file exist
-async function ensureProductsFile() {
+// Initialize default categories if none exist
+async function initializeCategories() {
     try {
-        // Create data directory if it doesn't exist
-        try {
-            await fs.access(DATA_DIR);
-        } catch {
-            console.log(`Creating data directory at: ${DATA_DIR}`);
-            await fs.mkdir(DATA_DIR, { recursive: true });
+        const count = await Category.countDocuments();
+        if (count === 0) {
+            const defaultCategories = {
+                "kitchen": "מוצרי מטבח",
+                "bakery": "קונדיטורייה",
+                "fruits": "פירות",
+                "sushi": "סושי",
+                "amar": "קונדיטורייה עמר",
+                "kitchenProducts": "מטבח מוסטפה",
+                "online": "אונליין",
+                "warehouse": "מחסן",
+                "sizes": "מוצרי גדלים",
+                "quantities": "מוצרי כמות"
+            };
+            
+            for (const [code, name] of Object.entries(defaultCategories)) {
+                await Category.create({ code, name });
+            }
+            console.log('Default categories initialized');
         }
+    } catch (error) {
+        console.error('Error initializing categories:', error);
+    }
 
         // Check if products file exists
         try {
@@ -96,12 +141,14 @@ app.use((err, req, res, next) => {
 // API Stats endpoint for health check
 app.get('/api/stats', async (req, res) => {
     try {
-        await ensureProductsFile();
-        const data = await fs.readFile(PRODUCTS_FILE, 'utf8');
-        const products = JSON.parse(data);
+        const [productsCount, categoriesCount] = await Promise.all([
+            Product.countDocuments(),
+            Category.countDocuments()
+        ]);
+        
         const stats = {
-            total: Object.keys(products.products || {}).length,
-            categories: Object.keys(products.categories || {}).length,
+            total: productsCount,
+            categories: categoriesCount,
             status: 'ok',
             server: 'running'
         };
@@ -116,41 +163,38 @@ app.get('/api/stats', async (req, res) => {
 // Save products endpoint
 app.post('/api/products/save', async (req, res) => {
     try {
-        console.log('Save products request received:', req.body);
+        console.log('Save products request received');
         const { products, categories, timestamp } = req.body;
+        
         if (!products) {
-            console.warn('Save request missing products data');
             return res.status(400).json({ error: 'products missing' });
         }
 
-        // וידוא שהקובץ קיים
-        await ensureProductsFile();
-
-        // קריאת המצב הנוכחי
-        let currentData = { products: {}, categories: {} };
-        try {
-            const fileData = await fs.readFile(PRODUCTS_FILE, 'utf8');
-            currentData = JSON.parse(fileData);
-            console.log('Current products file read successfully');
-        } catch (error) {
-            console.warn('Error reading current products file:', error);
-
-        // עדכון נתונים
-        currentData.products = { ...currentData.products, ...products };
-        if (categories) {
-            currentData.categories = { ...currentData.categories, ...categories };
+        // עדכון מוצרים
+        for (const [code, productData] of Object.entries(products)) {
+            await Product.findOneAndUpdate(
+                { code },
+                { ...productData, lastUpdate: timestamp || new Date() },
+                { upsert: true, new: true }
+            );
         }
 
-        // שמירת הקובץ
-        await fs.writeFile(
-            PRODUCTS_FILE, 
-            JSON.stringify({ 
-                products: currentData.products, 
-                categories: currentData.categories,
-                lastUpdate: timestamp || new Date().toISOString()
-            }, null, 2), 
-            'utf8'
-        );
+        // עדכון קטגוריות
+        if (categories) {
+            for (const [code, name] of Object.entries(categories)) {
+                await Category.findOneAndUpdate(
+                    { code },
+                    { name },
+                    { upsert: true }
+                );
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'המוצרים נשמרו בהצלחה',
+            timestamp: timestamp || new Date().toISOString()
+        });
 
         res.json({ 
             success: true, 
@@ -166,9 +210,25 @@ app.post('/api/products/save', async (req, res) => {
 // Get all products
 app.get('/api/products', async (req, res) => {
     try {
-        const data = await fs.readFile(PRODUCTS_FILE, 'utf8');
-        const products = JSON.parse(data);
-        res.json(products);
+        const [products, categories] = await Promise.all([
+            Product.find().lean(),
+            Category.find().lean()
+        ]);
+
+        const productsMap = {};
+        products.forEach(product => {
+            productsMap[product.code] = product;
+        });
+
+        const categoriesMap = {};
+        categories.forEach(category => {
+            categoriesMap[category.code] = category.name;
+        });
+
+        res.json({
+            products: productsMap,
+            categories: categoriesMap
+        });
     } catch (error) {
         console.error('Error reading products:', error);
         res.status(500).json({ error: 'שגיאה בקריאת המוצרים' });
@@ -178,12 +238,11 @@ app.get('/api/products', async (req, res) => {
 // Port configuration
 const PORT = process.env.PORT || 5000;
 
-// Ensure products file exists before starting server
-ensureProductsFile().then(() => {
-    // Server startup
+// Initialize categories and start server
+initializeCategories().then(() => {
     app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
-        console.log(`Products file path: ${PRODUCTS_FILE}`);
+        console.log('Connected to MongoDB database');
         console.log('Server is ready to handle requests');
     });
 }).catch(error => {
