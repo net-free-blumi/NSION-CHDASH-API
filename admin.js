@@ -243,29 +243,27 @@ class ProductManager {
     // פונקציה לשמירת מוצרים לקובץ JSON
     async saveProductsToFile() {
         try {
-            const response = await fetch('/api/products/export', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ products: this.products, categories: this.categories })
-            });
+            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:5000' 
+                : 'https://nsion-chdash-api.onrender.com';
 
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `products_export_${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                this.showNotification('✅ מוצרים יוצאו בהצלחה', 'success');
-            } else {
-                throw new Error('שגיאה ביצירת קובץ לייצוא');
-            }
+            // קודם נשמור את השינויים לשרת
+            await this.saveAllToServer();
+
+            // נייצא את הקובץ
+            const jsonContent = JSON.stringify({ products: this.products, categories: this.categories }, null, 2);
+            const blob = new Blob([jsonContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `products_export_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            this.showNotification('✅ מוצרים יוצאו בהצלחה', 'success');
         } catch (error) {
             console.error('שגיאה בשמירת קובץ:', error);
-            this.showNotification('❌ שגיאה בשמירת הקובץ', 'error');
+            this.showNotification('❌ שגיאה בשמירת הקובץ: ' + error.message, 'error');
         }
     }
 
@@ -295,31 +293,45 @@ class ProductManager {
             const text = await file.text();
             const data = JSON.parse(text);
 
-            if (data.products) {
-                // שליחה לשרת לעדכון
-                const response = await fetch('/api/products/import', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                if (response.ok) {
-                    this.products = data.products;
-                    this.categories = data.categories || {};
-                    this.updateProductsDisplay();
-                    this.updateStats();
-                    this.showNotification('✅ מוצרים יובאו בהצלחה', 'success');
-                } else {
-                    throw new Error('שגיאה בשליחה לשרת');
-                }
-            } else {
-                throw new Error('קובץ לא תקין');
+            if (!data.products) {
+                throw new Error('קובץ לא תקין - חסרים מוצרים');
             }
+
+            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:5000' 
+                : 'https://nsion-chdash-api.onrender.com';
+
+            // שליחה לשרת לעדכון
+            const response = await fetch(`${API_BASE_URL}/api/products/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'שגיאה בשליחה לשרת');
+            }
+
+            // עדכון הנתונים המקומיים
+            this.products = data.products;
+            if (data.categories) {
+                this.categories = { ...this.categories, ...data.categories };
+            }
+
+            // שמירת הכל בשרת
+            await this.saveAllToServer();
+
+            // עדכון התצוגה
+            this.updateProductsDisplay();
+            this.updateStats();
+            
+            this.showNotification('✅ מוצרים יובאו בהצלחה', 'success');
         } catch (error) {
             console.error('שגיאה בייבוא:', error);
-            this.showNotification('❌ שגיאה בייבוא הקובץ', 'error');
+            this.showNotification('❌ שגיאה בייבוא הקובץ: ' + error.message, 'error');
         }
     }
 
@@ -331,19 +343,34 @@ class ProductManager {
     // פונקציה ליצירת גיבוי
     async backupProducts() {
         try {
-            const response = await fetch('/api/products/backup', {
-                method: 'POST'
-            });
+            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:5000' 
+                : 'https://nsion-chdash-api.onrender.com';
 
-            if (response.ok) {
-                const result = await response.json();
-                this.showNotification('✅ גיבוי נוצר בהצלחה', 'success');
-            } else {
-                throw new Error('שגיאה ביצירת גיבוי');
-            }
+            // קודם נוודא שהכל מעודכן בשרת
+            await this.saveAllToServer();
+
+            // יצירת קובץ גיבוי
+            const backupData = {
+                products: this.products,
+                categories: this.categories,
+                backupDate: new Date().toISOString(),
+                version: '1.0'
+            };
+
+            const jsonContent = JSON.stringify(backupData, null, 2);
+            const blob = new Blob([jsonContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `products_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            this.showNotification('✅ גיבוי נוצר בהצלחה', 'success');
         } catch (error) {
             console.error('שגיאה ביצירת גיבוי:', error);
-            this.showNotification('❌ שגיאה ביצירת גיבוי', 'error');
+            this.showNotification('❌ שגיאה ביצירת גיבוי: ' + error.message, 'error');
         }
     }
 
