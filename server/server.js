@@ -4,19 +4,14 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { promises as fs } from 'fs';
 import Product from './models/Product.js';
 import Category from './models/Category.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
-dotenv.config();
-
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB successfully'))
-    .catch(err => console.error('MongoDB connection error:', err));
+const PRODUCTS_FILE = path.join(__dirname, 'products.json');
 
 // Load environment variables
 dotenv.config();
@@ -25,23 +20,6 @@ dotenv.config();
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('Connected to MongoDB successfully'))
     .catch(err => console.error('MongoDB connection error:', err));
-
-// Define MongoDB Schema
-const productSchema = new mongoose.Schema({
-    code: { type: String, required: true, unique: true },
-    name: String,
-    category: String,
-    price: Number,
-    lastUpdate: { type: Date, default: Date.now }
-});
-
-const categorySchema = new mongoose.Schema({
-    code: { type: String, required: true, unique: true },
-    name: String
-});
-
-const Product = mongoose.model('Product', productSchema);
-const Category = mongoose.model('Category', categorySchema);
 
 const app = express();
 
