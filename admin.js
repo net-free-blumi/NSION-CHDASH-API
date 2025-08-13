@@ -1,37 +1,40 @@
 // מערכת ניהול מוצרים - גולדיס
 class ProductManager {
     // שמירה מיידית לשרת אחרי כל שינוי עם ניהול שגיאות משופר
-    async saveAllToServer() {
+    async saveAllToServer(retryCount = 0) {
+        const MAX_RETRIES = 2;
         const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? 'http://localhost:5000'
-            : 'https://nsion-chdash-api.onrender.com';
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/products/export`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ products: this.products, categories: this.categories })
-            });
+            : 'https://nsaion-golsya.netlify.app';
 
-            if (!response.ok) {
-                throw new Error(response.statusText || 'שגיאה בשמירה לשרת');
+        try {
+            // עדכון כל המוצרים בשרת
+            for (const [code, product] of Object.entries(this.products)) {
+                const url = `${API_BASE_URL}/api/products/${code}`;
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(product)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`שגיאה בעדכון מוצר ${code}`);
+                }
             }
 
-            const result = await response.json();
-            console.log('✅ נשמר בהצלחה לשרת:', result);
-            
-            // וידוא נוסף - טעינה חוזרת מהשרת
-            await this.loadProducts();
+            console.log('✅ כל המוצרים נשמרו בהצלחה בשרת');
             return true;
         } catch (e) {
             console.error('שגיאה בשמירה לשרת:', e);
-            this.showNotification('❌ שגיאה בשמירה לשרת: ' + e.message, 'error');
-            // ניסיון נוסף לשמירה אחרי שנייה
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            try {
-                await this.saveAllToServer();
-            } catch (retryError) {
-                throw new Error('שגיאה בשמירה לשרת גם לאחר ניסיון נוסף');
+            
+            if (retryCount < MAX_RETRIES) {
+                console.log(`ניסיון שמירה חוזר ${retryCount + 1} מתוך ${MAX_RETRIES}`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return this.saveAllToServer(retryCount + 1);
             }
+            
+            this.showNotification('❌ שגיאה בשמירה לשרת: ' + e.message, 'error');
+            throw e;
         }
     }
     constructor() {
@@ -243,15 +246,14 @@ class ProductManager {
     // פונקציה לשמירת מוצרים לקובץ JSON
     async saveProductsToFile() {
         try {
-            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-                ? 'http://localhost:5000' 
-                : 'https://nsion-chdash-api.onrender.com';
+            // נייצא את הקובץ ישירות ללא תלות בשרת
+            const jsonContent = JSON.stringify({ 
+                products: this.products, 
+                categories: this.categories,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            }, null, 2);
 
-            // קודם נשמור את השינויים לשרת
-            await this.saveAllToServer();
-
-            // נייצא את הקובץ
-            const jsonContent = JSON.stringify({ products: this.products, categories: this.categories }, null, 2);
             const blob = new Blob([jsonContent], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -261,9 +263,15 @@ class ProductManager {
             URL.revokeObjectURL(url);
             
             this.showNotification('✅ מוצרים יוצאו בהצלחה', 'success');
+
+            // ננסה לשמור בשרת ברקע
+            this.saveAllToServer().catch(error => {
+                console.warn('שגיאה בשמירה לשרת אחרי ייצוא:', error);
+                // לא נציג הודעת שגיאה למשתמש כי הייצוא הצליח
+            });
         } catch (error) {
             console.error('שגיאה בשמירת קובץ:', error);
-            this.showNotification('❌ שגיאה בשמירת הקובץ: ' + error.message, 'error');
+            this.showNotification('❌ שגיאה בייצוא הקובץ: ' + error.message, 'error');
         }
     }
 
