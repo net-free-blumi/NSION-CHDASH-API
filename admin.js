@@ -18,18 +18,33 @@ class ProductManager {
     }
 
     async init() {
+        const overlay = document.getElementById('serverWakeupOverlay');
+        if (overlay) overlay.style.display = 'flex';
+
         try {
-            // בדיקת חיבור לשרת
-            const response = await fetch(`${config.getApiBaseUrl()}/api/stats`);
-            if (!response.ok) {
-                throw new Error('שגיאה בהתחברות לשרת');
+            // בדיקת חיבור לשרת עם ניסיונות חוזרים
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(`${config.getApiBaseUrl()}/api/stats`);
+                    if (response.ok) {
+                        if (overlay) overlay.style.display = 'none';
+                        await this.loadProducts();
+                        this.updateStats();
+                        window.productManager = this;
+                        return;
+                    }
+                } catch (e) {
+                    console.warn(`ניסיון התחברות ${i + 1} נכשל:`, e);
+                }
+                if (i < 4) {  // לא להמתין אחרי הניסיון האחרון
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                }
             }
-            await this.loadProducts();
-            this.updateStats();
-            window.productManager = this;
+            throw new Error('שגיאה בהתחברות לשרת - נא לרענן את הדף');
         } catch (error) {
             console.warn('Init failed:', error);
-            this.showNotification('❌ שגיאה בהתחברות לשרת', 'error');
+            this.showNotification('❌ ' + error.message, 'error');
+            if (overlay) overlay.style.display = 'none';
         }
     }
 
