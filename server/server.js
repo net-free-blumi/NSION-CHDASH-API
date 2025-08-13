@@ -8,10 +8,10 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// נתיב לקובץ המוצרים - שמירה בתיקיית הנתונים של השרת
-const DATA_DIR = process.env.NODE_ENV === 'production' 
-    ? '/data'  // בשרת הייצור
-    : path.join(__dirname, '..', 'data');  // בפיתוח מקומי
+// נתיב לקובץ המוצרים - שמירה בתיקייה זמנית
+const DATA_DIR = path.join(process.env.NODE_ENV === 'production' 
+    ? process.env.HOME || '/tmp'  // בשרת הייצור - שימוש בתיקיית HOME או tmp
+    : path.join(__dirname, '..'), 'data');  // בפיתוח מקומי
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 
 const app = express();
