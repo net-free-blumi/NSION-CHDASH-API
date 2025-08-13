@@ -786,7 +786,7 @@
     .search-input {
         width: 80%;
         min-width: 80px;
-        max-width: 180px;
+        max-width: 250px;
         padding: 6px 8px;
         font-size: 0.9em;
         border-radius: 12px;
