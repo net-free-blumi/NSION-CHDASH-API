@@ -7,6 +7,15 @@
     <link rel="stylesheet" href="admin.css">
 </head>
 <body>
+    <!-- עיגול טעינה לשרת -->
+    <div id="serverWakeupOverlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.85);z-index:9999;align-items:center;justify-content:center;flex-direction:column;">
+        <div style="width:70px;height:70px;border:8px solid #eee;border-top:8px solid #007bff;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;"></div>
+        <div style="font-size:1.3em;color:#007bff;font-weight:bold;">השרת בהפעלה...<br>אנא המתן</div>
+    </div>
+    <style>
+        @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+        #serverWakeupOverlay { display: flex; }
+    </style>
     <div class="admin-container">
         <div class="header">
             <h1>🛍️ מערכת ניהול מוצרים - גולד</h1>
@@ -257,5 +266,44 @@
     <div id="notifications-container"></div>
 
     <script src="admin.js"></script>
+<script>
+// --- Wake up server logic ---
+const SERVER_URL = 'https://nsion-chdash-api.onrender.com';
+let serverAwake = false;
+let wakeupInterval = null;
+
+function showWakeupOverlay(show) {
+    const overlay = document.getElementById('serverWakeupOverlay');
+    if (overlay) overlay.style.display = show ? 'flex' : 'none';
+}
+
+async function wakeUpServer(showLoader = true) {
+    if (showLoader) showWakeupOverlay(true);
+    try {
+        const res = await fetch(SERVER_URL + '/api/stats', { cache: 'reload' });
+        if (res.ok) {
+            serverAwake = true;
+            showWakeupOverlay(false);
+            return true;
+        }
+    } catch (e) {}
+    serverAwake = false;
+    if (showLoader) setTimeout(() => wakeUpServer(true), 2000);
+    return false;
+}
+
+// כל 4 דקות פינג לשרת
+function startServerKeepAlive() {
+    if (wakeupInterval) clearInterval(wakeupInterval);
+    wakeupInterval = setInterval(() => wakeUpServer(false), 240000);
+}
+
+// הפעלת השרת בטעינה ראשונית
+document.addEventListener('DOMContentLoaded', () => {
+    wakeUpServer(true).then(() => {
+        startServerKeepAlive();
+    });
+});
+</script>
 </body>
 </html>
