@@ -928,4 +928,13 @@ function refreshProducts() {
 
 document.addEventListener('DOMContentLoaded', () => {
     new ProductManager();
+    // הפעלת חיפוש דינמי בשדה החיפוש
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            if (window.productManager) {
+                window.productManager.searchProducts(e.target.value);
+            }
+        });
+    }
 });
