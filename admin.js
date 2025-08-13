@@ -50,27 +50,46 @@ class ProductManager {
 
     async saveAllToServer() {
         try {
-            const response = await fetch(`${config.getApiBaseUrl()}/api/products/save`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    products: this.products,
-                    categories: this.categories,
-                    timestamp: new Date().toISOString()
-                })
-            });
+            // נסיון שמירה עם ניסיונות חוזרים
+            const MAX_RETRIES = 3;
+            let lastError;
+            
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                try {
+                    const response = await fetch(`${config.getApiBaseUrl()}/api/products/save`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            products: this.products,
+                            categories: this.categories,
+                            timestamp: new Date().toISOString()
+                        })
+                    });
 
-            if (!response.ok) {
-                throw new Error('שגיאה בשמירת המוצרים');
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error || 'שגיאה בשמירת המוצרים');
+                    }
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        throw new Error(result.error || 'שגיאה לא ידועה');
+                    }
+
+                    console.log('✅ המוצרים נשמרו בהצלחה:', result);
+                    return true;
+                } catch (error) {
+                    console.warn(`ניסיון שמירה ${i + 1} נכשל:`, error);
+                    lastError = error;
+                    if (i < MAX_RETRIES - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
             }
-
-            const result = await response.json();
-            if (!result.success) {
-                throw new Error(result.error || 'שגיאה לא ידועה');
-            }
-
-            console.log('✅ המוצרים נשמרו בהצלחה:', result);
-            return true;
+            
+            console.error('שגיאה בשמירה:', lastError);
+            this.showNotification('❌ שגיאה בשמירת המוצרים: ' + lastError.message, 'error');
+            throw lastError;
         } catch (error) {
             console.error('שגיאה בשמירה:', error);
             this.showNotification('❌ שגיאה בשמירת המוצרים: ' + error.message, 'error');

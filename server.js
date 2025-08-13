@@ -1,13 +1,42 @@
 // שמירה מיידית של products.json לפי בקשה מהקליינט
 app.post('/api/products/save', async (req, res) => {
     try {
-        const { products, categories } = req.body;
+        const { products, categories, timestamp } = req.body;
         if (!products) {
             return res.status(400).json({ error: 'products missing' });
         }
 
-        await fs.writeFile(PRODUCTS_FILE, JSON.stringify({ products, categories }, null, 2), 'utf8');
-        res.json({ success: true, message: 'המוצרים נשמרו בהצלחה' });
+        // קריאת המצב הנוכחי
+        let currentData = { products: {}, categories: {} };
+        try {
+            const fileData = await fs.readFile(PRODUCTS_FILE, 'utf8');
+            currentData = JSON.parse(fileData);
+        } catch (error) {
+            console.warn('No existing products file, creating new one');
+        }
+
+        // עדכון נתונים
+        currentData.products = { ...currentData.products, ...products };
+        if (categories) {
+            currentData.categories = { ...currentData.categories, ...categories };
+        }
+
+        // שמירת הקובץ
+        await fs.writeFile(
+            PRODUCTS_FILE, 
+            JSON.stringify({ 
+                products: currentData.products, 
+                categories: currentData.categories,
+                lastUpdate: timestamp || new Date().toISOString()
+            }, null, 2), 
+            'utf8'
+        );
+
+        res.json({ 
+            success: true, 
+            message: 'המוצרים נשמרו בהצלחה',
+            timestamp: timestamp || new Date().toISOString()
+        });
     } catch (error) {
         console.error('Error saving products:', error);
         res.status(500).json({ error: 'שגיאה בשמירת המוצרים' });
@@ -24,6 +53,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+// נתיב לקובץ המוצרים
+const PRODUCTS_FILE = path.join(__dirname, 'products.json');
 
 // Enable CORS with specific settings
 const allowedOrigins = [
@@ -52,11 +83,28 @@ app.use(cors({
     maxAge: 86400 // 24 hours
 }));
 
-// Parse JSON bodies
-app.use(express.json());
+// Parse JSON bodies with increased limit
+app.use(express.json({ limit: '50mb' }));
 
 // הגשת קבצים סטטיים
 app.use(express.static('.'));
+
+// API Stats endpoint for health check
+app.get('/api/stats', async (req, res) => {
+    try {
+        const data = await fs.readFile(PRODUCTS_FILE, 'utf8');
+        const products = JSON.parse(data);
+        const stats = {
+            total: Object.keys(products.products || {}).length,
+            categories: Object.keys(products.categories || {}).length,
+            status: 'ok'
+        };
+        res.json(stats);
+    } catch (error) {
+        console.error('Error getting stats:', error);
+        res.status(500).json({ error: 'שגיאה בקבלת סטטיסטיקות' });
+    }
+});
 
 // נתיב ספציפי לקובץ המוצרים
 app.get('/products.json', async (req, res) => {
@@ -69,9 +117,6 @@ app.get('/products.json', async (req, res) => {
         res.status(500).json({ error: 'שגיאה בטעינת קובץ המוצרים' });
     }
 });
-
-// נתיב לקובץ המוצרים
-const PRODUCTS_FILE = path.join(__dirname, 'products.json');
 
 // ===== API לניהול מוצרים =====
 
