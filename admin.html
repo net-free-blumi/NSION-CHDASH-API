@@ -21,8 +21,6 @@
             <h1>🛍️ מערכת ניהול מוצרים - גולד</h1>
             <p>ניהול מתקדם של כל המוצרים והמגשים </p>
         </div>
-
-        <!-- אזור עליון קבוע למובייל: סטטיסטיקות, פעולות מהירות, חיפוש -->
         <div class="admin-panel">
             <div class="sidebar">
                 <div class="stats" id="stats-container">
@@ -38,16 +36,11 @@
                         <span class="stat-number">0</span>
                         <span class="stat-label">מוצרי כמות</span>
                     </div>
-                    <!-- <div class="stat-item">
-                        <span class="stat-number">0</span>
-                        <span class="stat-label">מוצרי יחידות</span>
-                    </div> -->
                     <div class="stat-item">
                         <span class="stat-number">0</span>
                         <span class="stat-label">ללא כמות</span>
                     </div>
                 </div>
-
                 <div class="quick-action-buttons">
                     <button onclick="productManager.openAddProductModal()" class="btn">➕ הוספת מוצר חדש</button>
                     <button onclick="productManager.refreshProducts()" class="btn btn-success">🔄 רענון מוצרים</button>
@@ -56,36 +49,10 @@
                     <button onclick="productManager.importProducts()" class="btn btn-warning">📥 ייבוא מוצרים</button>
                     <button onclick="productManager.backupProducts()" class="btn btn-info">💾 יצירת גיבוי</button>
                 </div>
-
                 <div class="search-section">
                     <h3>🔍 חיפוש מוצרים</h3>
                     <input type="text" id="search-input" placeholder="חפש לפי שם, קוד או קטגוריה..." class="search-input">
                 </div>
-            </div>
-
-            <div class="main-content">
-                <div class="content-header">
-                    <h2>📋 רשימת המוצרים</h2>
-                    <div class="header-actions">
-                        <input type="file" id="file-input" accept=".json" style="display: none;" onchange="productManager.loadProductsFromFile(this.files[0])">
-                        <button onclick="document.getElementById('file-input').click()" class="btn btn-info">📁 טען מקובץ</button>
-                    </div>
-                </div>
-
-                <div id="products-container" class="products-grid">
-                    <!-- המוצרים יוצגו כאן -->
-                </div>
-            </div>
-        </div>
-
-        <div class="admin-panel">
-            <div class="sidebar desktop-only">
-                <!-- כל מה שהיה בסיידבר נשאר לדסקטופ בלבד -->
-                <div class="stats" id="stats-container-sidebar">
-                    <!-- יתווסף דינמית או יוסתר במובייל -->
-                </div>
-                <div class="quick-action-buttons"></div>
-                <div class="search-section"></div>
             </div>
             <div class="main-content">
                 <div class="content-header">
