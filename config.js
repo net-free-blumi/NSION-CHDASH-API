@@ -23,12 +23,4 @@ const config = {
     }
 };
 
-// הגדרות גלובליות למערכת
-const config = {
-    // פונקציה להשגת כתובת השרת
-    getApiBaseUrl: function() {
-        return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:5000'
-            : 'https://nsion-chdash-api.onrender.com';
-    }
-};
+// (הסרנו גרסה כפולה שגרמה לשגיאת "Identifier 'config' has already been declared")

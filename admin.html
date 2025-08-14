@@ -233,7 +233,9 @@
     <script src="admin.js"></script>
 <script>
 // --- Wake up server logic (MongoDB-backed API) ---
-const SERVER_URL = (typeof config !== 'undefined' && config.getApiBaseUrl) ? config.getApiBaseUrl() : window.location.origin;
+const SERVER_URL = (typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function')
+  ? config.getApiBaseUrl()
+  : (window.API_BASE_URL || window.location.origin);
 let serverAwake = false;
 let wakeupInterval = null;
 
