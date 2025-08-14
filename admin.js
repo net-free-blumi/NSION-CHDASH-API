@@ -22,25 +22,10 @@ class ProductManager {
         if (overlay) overlay.style.display = 'flex';
 
         try {
-            // בדיקת חיבור לשרת עם ניסיונות חוזרים
-            for (let i = 0; i < 5; i++) {
-                try {
-                    const response = await fetch(`${config.getApiBaseUrl()}/api/stats`);
-                    if (response.ok) {
-                        if (overlay) overlay.style.display = 'none';
-                        await this.loadProducts();
-                        this.updateStats();
-                        window.productManager = this;
-                        return;
-                    }
-                } catch (e) {
-                    console.warn(`ניסיון התחברות ${i + 1} נכשל:`, e);
-                }
-                if (i < 4) {  // לא להמתין אחרי הניסיון האחרון
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-                }
-            }
-            throw new Error('שגיאה בהתחברות לשרת - נא לרענן את הדף');
+window.productManager = this;
+await this.loadProducts();
+this.updateStats();
+if (overlay) overlay.style.display = 'none';
         } catch (error) {
             console.warn('Init failed:', error);
             this.showNotification('❌ ' + error.message, 'error');
