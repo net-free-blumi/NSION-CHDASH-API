@@ -7,29 +7,6 @@ class ProductsLoader {
         this.categories = {};
         // יצירת גישה גלובלית למופע
         window.productsLoader = this;
-        this.init();
-    }
-
-    async init() {
-        await this.loadProducts();
-        this.replaceExistingData();
-        this.setupProductSearch();
-
-        // הוספת כפתור רענון מהיר לממשק
-        this.addQuickRefreshButton();
-
-        // הוספת סטטוס מערכת
-        this.addSystemStatus();
-
-        // הודעה על אתחול מוצלח
-        console.log('🚀 מערכת ניהול המוצרים אותחלה בהצלחה!');
-    }
-
-    constructor() {
-        this.products = {};
-        this.categories = {};
-        // יצירת גישה גלובלית למופע
-        window.productsLoader = this;
         // Create bound function reference for event listener
         this.boundHandleSearchInput = this.handleSearchInput.bind(this);
         this.init();
@@ -50,26 +27,22 @@ class ProductsLoader {
         }
     }
 
-    // טעינת מוצרים מ-localStorage או מקובץ JSON
+    // טעינת מוצרים מה-API (MongoDB) עם נפילה לנתוני דיפולט
     async loadProducts() {
-        // טען תמיד מהשרת (products.json) בלבד
         try {
-            const response = await fetch('products.json', { cache: 'reload' });
-            if (response.ok) {
-                const data = await response.json();
-                this.products = data.products || {};
-                this.categories = data.categories || {};
-            } else {
-                console.error(`שגיאה בטעינת products.json: ${response.status} ${response.statusText}`);
-                this.createDefaultData();
-            }
+            const baseUrl = (typeof config !== 'undefined' && config.getApiBaseUrl) ? config.getApiBaseUrl() : window.location.origin;
+            const response = await fetch(`${baseUrl}/api/products`, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`API ${response.status}`);
+            const data = await response.json();
+            this.products = data.products || {};
+            this.categories = data.categories || {};
         } catch (err) {
-            console.error('טעינת products.json מהשרת נכשלה:', err);
+            console.error('טעינת מוצרים מה-API נכשלה:', err);
             this.createDefaultData();
         }
     }
 
-    // טעינה מקובץ JSON
+    // טעינה מקובץ JSON (fallback ידני)
     async loadFromFile() {
         try {
             const response = await fetch('products.json');
@@ -301,8 +274,8 @@ class ProductsLoader {
         // עדכון תיבת חיפוש אם קיימת
         const searchInput = document.querySelector('input[placeholder*="מקט"]');
         if (searchInput) {
-            // הסרת event listeners קיימים כדי למנוע כפילויות
-            searchInput.removeEventListener('input', this.handleSearchInput.bind(this));
+            // הסרת מאזין קודם (אם הוגדר) והוספת מאזין אחד קבוע
+            searchInput.removeEventListener('input', this.boundHandleSearchInput);
             searchInput.addEventListener('input', (e) => {
                 this.handleSearchInput(e.target.value);
             });

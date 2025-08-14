@@ -17,21 +17,6 @@ class ProductManager {
         this.init();
     }
 
-    async init() {
-        const overlay = document.getElementById('serverWakeupOverlay');
-        if (overlay) overlay.style.display = 'flex';
-
-        try {
-window.productManager = this;
-await this.loadProducts();
-this.updateStats();
-if (overlay) overlay.style.display = 'none';
-        } catch (error) {
-            console.warn('Init failed:', error);
-            this.showNotification('❌ ' + error.message, 'error');
-            if (overlay) overlay.style.display = 'none';
-        }
-    }
 
     async saveAllToServer() {
         try {

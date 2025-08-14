@@ -232,8 +232,8 @@
 
     <script src="admin.js"></script>
 <script>
-// --- Wake up server logic ---
-const SERVER_URL = 'https://nsion-chdash-api.onrender.com';
+// --- Wake up server logic (MongoDB-backed API) ---
+const SERVER_URL = (typeof config !== 'undefined' && config.getApiBaseUrl) ? config.getApiBaseUrl() : window.location.origin;
 let serverAwake = false;
 let wakeupInterval = null;
 
