@@ -297,9 +297,6 @@ class ProductsLoader {
             });
         }
 
-        // עדכון רשימות מוצרים אם קיימות
-        this.updateProductLists();
-
         // הודעה על עדכון מוצלח
         this.showSystemNotification('מערכת המוצרים עודכנה בהצלחה!', 'success');
     }
@@ -544,10 +541,11 @@ class ProductsLoader {
 
         document.body.appendChild(statusDiv);
 
-        // עדכון אוטומטי כל 30 שניות
-        setInterval(() => {
-            this.updateSystemStatus();
-        }, 30000);
+        // הסתרה אחרי 3 שניות כדי שלא יישאר זמן רב במסך
+        setTimeout(() => {
+            const el = document.getElementById('systemStatus');
+            if (el) el.remove();
+        }, 3000);
     }
 
     // עדכון סטטוס מערכת
@@ -601,45 +599,14 @@ class ProductsLoader {
     }
 }
 
-// הוספת כפתור רענון לממשק
-function addRefreshButton() {
-    // חיפוש מקום מתאים להוספת כפתור רענון
-    const header = document.querySelector('h1');
-    if (header && header.parentElement) {
-        const refreshBtn = document.createElement('button');
-        refreshBtn.innerHTML = '🔄 רענן מוצרים';
-        refreshBtn.style.cssText = `
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        `;
-        refreshBtn.onclick = () => {
-            if (productsLoader) {
-                productsLoader.refreshData();
-            }
-        };
-
-        header.parentElement.style.position = 'relative';
-        header.parentElement.appendChild(refreshBtn);
-    }
-}
+// כפתור רענון עודף הוסר כדי למנוע כפילות
 
 // אתחול המערכת כשהדף נטען
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🔄 מאתחל מערכת טעינת מוצרים...');
     productsLoader = new ProductsLoader();
 
-    // הוספת כפתור רענון לממשק (אופציונלי)
-    setTimeout(() => {
-        addRefreshButton();
-    }, 1000);
+    // ללא הוספת כפתורי רענון כפולים
 });
 
 // ודוא שהמערכת נטענת גם אם DOMContentLoaded כבר עבר
