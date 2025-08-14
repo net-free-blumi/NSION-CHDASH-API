@@ -54,7 +54,7 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control'],
     exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
     maxAge: 86400 // 24 hours
 }));
@@ -258,6 +258,7 @@ app.post('/api/products/save', async (req, res) => {
 // Get all products
 app.get('/api/products', async (req, res) => {
     try {
+        res.set('Cache-Control', 'no-store');
         if (mongoEnabled && mongoose.connection.readyState === 1) {
             const [products, categories] = await Promise.all([
                 Product.find().lean(),

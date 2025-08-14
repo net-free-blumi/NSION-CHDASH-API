@@ -38,7 +38,8 @@ class ProductsLoader {
             this.categories = data.categories || {};
         } catch (err) {
             console.error('טעינת מוצרים מה-API נכשלה:', err);
-            this.createDefaultData();
+            // Fallback לקובץ products.json בשורש האתר
+            await this.loadFromFile();
         }
     }
 
