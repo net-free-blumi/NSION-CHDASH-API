@@ -776,6 +776,7 @@
     #serverWakeupOverlay { display: flex; }
   </style>
 <script>
+  window.API_BASE_URL='https://nsion-chdash-api-1.onrender.com';
 // --- Wake up server logic (dynamic API base) ---
 const SERVER_URL = (typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function')
   ? config.getApiBaseUrl()
