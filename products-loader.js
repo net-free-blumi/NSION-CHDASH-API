@@ -18,7 +18,7 @@ class ProductsLoader {
             await this.loadProducts();
             this.replaceExistingData();
             this.setupProductSearch();
-            this.addQuickRefreshButton();
+            // אל תיצור כפתור רענון צף כפול
             this.addSystemStatus();
             console.log('🚀 ProductsLoader initialized');
         } catch (e) {
@@ -322,6 +322,25 @@ class ProductsLoader {
         }, 3000);
     }
 
+    // חיפוש מוצר לפי מק"ט/שם/שם-חיפוש
+    searchProduct(query) {
+        if (!query) return null;
+        const searchTerm = String(query).toLowerCase();
+        // חיפוש לפי מק"ט מדויק
+        if (this.products[query]) {
+            return { ...this.products[query], code: String(query) };
+        }
+        // חיפוש לפי שם / שם-חיפוש
+        for (const [code, product] of Object.entries(this.products)) {
+            const name = (product.name || '').toLowerCase();
+            const sname = (product.searchName || '').toLowerCase();
+            if (name.includes(searchTerm) || sname.includes(searchTerm)) {
+                return { ...product, code };
+            }
+        }
+        return null;
+    }
+
     // טיפול בקלט חיפוש
     handleSearchInput(query) {
         if (!query.trim()) {
@@ -506,22 +525,8 @@ class ProductsLoader {
         };
     }
 
-    // הוספת כפתור רענון מהיר לממשק
-    addQuickRefreshButton() {
-        // בדיקה אם כבר קיים כפתור
-        if (document.getElementById('quickRefreshBtn')) return;
-
-        const refreshBtn = document.createElement('button');
-        refreshBtn.id = 'quickRefreshBtn';
-        refreshBtn.className = 'quick-refresh-btn';
-        refreshBtn.innerHTML = '🔄';
-        refreshBtn.title = 'רענן מוצרים (מהשרת)';
-        refreshBtn.onclick = () => {
-            this.refreshData();
-        };
-
-        document.body.appendChild(refreshBtn);
-    }
+    // הוספת כפתור רענון מהיר לממשק — מבוטל כדי לא ליצור כפילות
+    addQuickRefreshButton() { /* no-op */ }
 
     // הוספת סטטוס מערכת
     addSystemStatus() {
