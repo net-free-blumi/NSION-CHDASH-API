@@ -233,10 +233,14 @@ app.post('/api/products/save', async (req, res) => {
             try { await fs.access(filePathToUse); } catch { filePathToUse = PRODUCTS_FILE; }
             const raw = await fs.readFile(filePathToUse, 'utf8').catch(() => '{"products":{},"categories":{}}');
             const data = JSON.parse(raw || '{}');
-            const merged = {
-                products: { ...(data.products || {}), ...products },
-                categories: { ...(data.categories || {}), ...(categories || {}) }
-            };
+            const merged = { products: data.products || {}, categories: data.categories || {} };
+            // כתיבת דלתא: עדכון רק מה שהגיע בבקשה
+            for (const [code, p] of Object.entries(products)) {
+                merged.products[code] = { ...(merged.products[code] || {}), ...p };
+            }
+            if (categories) {
+                merged.categories = { ...merged.categories, ...categories };
+            }
             await fs.writeFile(filePathToUse, JSON.stringify(merged, null, 2), 'utf8');
         }
 

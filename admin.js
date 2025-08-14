@@ -82,6 +82,36 @@ class ProductManager {
         }
     }
 
+    // שמירת דלתא קטנה לשרת (מהיר יותר)
+    async saveProductsDelta(deltaProducts, deltaCategories) {
+        try {
+            this.showNotification('⏳ שומר...', 'info');
+            const response = await fetch(`${config.getApiBaseUrl()}/api/products/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+                body: JSON.stringify({
+                    products: deltaProducts,
+                    categories: deltaCategories,
+                    timestamp: new Date().toISOString()
+                })
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'שגיאה בשמירת המוצר');
+            }
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'שגיאה לא ידועה');
+            }
+            this.showNotification('✅ נשמר בהצלחה', 'success');
+            return true;
+        } catch (error) {
+            console.error('שגיאה בשמירת דלתא:', error);
+            this.showNotification('❌ שגיאה בשמירה: ' + error.message, 'error');
+            throw error;
+        }
+    }
+
     async loadProducts() {
         try {
             const response = await fetch(`${config.getApiBaseUrl()}/api/products`);
@@ -301,7 +331,8 @@ class ProductManager {
                 this.categories = { ...this.categories, ...data.categories };
             }
 
-            await this.saveAllToServer();
+            // שמור רק את המוצר ששונה כדי לזרז ביצועים
+            await this.saveProductsDelta({ [productCode]: productData });
             
             this.updateProductsDisplay();
             this.updateStats();
