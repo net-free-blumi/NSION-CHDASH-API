@@ -12,6 +12,26 @@ class ProductsLoader {
         this.init();
     }
 
+    // אתחול רכיב הטעינה
+    async init() {
+        try {
+            await this.loadProducts();
+            this.replaceExistingData();
+            this.setupProductSearch();
+            this.addQuickRefreshButton();
+            this.addSystemStatus();
+            console.log('🚀 ProductsLoader initialized');
+        } catch (e) {
+            console.warn('ProductsLoader init failed:', e);
+            // נסה לטעון מהקובץ כגיבוי
+            try {
+                await this.loadFromFile();
+                this.replaceExistingData();
+                this.setupProductSearch();
+            } catch {}
+        }
+    }
+
     // הגדרת חיפוש מוצרים
     setupProductSearch() {
         // חיפוש תיבת חיפוש קיימת
@@ -124,11 +144,6 @@ class ProductsLoader {
 
     // החלפת פונקציות חיפוש
     replaceSearchFunctions() {
-        // החלפת פונקציית חיפוש מוצרים
-        if (typeof searchProduct === 'function') {
-            window.searchProduct = this.searchProduct.bind(this);
-        }
-
         // החלפת פונקציות אחרות שקשורות למוצרים
         this.replaceProductFunctions();
     }
@@ -473,9 +488,14 @@ class ProductsLoader {
 
     // פונקציה לרענון נתונים
     async refreshData() {
-        await this.loadProducts();
-        this.replaceExistingData();
-        console.log('נתוני המוצרים רועננו בהצלחה');
+        try {
+            await this.loadProducts();
+            this.replaceExistingData();
+            console.log('נתוני המוצרים רועננו בהצלחה');
+            this.showSystemNotification('✅ המוצרים רועננו', 'success');
+        } catch (e) {
+            this.showSystemNotification('❌ שגיאה ברענון מוצרים', 'error');
+        }
     }
 
     // פונקציה לקבלת סטטיסטיקות
