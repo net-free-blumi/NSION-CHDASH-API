@@ -331,9 +331,9 @@ class ProductManager {
                 this.categories = { ...this.categories, ...data.categories };
             }
 
-            // שמור רק את המוצר ששונה כדי לזרז ביצועים
-            await this.saveProductsDelta({ [productCode]: productData });
-            
+            // לאחר ייבוא קובץ: שמירה מלאה כדי לוודא סנכרון
+            await this.saveAllToServer();
+
             this.updateProductsDisplay();
             this.updateStats();
             
@@ -550,10 +550,12 @@ class ProductManager {
             }
 
             this.products[productCode] = productData;
-            
-            await this.saveAllToServer();
-
+            // הודעת הצלחה מיידית (אופטימית)
             this.showNotification(`✅ המוצר ${isEdit ? 'עודכן' : 'נוסף'} בהצלחה`, 'success');
+            // שמירת דלתא מהירה ברקע
+            this.saveProductsDelta({ [productCode]: productData }).catch(err => {
+                this.showNotification('❌ שגיאה בשמירה: ' + err.message, 'error');
+            });
             this.updateProductsDisplay();
             this.updateStats();
             this.closeProductModal();
