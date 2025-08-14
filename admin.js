@@ -576,8 +576,13 @@ class ProductManager {
         const confirmDelete = confirm(`האם אתה בטוח שברצונך למחוק את המוצר "${product.name}" (${code})?`);
         if (confirmDelete) {
             try {
+                // מחיקה דרך ה-API
+                const resp = await fetch(`${config.getApiBaseUrl()}/api/products/${code}`, { method: 'DELETE', cache: 'no-store' });
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    throw new Error(errText || 'שגיאה במחיקה');
+                }
                 delete this.products[code];
-                await this.saveAllToServer();
                 this.showNotification('✅ המוצר נמחק בהצלחה', 'success');
                 this.updateProductsDisplay();
                 this.updateStats();

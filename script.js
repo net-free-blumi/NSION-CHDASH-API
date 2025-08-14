@@ -641,6 +641,11 @@ function newOrder() {
     // עדכון הממשק
     updateSelectedRadio();
     showNotification("הזמנה חדשה נוצרה בהצלחה!", "green");
+
+  // רענון נתוני מוצרים מה-API בתחילת הזמנה חדשה בלבד
+  if (window.productsLoader && typeof window.productsLoader.refreshData === 'function') {
+    window.productsLoader.refreshData();
+  }
 }
 
 // פונקציה לפתיחת מודל וואטסאפ פירות

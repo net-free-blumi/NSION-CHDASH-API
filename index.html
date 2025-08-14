@@ -816,6 +816,10 @@ function startServerKeepAlive() {
 document.addEventListener('DOMContentLoaded', () => {
   wakeUpServer(true).then(() => {
     startServerKeepAlive();
+    // רענון נתוני מוצרים בעת פתיחת הדף בלבד
+    if (window.productsLoader && typeof window.productsLoader.refreshData === 'function') {
+      window.productsLoader.refreshData();
+    }
   });
 });
 </script>

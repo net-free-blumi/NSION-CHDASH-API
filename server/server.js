@@ -290,6 +290,33 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
+// Delete a single product by code
+app.delete('/api/products/:code', async (req, res) => {
+    try {
+        const { code } = req.params;
+        if (!code) return res.status(400).json({ error: 'missing code' });
+
+        if (mongoEnabled && mongoose.connection.readyState === 1) {
+            await Product.deleteOne({ code });
+        } else {
+            // File mode deletion
+            let filePathToUse = ROOT_PRODUCTS_FILE;
+            try { await fs.access(filePathToUse); } catch { filePathToUse = PRODUCTS_FILE; }
+            const raw = await fs.readFile(filePathToUse, 'utf8').catch(() => '{"products":{},"categories":{}}');
+            const data = JSON.parse(raw || '{}');
+            if (data.products && data.products[code]) {
+                delete data.products[code];
+                await fs.writeFile(filePathToUse, JSON.stringify(data, null, 2), 'utf8');
+            }
+        }
+
+        res.json({ success: true, message: `Product ${code} deleted` });
+    } catch (error) {
+        console.error('Error deleting product:', error);
+        res.status(500).json({ error: 'שגיאה במחיקת המוצר' });
+    }
+});
+
 // Port configuration
 const PORT = process.env.PORT || 5000;
 
