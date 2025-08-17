@@ -429,7 +429,9 @@
 @media (max-width: 768px) {
     .login-box {
         padding: 30px 20px;
-        margin: 20px;
+        margin: 10px;
+        max-width: 100%;
+        border-radius: 12px;
     }
  
     
@@ -1441,17 +1443,33 @@
         width: 100%;
     }
     
-    /* הקטנת כפתור ההתנתקות במובייל */
+    /* כפתור התנתקות קטן כאייקון */
     .user-info .btn-small {
-        padding: 4px 8px;
-        font-size: 0.75em;
-        width: auto;
-        min-width: 60px;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        font-size: 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #dc3545;
+        color: white;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         opacity: 0.8;
+        transition: all 0.2s ease;
     }
     
     .user-info .btn-small:hover {
         opacity: 1;
+        transform: scale(1.1);
+        box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+    }
+    
+    .user-info .btn-small::before {
+        content: "✕";
+        font-weight: bold;
     }
 }
 
@@ -1481,9 +1499,9 @@
     }
     
     .user-info .btn-small {
-        padding: 3px 6px;
-        font-size: 0.7em;
-        min-width: 50px;
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
     }
 }
 
