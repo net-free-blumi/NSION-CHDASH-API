@@ -56,20 +56,26 @@ class ProductsLoader {
         // תיבת מק"ט ייעודית (id=productCode) מפעילה גם תצוגת תוצאות
         const skuInput = document.getElementById('productCode');
         if (skuInput) {
+            console.log('🔍 setupProductSearch: Setting up input listener for productCode');
             skuInput.addEventListener('input', (e) => {
                 const val = e.target?.value || '';
+                console.log('🔍 setupProductSearch: Input event received, value:', val);
                 const si = document.getElementById('searchInput');
                 if (si) si.value = val; // סנכרון לשדה החיפוש
                 this.handleSearchInput(val);
             });
+            console.log('🔍 setupProductSearch: Setting up paste listener for productCode');
             skuInput.addEventListener('paste', () => {
+                console.log('🔍 setupProductSearch: Paste event received');
                 setTimeout(() => {
                     const val = skuInput.value || '';
+                    console.log('🔍 setupProductSearch: Processing paste after timeout, value:', val);
                     const si = document.getElementById('searchInput');
                     if (si) si.value = val; // סנכרון לשדה החיפוש
                     this.handleSearchInput(val);
                 }, 0);
             });
+            console.log('🔍 setupProductSearch: Event listeners set up for productCode');
         }
 
         // תאימות לקוד ישן שמריץ oninput="searchProduct()" ללא פרמטר
@@ -385,14 +391,19 @@ class ProductsLoader {
     // טיפול בקלט חיפוש
     async handleSearchInput(query) {
         try {
+            console.log('🔍 handleSearchInput: Starting with query:', query, 'Type:', typeof query);
             const q = (typeof query === 'string') ? query : '';
+            console.log('🔍 handleSearchInput: Normalized query:', q);
             if (!q.trim()) {
-            this.clearSearchResults();
-            return;
-        }
+                console.log('🔍 handleSearchInput: Empty query, clearing results');
+                this.clearSearchResults();
+                return;
+            }
 
         // חיפוש מהיר במוצרים
+            console.log('🔍 handleSearchInput: Searching for:', q);
             let results = this.searchProduct(q);
+            console.log('🔍 handleSearchInput: Search results:', results);
             this.lastResults = results;
             this.displaySearchResults(results, q);
 
@@ -437,8 +448,10 @@ class ProductsLoader {
 
     // הצגת תוצאות חיפוש מרובות
     displaySearchResults(results, query) {
+        console.log('🔍 displaySearchResults: Displaying results for query:', query, 'Results:', results);
         // אם יש UL מוכן בדף (index.html), נשתמש בו
         const listEl = document.getElementById('searchResults');
+        console.log('🔍 displaySearchResults: Found searchResults element:', listEl);
         if (listEl && listEl.tagName === 'UL') {
             if (results && results.length) {
                 listEl.innerHTML = results.map(r => `
