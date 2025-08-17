@@ -7,8 +7,13 @@ class ProductsLoader {
         this.categories = {};
         // יצירת גישה גלובלית למופע
         window.productsLoader = this;
-        // Create bound function reference for event listener
-        this.boundHandleSearchInput = this.handleSearchInput.bind(this);
+        // Create bound function reference for event listener (normalizes Event/String)
+        this.boundHandleSearchInput = (e) => {
+            const val = (e && e.target && typeof e.target.value === 'string')
+                ? e.target.value
+                : (typeof e === 'string' ? e : '');
+            this.handleSearchInput(val);
+        };
         this.init();
     }
 
@@ -369,24 +374,25 @@ class ProductsLoader {
 
     // טיפול בקלט חיפוש
     async handleSearchInput(query) {
-        if (!query.trim()) {
+        const q = (typeof query === 'string') ? query : '';
+        if (!q.trim()) {
             this.clearSearchResults();
             return;
         }
 
         // חיפוש מהיר במוצרים
-        let results = this.searchProduct(query);
+        let results = this.searchProduct(q);
         this.lastResults = results;
-        this.displaySearchResults(results, query);
+        this.displaySearchResults(results, q);
 
         // אם אין תוצאות, נסה לרענן מה-API פעם אחת ואז חפש שוב
         if ((!results || results.length === 0) && !this._refreshOnMissInFlight) {
             try {
                 this._refreshOnMissInFlight = true;
                 await this.refreshData();
-                results = this.searchProduct(query);
+                results = this.searchProduct(q);
                 this.lastResults = results;
-                this.displaySearchResults(results, query);
+                this.displaySearchResults(results, q);
             } finally {
                 this._refreshOnMissInFlight = false;
             }
@@ -407,7 +413,7 @@ class ProductsLoader {
         }
 
         // אם יש התאמה מדויקת לקוד, קנפג את המוצר בממשק
-        const term = String(query).trim();
+        const term = String(q).trim();
         if (this.products[term]) {
             if (typeof window.configureProduct === 'function') {
                 try { window.configureProduct(term); } catch {}
