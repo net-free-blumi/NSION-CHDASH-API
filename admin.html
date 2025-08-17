@@ -12,7 +12,7 @@
 </head>
 <body>
     <!-- מערכת התחברות -->
-    <div id="loginSection" style="display: none;">
+    <div id="loginSection" style="display: block;">
         <div class="login-container">
             <div class="login-box">
                 <h2>🔐 התחברות למערכת ניהול</h2>
@@ -356,6 +356,12 @@
             const mainContent = document.getElementById('mainContent');
             const userEmailElement = document.getElementById('userEmail');
             
+            // ברירת מחדל - הצג את מסך ההתחברות
+            loginSection.style.display = 'block';
+            userSection.style.display = 'none';
+            unauthorizedSection.style.display = 'none';
+            mainContent.style.display = 'none';
+            
             if (currentUser) {
                 loginSection.style.display = 'none';
                 userEmailElement.textContent = currentUser.email;
@@ -371,11 +377,6 @@
                     mainContent.style.display = 'none';
                     showNotification('התחברת בהצלחה, אך המייל שלך אינו מורשה לגשת למערכת ניהול', 'orange');
                 }
-            } else {
-                loginSection.style.display = 'block';
-                userSection.style.display = 'none';
-                unauthorizedSection.style.display = 'none';
-                mainContent.style.display = 'none';
             }
         }
 
@@ -390,6 +391,9 @@
                     name: savedName
                 };
                 isUserAuthorized = isEmailAuthorized(savedEmail);
+                updateAuthUI();
+            } else {
+                // אם אין משתמש מחובר, הצג את מסך ההתחברות
                 updateAuthUI();
             }
         }
