@@ -2060,7 +2060,7 @@ document.addEventListener('keydown', function(e) {
 
 
       // נתוני מוצרים מאוחדים - כל המידע במקום אחד
-      const unifiedProductData = {
+      window.unifiedProductData = {
         12628: { 
           name: "מגש ביס טונה", 
           category: "kitchen",
@@ -4670,7 +4670,7 @@ document.addEventListener('keydown', function(e) {
       function configureProduct(productCode) {
         console.log("מנסה להגדיר מוצר:", productCode);
 
-        const config = unifiedProductData[productCode];
+        const config = window.unifiedProductData[productCode];
         if (!config) {
           console.log("מוצר לא מוגדר ברשימה, משאיר הגדרות ברירת מחדל");
           const existingList = document.getElementById("quantityOptionsList");
@@ -5531,7 +5531,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         const note = document.getElementById("productNote").value;
 
         // הוספת בדיקה אם המק"ט קיים או אם לא הוזן מק"ט
-        if (!productCode || !unifiedProductData[productCode]) {
+        if (!productCode || !window.unifiedProductData[productCode]) {
           showNotification("המק''ט לא נמצא במערכת", "red");
           return; // יציאה מהפונקציה
         }
@@ -5547,8 +5547,8 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             (note ? ` ${note}` : "");
         }
 
-        if (unifiedProductData[productCode]) {
-          const product = unifiedProductData[productCode];
+        if (window.unifiedProductData[productCode]) {
+          const product = window.unifiedProductData[productCode];
           const trayQuantity = document.getElementById("productQuantity").value;
 
           let productSummary;
@@ -5789,13 +5789,35 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           .getElementById("searchInput")
           .value.trim().toLowerCase();
         const resultsList = document.getElementById("searchResults");
+        
+        if (!resultsList) {
+          console.error("searchResults לא נמצא");
+          return;
+        }
+        
         resultsList.innerHTML = "";
 
         if (input.length > 0) {
+          // בדיקה אם המוצרים נטענו
+          if (!window.unifiedProductData || Object.keys(window.unifiedProductData).length === 0) {
+            resultsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">⏳ טוען מוצרים...</div>';
+            
+            // נסיון לטעון מוצרים אם productsLoader זמין
+            if (window.productsLoader && typeof window.productsLoader.refreshData === 'function') {
+              window.productsLoader.refreshData().then(() => {
+                // ניסיון חיפוש חוזר אחרי טעינה
+                setTimeout(() => searchProduct(), 500);
+              }).catch(() => {
+                resultsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">❌ שגיאה בטעינת מוצרים</div>';
+              });
+            }
+            return;
+          }
+
           // שימוש ב-unifiedProductData במקום products
           let filteredProducts = [];
-          if (typeof unifiedProductData === 'object' && unifiedProductData) {
-            filteredProducts = Object.entries(unifiedProductData).filter(
+          if (typeof window.unifiedProductData === 'object' && window.unifiedProductData) {
+            filteredProducts = Object.entries(window.unifiedProductData).filter(
               ([code, product]) =>
                 code.includes(input) ||
                 (product.searchName && product.searchName.toLowerCase().includes(input)) ||
@@ -5842,6 +5864,9 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             resultsCounter.style.cssText = "font-size: 12px; color: #666; margin-bottom: 5px; text-align: center; padding: 3px; background-color: #f8f9fa; border-radius: 3px;";
             resultsCounter.textContent = `נמצאו ${filteredProducts.length} תוצאות`;
             resultsList.insertBefore(resultsCounter, resultsList.firstChild);
+          } else {
+            // אם אין תוצאות, הצג הודעה ברורה
+            resultsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">❌ מוצר לא נמצא</div>';
           }
         }
       }
@@ -6224,6 +6249,20 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             closeEditPopup();
           }
         });
+
+        // בדיקה שהמוצרים נטענו כמו שצריך
+        console.log("מוצרים נטענו:", Object.keys(window.unifiedProductData || {}).length);
+        
+        // וידוא שהמוצרים זמינים לחיפוש
+        if (!window.unifiedProductData || Object.keys(window.unifiedProductData).length === 0) {
+          console.warn("unifiedProductData לא נטען - נסיון לטעון מחדש");
+          // נסיון לטעון מוצרים אם productsLoader זמין
+          if (window.productsLoader && typeof window.productsLoader.refreshData === 'function') {
+            window.productsLoader.refreshData().catch(err => {
+              console.error("שגיאה בטעינת מוצרים:", err);
+            });
+          }
+        }
       });
 
       // הוספת הפונקציה החדשה לפני copyWarehouseSummary
@@ -6336,30 +6375,17 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
       }
 
       // ... existing code ...
-      // חיפוש אוטומטי גם בתיבת productCode
-      (function () {
-        let codeSearchTimeout = null;
-        const productCodeInput = document.getElementById("productCode");
-        const searchResults = document.getElementById("searchResults");
-        productCodeInput.addEventListener("input", function (e) {
-          if (codeSearchTimeout) clearTimeout(codeSearchTimeout);
-          const val = e.target.value.trim();
-          if (!val) {
-            searchResults.innerHTML = "";
-            return;
-          }
-          codeSearchTimeout = setTimeout(() => {
-            document.getElementById("searchInput").value = val;
-            searchProduct();
-          }, 500);
-        });
-      })();
-
-      // חיפוש אוטומטי בתיבת המק"ט
+      // חיפוש אוטומטי בתיבת המק"ט - מאזין יחיד
       (function () {
         let searchTimeout = null;
         const productCodeInput = document.getElementById("productCode");
         const searchResults = document.getElementById("searchResults");
+        const searchInput = document.getElementById("searchInput");
+
+        if (!productCodeInput || !searchResults || !searchInput) {
+          console.warn("חלק מהשדות לא נמצאו לחיפוש אוטומטי");
+          return;
+        }
 
         // מאזין יחיד לכל אירועי הקלט
         productCodeInput.addEventListener("input", function (e) {
@@ -6376,16 +6402,74 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             return;
           }
 
-          // הפעלת החיפוש אחרי 500ms של חוסר הקלדה
-          searchTimeout = setTimeout(() => {
-            // עדכון תיבת החיפוש הראשית והפעלת החיפוש
-            const si4 = document.getElementById("searchInput");
-            if (si4) si4.value = code;
-            searchProduct();
+          // הצגת הודעת טעינה
+          searchResults.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">🔍 מחפש מוצר...</div>';
 
-            // בדיקה אם זה מוצר ביס
-            checkBisProduct(code);
-          }, 500);
+          // הפעלת החיפוש אחרי 300ms של חוסר הקלדה (מהיר יותר)
+          searchTimeout = setTimeout(() => {
+            try {
+              // עדכון תיבת החיפוש הראשית והפעלת החיפוש
+              searchInput.value = code;
+              
+              // הפעלת החיפוש
+              searchProduct();
+              
+              // בדיקה אם זה מוצר ביס
+              checkBisProduct(code);
+              
+              // אם אין תוצאות אחרי החיפוש, הצג הודעה
+              setTimeout(() => {
+                if (searchResults.innerHTML.includes('🔍 מחפש מוצר...') || searchResults.children.length === 0) {
+                  searchResults.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">❌ מוצר לא נמצא</div>';
+                }
+              }, 100);
+              
+            } catch (error) {
+              console.error('שגיאה בחיפוש:', error);
+              searchResults.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">❌ שגיאה בחיפוש</div>';
+            }
+          }, 300);
+        });
+
+        // מאזין גם לאירוע paste
+        productCodeInput.addEventListener("paste", function (e) {
+          // ביטול טיימר קודם אם קיים
+          if (searchTimeout) {
+            clearTimeout(searchTimeout);
+          }
+
+          // המתנה קצרה לקבלת התוכן המודבק
+          setTimeout(() => {
+            const code = e.target.value.trim();
+            
+            if (!code) {
+              searchResults.innerHTML = "";
+              return;
+            }
+
+            // הצגת הודעת טעינה
+            searchResults.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">🔍 מחפש מוצר...</div>';
+
+            // הפעלת החיפוש מייד
+            searchTimeout = setTimeout(() => {
+              try {
+                searchInput.value = code;
+                searchProduct();
+                checkBisProduct(code);
+                
+                // אם אין תוצאות אחרי החיפוש, הצג הודעה
+                setTimeout(() => {
+                  if (searchResults.innerHTML.includes('🔍 מחפש מוצר...') || searchResults.children.length === 0) {
+                    searchResults.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">❌ מוצר לא נמצא</div>';
+                  }
+                }, 100);
+                
+              } catch (error) {
+                console.error('שגיאה בחיפוש:', error);
+                searchResults.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">❌ שגיאה בחיפוש</div>';
+              }
+            }, 100);
+          }, 50);
         });
       })();
 
