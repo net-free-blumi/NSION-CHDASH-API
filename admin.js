@@ -148,8 +148,8 @@ class ProductManager {
         const card = document.createElement('div');
         card.className = 'product-card';
         
-        // וידוא שיש לפחות שם למוצר - אם אין name, נשתמש ב-searchName
-        const productName = product.name || product.Name || product.searchName || 'ללא שם';
+        // הצגת שם המוצר - אם אין name, נציג ריק
+        const productName = product.name || product.Name || '';
         const productType = product.type || 'none';
         
         // בניית מידע על המוצר
@@ -190,13 +190,13 @@ class ProductManager {
             const validSizes = product.sizes.filter(s => s.size && (s.price !== undefined && s.price !== null));
             if (validSizes.length > 0) {
                 const pricesDisplay = validSizes.map(s => {
-                    const price = s.price === 0 ? 'חינם' : `₪${s.price}`;
+                    const price = s.price === 0 ? '0' : `₪${s.price}`;
                     return `${s.size}: ${price}`;
                 }).join(', ');
                 productInfo += `<p><strong>גדלים ומחירים:</strong> ${pricesDisplay}</p>`;
             }
         } else if (product.price !== undefined && product.price !== null) {
-            const price = product.price === 0 ? 'חינם' : `₪${product.price}`;
+            const price = product.price === 0 ? '0' : `₪${product.price}`;
             productInfo += `<p><strong>מחיר:</strong> ${price}</p>`;
         }
         
@@ -433,8 +433,8 @@ class ProductManager {
             return;
         }
 
-        // וידוא שיש שם למוצר - אם אין name, נשתמש ב-searchName
-        const productName = product.name || product.Name || product.searchName || 'ללא שם';
+        // הצגת שם המוצר לעריכה - אם אין name, נציג searchName או ריק
+        const productName = product.name || product.Name || product.searchName || 'מוצר ללא שם';
         const productType = product.type || 'none';
 
         const modalTitle = document.getElementById('modal-title');
@@ -537,11 +537,6 @@ class ProductManager {
                 return;
             }
             
-            // אם אין שם אבל יש searchName, נשתמש ב-searchName כשם
-            if (!productData.name && productData.searchName) {
-                productData.name = productData.searchName;
-            }
-            
             // אם אין שם וגם אין searchName, לא נוכל לשמור
             if (!productData.name && !productData.searchName) {
                 this.showNotification('❌ יש למלא שם או שם לחיפוש', 'error');
@@ -620,7 +615,7 @@ class ProductManager {
             return;
         }
 
-        const productDisplayName = product.name || product.Name || product.searchName || 'ללא שם';
+        const productDisplayName = product.name || product.Name || product.searchName || 'מוצר ללא שם';
         const confirmDelete = confirm(`האם אתה בטוח שברצונך למחוק את המוצר "${productDisplayName}" (${code})?`);
         if (confirmDelete) {
             try {

@@ -5498,18 +5498,18 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             const unitQuantity = document.getElementById("unitQuantity").value;
             const unitType = document.getElementById("unitType").value;
             productSummary = `${trayQuantity} ${
-              product.name || product.searchName || ''
+              product.name || ''
             } (${unitQuantity} ${unitType}) ${
               finalNote ? ` ${finalNote}` : ""
             }`;
           } else if (isSize) {
             const productSize = document.getElementById("productSize").value;
             const sizeText = productSize === "medium" ? "בינוני" : "גדול";
-            productSummary = `${trayQuantity} ${product.name || product.searchName || ''} (${sizeText}) ${
+            productSummary = `${trayQuantity} ${product.name || ''} (${sizeText}) ${
               finalNote ? ` ${finalNote}` : ""
             }`;
           } else {
-            productSummary = `${trayQuantity} ${product.name || product.searchName || ''} ${
+            productSummary = `${trayQuantity} ${product.name || ''} ${
               finalNote ? ` ${finalNote}` : ""
             }`;
           }
@@ -5781,9 +5781,10 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             const sizesInfo = product.sizes && product.sizes.length > 0
               ? product.sizes.map((sizeObj) => `${sizeObj.size} ${sizeObj.price} ש"ח`).join(" | ")
               : (product.price ? `${product.price} ש"ח` : "");
-            // הצג searchName אם קיים, אחרת name
-            const displayName = product.searchName || product.name || '';
-            li.innerHTML = `${displayName} (מק"ט: ${code})${sizesInfo ? ' - ' + sizesInfo : ''}`;
+            // הצג name אם קיים, אחרת ריק
+            const displayName = product.name || '';
+            const searchNameDisplay = product.searchName && !product.name ? `<div style="font-size:0.8em; color:#666; font-style:italic;">${product.searchName}</div>` : '';
+            li.innerHTML = `${displayName} (מק"ט: ${code})${sizesInfo ? ' - ' + sizesInfo : ''}${searchNameDisplay}`;
 
             const copyButton = document.createElement("button");
             copyButton.textContent = 'העתק מס מק"ט';
