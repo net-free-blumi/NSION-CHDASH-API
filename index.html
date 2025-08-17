@@ -4797,7 +4797,17 @@ document.addEventListener('keydown', function(e) {
           // ממשיך כרגיל אם יש ערך
           timeoutId = setTimeout(() => {
             const code = e.target.value.trim();
-            if (code) {
+            if (!code) return;
+            // סנכרון תיבת החיפוש והצגת תוצאות
+            const si = document.getElementById("searchInput");
+            if (si) si.value = code;
+            if (typeof window.searchProduct === 'function') {
+              window.searchProduct();
+            }
+            // קונפיגורציה רק אם זה מק"ט מספרי שקיים במערכת
+            const isNumeric = /^\d+$/.test(code);
+            const exists = typeof window.unifiedProductData === 'object' && window.unifiedProductData && window.unifiedProductData[code];
+            if (isNumeric && exists && typeof configureProduct === 'function') {
               console.log('נמצא מק"ט (הקלדה):', code);
               configureProduct(code);
             }
