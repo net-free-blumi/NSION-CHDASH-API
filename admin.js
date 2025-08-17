@@ -413,6 +413,7 @@ class ProductManager {
         document.getElementById('editMode').value = 'false';
         document.getElementById('productCode').value = '';
         document.getElementById('productQuantity').value = '';
+        document.getElementById('predefinedQuantities').value = '';
         this.resetSizeInputs();
         const modalTitle = document.getElementById('modal-title');
         if (modalTitle) {
@@ -465,6 +466,11 @@ class ProductManager {
                     unitSelect.appendChild(newOption);
                     unitSelect.value = product.unit;
                 }
+            }
+            
+            // טעינת רשימת כמויות מוגדרות מראש
+            if (product.predefinedQuantities && Array.isArray(product.predefinedQuantities)) {
+                document.getElementById('predefinedQuantities').value = product.predefinedQuantities.join(', ');
             }
         } else if (productType === 'size') {
             // טעינת גודל ברירת מחדל למוצרי גודל
@@ -539,6 +545,15 @@ class ProductManager {
             
             if (productData.type === 'quantity' && quantity) {
                 productData.defaultQuantity = parseInt(quantity);
+                
+                // שמירת רשימת כמויות מוגדרות מראש
+                const predefinedQuantitiesStr = formData.get('predefinedQuantities');
+                if (predefinedQuantitiesStr && predefinedQuantitiesStr.trim()) {
+                    const quantities = predefinedQuantitiesStr.split(',').map(q => parseInt(q.trim())).filter(q => !isNaN(q));
+                    if (quantities.length > 0) {
+                        productData.predefinedQuantities = quantities;
+                    }
+                }
             } else if (productData.type === 'size') {
                 // שמירת גודל ברירת מחדל למוצרי גודל
                 const defaultSize = formData.get('defaultSize');
@@ -616,6 +631,7 @@ class ProductManager {
     closeProductModal() {
         document.getElementById('productModal').style.display = 'none';
         document.getElementById('productForm').reset();
+        document.getElementById('predefinedQuantities').value = '';
         const modalTitle = document.getElementById('modal-title');
         if (modalTitle) {
             modalTitle.textContent = 'הוספת מוצר חדש';

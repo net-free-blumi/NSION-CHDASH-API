@@ -382,11 +382,11 @@ class ProductsLoader {
         try {
             const q = (typeof query === 'string') ? query : '';
             if (!q.trim()) {
-                this.clearSearchResults();
-                return;
-            }
+            this.clearSearchResults();
+            return;
+        }
 
-            // חיפוש מהיר במוצרים
+        // חיפוש מהיר במוצרים
             let results = this.searchProduct(q);
             this.lastResults = results;
             this.displaySearchResults(results, q);
