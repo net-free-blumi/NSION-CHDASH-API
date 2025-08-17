@@ -301,7 +301,19 @@ class ProductManager {
 
     async refreshProducts() {
         this.showNotification('🔄 מרענן מוצרים...', 'info');
+        // ניקוי תיבת החיפוש
+        this.clearSearch();
         await this.loadProducts();
+    }
+
+    // פונקציה לניקוי החיפוש
+    clearSearch() {
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.value = '';
+            // הפעלת החיפוש כדי להציג את כל המוצרים
+            this.searchProducts('');
+        }
     }
 
     async importProducts() {
@@ -794,6 +806,12 @@ function importProducts() {
 function refreshProducts() {
     if (window.productManager) {
         window.productManager.refreshProducts();
+    }
+}
+
+function clearSearch() {
+    if (window.productManager) {
+        window.productManager.clearSearch();
     }
 }
 
