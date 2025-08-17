@@ -6303,26 +6303,31 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         return items;
       }
 
-      // הוסף את הפונקציה הזו בחלק של הסקריפט
+      // פונקציה להדבקה מלוח ההעתקה - מעודכנת לעבוד עם products-loader
       async function pasteFromClipboard() {
         try {
           const text = await navigator.clipboard.readText();
-          const searchInput = document.getElementById("searchInput");
+          const cleanCode = text.trim();
+
+          if (text.startsWith('http://') || text.startsWith('https://')) {
+            showNotification('לא ניתן להדביק URL, יש להדביק רק מק"ט', 'red');
+            return;
+          }
+          if (!/^\d+$/.test(cleanCode)) {
+            showNotification('מק"ט חייב להכיל רק מספרים', 'red');
+            return;
+          }
+
           const productCodeInput = document.getElementById("productCode");
-
-          searchInput.value = text;
-          productCodeInput.value = text;
-
-          // הפעלת החיפוש
-          searchProduct();
-
-          // בדיקה אם זה מק"ט של ביסים
-          checkBisProduct(text);
-
-          showNotification("הודבק בהצלחה!", "green");
+          if (productCodeInput) {
+            productCodeInput.value = cleanCode;
+            // הפעלת אירוע input כדיproducts-loader יטפל בחיפוש
+            productCodeInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          showNotification('הודבק בהצלחה!', 'green');
         } catch (err) {
-          console.error("Failed to read clipboard:", err);
-          showNotification("לא הצלחנו לגשת ללוח ההעתקה", "red");
+          console.error('Failed to read clipboard:', err);
+          showNotification('לא הצלחנו לגשת ללוח ההעתקה', 'red');
         }
       }
 
@@ -6375,105 +6380,29 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
       }
 
       // ... existing code ...
-      // חיפוש אוטומטי בתיבת המק"ט - מאזין יחיד
-      (function () {
-        let searchTimeout = null;
-        const productCodeInput = document.getElementById("productCode");
-        const searchResults = document.getElementById("searchResults");
-        const searchInput = document.getElementById("searchInput");
+      // חיפוש אוטומטי בתיבת המק"ט - מוסר כי products-loader מטפל בזה
+      // (function () {
+      //   let searchTimeout = null;
+      //   const productCodeInput = document.getElementById("productCode");
+      //   const searchResults = document.getElementById("searchResults");
+      //   const searchInput = document.getElementById("searchInput");
 
-        if (!productCodeInput || !searchResults || !searchInput) {
-          console.warn("חלק מהשדות לא נמצאו לחיפוש אוטומטי");
-          return;
-        }
+      //   if (!productCodeInput || !searchResults || !searchInput) {
+      //     console.warn("חלק מהשדות לא נמצאו לחיפוש אוטומטי");
+      //     return;
+      //   }
 
-        // מאזין יחיד לכל אירועי הקלט
-        productCodeInput.addEventListener("input", function (e) {
-          // ביטול טיימר קודם אם קיים
-          if (searchTimeout) {
-            clearTimeout(searchTimeout);
-          }
+      //   // מאזין יחיד לכל אירועי הקלט
+      //   productCodeInput.addEventListener("input", function (e) {
+      //     // ביטול טיימר קודם אם קיים
+      //     if (searchTimeout) {
+      //       clearTimeout(searchTimeout);
+      //     }
 
-          const code = e.target.value.trim();
+      //     const code = e.target.value.trim();
 
-          // אם השדה ריק - ניקוי תוצאות
-          if (!code) {
-            searchResults.innerHTML = "";
-            return;
-          }
-
-          // הצגת הודעת טעינה
-          searchResults.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">🔍 מחפש מוצר...</div>';
-
-          // הפעלת החיפוש אחרי 300ms של חוסר הקלדה (מהיר יותר)
-          searchTimeout = setTimeout(() => {
-            try {
-              // עדכון תיבת החיפוש הראשית והפעלת החיפוש
-              searchInput.value = code;
-              
-              // הפעלת החיפוש
-              searchProduct();
-              
-              // בדיקה אם זה מוצר ביס
-              checkBisProduct(code);
-              
-              // אם אין תוצאות אחרי החיפוש, הצג הודעה
-              setTimeout(() => {
-                if (searchResults.innerHTML.includes('🔍 מחפש מוצר...') || searchResults.children.length === 0) {
-                  searchResults.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">❌ מוצר לא נמצא</div>';
-                }
-              }, 100);
-              
-            } catch (error) {
-              console.error('שגיאה בחיפוש:', error);
-              searchResults.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">❌ שגיאה בחיפוש</div>';
-            }
-          }, 300);
-        });
-
-        // מאזין גם לאירוע paste
-        productCodeInput.addEventListener("paste", function (e) {
-          // ביטול טיימר קודם אם קיים
-          if (searchTimeout) {
-            clearTimeout(searchTimeout);
-          }
-
-          // המתנה קצרה לקבלת התוכן המודבק
-          setTimeout(() => {
-            const code = e.target.value.trim();
-            
-            if (!code) {
-              searchResults.innerHTML = "";
-              return;
-            }
-
-            // הצגת הודעת טעינה
-            searchResults.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">🔍 מחפש מוצר...</div>';
-
-            // הפעלת החיפוש מייד
-            searchTimeout = setTimeout(() => {
-              try {
-                searchInput.value = code;
-                searchProduct();
-                checkBisProduct(code);
-                
-                // אם אין תוצאות אחרי החיפוש, הצג הודעה
-                setTimeout(() => {
-                  if (searchResults.innerHTML.includes('🔍 מחפש מוצר...') || searchResults.children.length === 0) {
-                    searchResults.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">❌ מוצר לא נמצא</div>';
-                  }
-                }, 100);
-                
-              } catch (error) {
-                console.error('שגיאה בחיפוש:', error);
-                searchResults.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">❌ שגיאה בחיפוש</div>';
-              }
-            }, 100);
-          }, 50);
-        });
-      })();
-
-      // ... existing code ...
+      //     // אם השדה ריק - ניקוי תוצאות
+            // products-loader מטפל בכל החיפוש עכשיו
     </script>
   </body>
 </html>
