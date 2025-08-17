@@ -610,12 +610,25 @@ function newOrder() {
     // העיר את השרת בהתחלת הזמנה חדשה
     wakeUpServer();
     
+    // ניקוי localStorage של ההזמנה
+    localStorage.removeItem("orderNumber");
+    localStorage.removeItem("orderDate");
+    localStorage.removeItem("orderTime");
+    localStorage.removeItem("temperature");
+    
+    // ניקוי localStorage של פריטי הקטגוריות
+    const categories = ["kitchen", "bakery", "online", "warehouse", "sushi", "kitchenProducts", "amar"];
+    categories.forEach(category => {
+        localStorage.removeItem(`${category}Items`);
+    });
+    
     // איפוס כל השדות
     document.getElementById("orderNumber").value = "";
     document.getElementById("orderDate").value = "";
     document.getElementById("orderTime").value = "";
     document.getElementById("temperature").value = "";
     document.getElementById("notesSummary").value = "";
+    document.getElementById("notesSummary").textContent = "";
     
     // ניקוי כל הרשימות
     document.getElementById("kitchenList").innerHTML = "";
@@ -623,29 +636,64 @@ function newOrder() {
     document.getElementById("onlineList").innerHTML = "";
     document.getElementById("warehouseList").innerHTML = "";
     document.getElementById("sushiList").innerHTML = "";
+    document.getElementById("kitchenProductsList").innerHTML = "";
+    document.getElementById("amarList").innerHTML = "";
     
     // איפוס משתני הזיכרון של הודעות
     lastSentMessage = null;
     isSendingMessage = false;
     pendingMessage = null;
+    lastSentFruitsMessage = null;
+    isSendingFruitsMessage = false;
+    pendingFruitsMessage = null;
+    lastSentBakeryMessage = null;
+    isSendingBakeryMessage = false;
+    pendingBakeryMessage = null;
+    lastSentAmarMessage = null;
+    isSendingAmarMessage = false;
+    pendingAmarMessage = null;
+    lastSentSushiMessage = null;
+    isSendingSushiMessage = false;
+    pendingSushiMessage = null;
+    lastSentWarehouseMessage = null;
+    isSendingWarehouseMessage = false;
+    pendingWarehouseMessage = null;
+    lastSentGeneralMessage = null;
+    isSendingGeneralMessage = false;
+    pendingGeneralMessage = null;
+    lastSentKitchenProductsMessage = null;
+    isSendingKitchenProductsMessage = false;
+    pendingKitchenProductsMessage = null;
     
     // הסתרת המודלים
-    const whatsappModal = document.getElementById('whatsappModal');
-    const duplicateModal = document.getElementById('duplicateMessageModal');
-    if (whatsappModal) whatsappModal.style.display = 'none';
-    if (duplicateModal) duplicateModal.style.display = 'none';
+    const modals = [
+        'whatsappModal', 'duplicateMessageModal',
+        'whatsappFruitsModal', 'duplicateFruitsModal',
+        'whatsappBakeryModal', 'duplicateBakeryModal',
+        'whatsappAmarModal', 'duplicateAmarModal',
+        'whatsappSushiModal', 'duplicateSushiModal',
+        'whatsappWarehouseModal', 'duplicateWarehouseModal',
+        'whatsappGeneralModal', 'duplicateGeneralModal',
+        'whatsappKitchenProductsModal', 'duplicateKitchenProductsModal'
+    ];
+    
+    modals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (modal) modal.style.display = 'none';
+    });
     
     // איפוס שדות קלט נוספים
     resetInputFields();
     
     // עדכון הממשק
     updateSelectedRadio();
+    updateCategoryButtonsVisibility();
     showNotification("הזמנה חדשה נוצרה בהצלחה!", "green");
 
-  // רענון נתוני מוצרים מה-API בתחילת הזמנה חדשה בלבד
-  if (window.productsLoader && typeof window.productsLoader.refreshData === 'function') {
-    window.productsLoader.refreshData();
-  }
+    // לא מרענן מוצרים - רק מאפס את הסיכום
+    // אם (window.productsLoader && typeof window.productsLoader.refreshData === 'function') {
+    //   window.productsLoader.refreshData();
+    // }
 }
 
 // פונקציה לפתיחת מודל וואטסאפ פירות

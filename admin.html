@@ -7,70 +7,105 @@
     <link rel="stylesheet" href="admin.css">
     <script>window.API_BASE_URL='https://nsion-chdash-api-1.onrender.com';</script>
     <script src="config.js"></script>
+    <!-- Google Sign-In API -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-    <!-- עיגול טעינה לשרת -->
-    <div id="serverWakeupOverlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.85);z-index:9999;align-items:center;justify-content:center;flex-direction:column;">
-        <div style="width:70px;height:70px;border:8px solid #eee;border-top:8px solid #007bff;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;"></div>
-        <div style="font-size:1.3em;color:#007bff;font-weight:bold;">השרת בהפעלה...<br>אנא המתן</div>
-    </div>
-    <style>
-        @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
-        /* אל תכפה הצגה כברירת מחדל; יוצג רק בעת ניסיון חיבור */
-        /* #serverWakeupOverlay { display: flex; } */
-    </style>
-    <div class="admin-container">
-        <div class="header">
-            <h1>🛍️ מערכת ניהול מוצרים - גולד</h1>
-            <p>ניהול מתקדם של כל המוצרים והמגשים </p>
-        </div>
-        <div class="admin-panel">
-            <div class="sidebar">
-                <div class="stats" id="stats-container">
-                    <div class="stat-item">
-                        <span class="stat-number">0</span>
-                        <span class="stat-label">סה"כ מוצרים</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">0</span>
-                        <span class="stat-label">מוצרי גדלים</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">0</span>
-                        <span class="stat-label">מוצרי כמות</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">0</span>
-                        <span class="stat-label">ללא כמות</span>
-                    </div>
-                </div>
-                <div class="quick-action-buttons">
-                    <button onclick="productManager.openAddProductModal()" class="btn">➕ הוספת מוצר חדש</button>
-                    <button onclick="productManager.refreshProducts()" class="btn btn-success">🔄 רענון מוצרים</button>
-                    <button onclick="productManager.saveProductsToFile()" class="btn btn-info">💾 שמור לקובץ</button>
-                    <button onclick="productManager.exportProducts()" class="btn btn-warning">📤 ייצוא מוצרים</button>
-                    <button onclick="productManager.importProducts()" class="btn btn-warning">📥 ייבוא מוצרים</button>
-                    <button onclick="productManager.backupProducts()" class="btn btn-info">💾 יצירת גיבוי</button>
-                </div>
-                <div class="search-section">
-                    <h3>🔍 חיפוש מוצרים</h3>
-                    <input type="text" id="search-input" placeholder="חפש לפי שם, קוד או קטגוריה..." class="search-input">
-                </div>
-            </div>
-            <div class="main-content">
-                <div class="content-header">
-                    <h2>📋 רשימת המוצרים</h2>
-                    <div class="header-actions">
-                        <input type="file" id="file-input" accept=".json" style="display: none;" onchange="productManager.loadProductsFromFile(this.files[0])">
-                        <button onclick="document.getElementById('file-input').click()" class="btn btn-info">📁 טען מקובץ</button>
-                    </div>
-                </div>
-                <div id="products-container" class="products-grid">
-                    <!-- המוצרים יוצגו כאן -->
-                </div>
+    <!-- מערכת התחברות -->
+    <div id="loginSection" style="display: none;">
+        <div class="login-container">
+            <div class="login-box">
+                <h2>🔐 התחברות למערכת ניהול</h2>
+                <p>יש להתחבר כדי לגשת למערכת ניהול המוצרים</p>
+                <div id="googleSignInButton"></div>
             </div>
         </div>
     </div>
+
+    <!-- אזור למשתמשים לא מורשים -->
+    <div id="unauthorizedSection" style="display: none;">
+        <div class="login-container">
+            <div class="login-box">
+                <h2>❌ גישה נדחתה</h2>
+                <p>המייל שלך אינו מורשה לגשת למערכת ניהול המוצרים</p>
+                <p>יש צורך במייל: <strong>BLUMI@GOLDYS.CO.IL</strong></p>
+                <button onclick="signOut()" class="btn btn-danger">התנתק</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- אזור למשתמש מחובר -->
+    <div id="userSection" style="display: none;">
+        <div class="user-info">
+            <span>מחובר כ: <span id="userEmail"></span></span>
+            <button onclick="signOut()" class="btn btn-small">התנתק</button>
+        </div>
+    </div>
+
+    <!-- התוכן הראשי - מוצג רק למשתמשים מורשים -->
+    <div id="mainContent" style="display: none;">
+        <!-- עיגול טעינה לשרת -->
+        <div id="serverWakeupOverlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.85);z-index:9999;align-items:center;justify-content:center;flex-direction:column;">
+            <div style="width:70px;height:70px;border:8px solid #eee;border-top:8px solid #007bff;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;"></div>
+            <div style="font-size:1.3em;color:#007bff;font-weight:bold;">השרת בהפעלה...<br>אנא המתן</div>
+        </div>
+        <style>
+            @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+        </style>
+        <div class="admin-container">
+            <div class="header">
+                <h1>🛍️ מערכת ניהול מוצרים - גולד</h1>
+                <p>ניהול מתקדם של כל המוצרים והמגשים </p>
+            </div>
+            <div class="admin-panel">
+                <div class="sidebar">
+                    <div class="stats" id="stats-container">
+                        <div class="stat-item">
+                            <span class="stat-number">0</span>
+                            <span class="stat-label">סה"כ מוצרים</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">0</span>
+                            <span class="stat-label">מוצרי גדלים</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">0</span>
+                            <span class="stat-label">מוצרי כמות</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">0</span>
+                            <span class="stat-label">ללא כמות</span>
+                        </div>
+                    </div>
+                    <div class="quick-action-buttons">
+                        <button onclick="productManager.openAddProductModal()" class="btn">➕ הוספת מוצר חדש</button>
+                        <button onclick="productManager.refreshProducts()" class="btn btn-success">🔄 רענון מוצרים</button>
+                        <button onclick="productManager.saveProductsToFile()" class="btn btn-info">💾 שמור לקובץ</button>
+                        <button onclick="productManager.exportProducts()" class="btn btn-warning">📤 ייצוא מוצרים</button>
+                        <button onclick="productManager.importProducts()" class="btn btn-warning">📥 ייבוא מוצרים</button>
+                        <button onclick="productManager.backupProducts()" class="btn btn-info">💾 יצירת גיבוי</button>
+                    </div>
+                    <div class="search-section">
+                        <h3>🔍 חיפוש מוצרים</h3>
+                        <input type="text" id="search-input" placeholder="חפש לפי שם, קוד או קטגוריה..." class="search-input">
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="content-header">
+                        <h2>📋 רשימת המוצרים</h2>
+                        <div class="header-actions">
+                            <input type="file" id="file-input" accept=".json" style="display: none;" onchange="productManager.loadProductsFromFile(this.files[0])">
+                            <button onclick="document.getElementById('file-input').click()" class="btn btn-info">📁 טען מקובץ</button>
+                        </div>
+                    </div>
+                    <div id="products-container" class="products-grid">
+                        <!-- המוצרים יוצגו כאן -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <style>
     /* עיצוב רספונסיבי לאזור העליון במובייל */
     .admin-panel {
@@ -244,45 +279,196 @@
     <div id="notifications-container"></div>
 
     <script src="admin.js"></script>
-<script>
-// --- Wake up server logic (MongoDB-backed API) ---
-const SERVER_URL = (typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function')
-  ? config.getApiBaseUrl()
-  : (window.API_BASE_URL || window.location.origin);
-let serverAwake = false;
-let wakeupInterval = null;
+    
+    <!-- מערכת האבטחה -->
+    <script>
+        // Google Sign-In and Authorization System
+        let currentUser = null;
+        let isUserAuthorized = false;
 
-function showWakeupOverlay(show) {
-    const overlay = document.getElementById('serverWakeupOverlay');
-    if (overlay) overlay.style.display = show ? 'flex' : 'none';
-}
+        // רשימת המיילים המורשים - רק BLUMI@GOLDYS.CO.IL
+        const ALLOWED_EMAILS = [
+            'BLUMI@GOLDYS.CO.IL'
+        ];
 
-async function wakeUpServer(showLoader = true) {
-    if (showLoader) showWakeupOverlay(true);
-    try {
-        const res = await fetch(SERVER_URL + '/api/stats', { cache: 'reload' });
-        if (res.ok) {
-            serverAwake = true;
-            showWakeupOverlay(false);
+        // בדיקה אם המייל מורשה
+        function isEmailAuthorized(email) {
+            return ALLOWED_EMAILS.includes(email.toUpperCase());
+        }
+
+        // פענוח JWT token
+        function decodeJwtResponse(token) {
+            var base64Url = token.split('.')[1];
+            var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        }
+
+        // טיפול בתגובה מהתחברות Google
+        function handleCredentialResponse(response) {
+            const responsePayload = decodeJwtResponse(response.credential);
+            const userEmail = responsePayload.email;
+            
+            currentUser = {
+                email: userEmail,
+                name: responsePayload.name,
+                picture: responsePayload.picture
+            };
+            
+            // שמירת פרטי המשתמש ב-localStorage
+            localStorage.setItem('adminUserEmail', userEmail);
+            localStorage.setItem('adminUserName', responsePayload.name);
+            
+            // בדיקה אם המייל מורשה
+            isUserAuthorized = isEmailAuthorized(userEmail);
+            
+            // הצגת הממשק המתאים
+            updateAuthUI();
+        }
+
+        // התנתקות
+        function signOut() {
+            currentUser = null;
+            isUserAuthorized = false;
+            localStorage.removeItem('adminUserEmail');
+            localStorage.removeItem('adminUserName');
+            
+            // איפוס Google Sign-In
+            if (window.google && google.accounts) {
+                google.accounts.id.disableAutoSelect();
+                if (currentUser?.email) {
+                    google.accounts.id.revoke(currentUser.email, () => {
+                        console.log('User signed out');
+                    });
+                }
+            }
+            
+            updateAuthUI();
+        }
+
+        // עדכון ממשק המשתמש לפי מצב ההתחברות
+        function updateAuthUI() {
+            const loginSection = document.getElementById('loginSection');
+            const userSection = document.getElementById('userSection');
+            const unauthorizedSection = document.getElementById('unauthorizedSection');
+            const mainContent = document.getElementById('mainContent');
+            const userEmailElement = document.getElementById('userEmail');
+            
+            if (currentUser) {
+                loginSection.style.display = 'none';
+                userEmailElement.textContent = currentUser.email;
+                
+                if (isUserAuthorized) {
+                    userSection.style.display = 'block';
+                    unauthorizedSection.style.display = 'none';
+                    mainContent.style.display = 'block';
+                    showNotification('התחברת בהצלחה! גישה למערכת ניהול המוצרים', 'green');
+                } else {
+                    userSection.style.display = 'none';
+                    unauthorizedSection.style.display = 'block';
+                    mainContent.style.display = 'none';
+                    showNotification('התחברת בהצלחה, אך המייל שלך אינו מורשה לגשת למערכת ניהול', 'orange');
+                }
+            } else {
+                loginSection.style.display = 'block';
+                userSection.style.display = 'none';
+                unauthorizedSection.style.display = 'none';
+                mainContent.style.display = 'none';
+            }
+        }
+
+        // בדיקת התחברות בטעינת הדף
+        function checkAuthOnLoad() {
+            const savedEmail = localStorage.getItem('adminUserEmail');
+            const savedName = localStorage.getItem('adminUserName');
+            
+            if (savedEmail) {
+                currentUser = {
+                    email: savedEmail,
+                    name: savedName
+                };
+                isUserAuthorized = isEmailAuthorized(savedEmail);
+                updateAuthUI();
+            }
+        }
+
+        // פונקציה להצגת הודעות
+        function showNotification(message, color = "green") {
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.position = 'fixed';
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.padding = '10px 20px';
+            notification.style.backgroundColor = color;
+            notification.style.color = 'white';
+            notification.style.borderRadius = '5px';
+            notification.style.zIndex = '10000';
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // אתחול Google Sign-In
+        window.onload = function () {
+            if (window.google && google.accounts) {
+                google.accounts.id.initialize({
+                    client_id: "530661972828-l9qgtsui9d3aj40pbdnn6rvv15fr82kf.apps.googleusercontent.com",
+                    callback: handleCredentialResponse,
+                    auto_select: true
+                });
+                google.accounts.id.renderButton(
+                    document.getElementById("googleSignInButton"),
+                    { theme: "outline", size: "large", text: "signin_with" }
+                );
+            }
+            
+            // בדיקת התחברות קיימת
+            checkAuthOnLoad();
+        };
+
+        // בדיקת הרשאה לפני כל פעולה במערכת
+        function checkAuthBeforeAction() {
+            if (!currentUser) {
+                showNotification('נדרשת התחברות לגישה למערכת ניהול', 'red');
+                return false;
+            }
+            
+            if (!isUserAuthorized) {
+                showNotification('המייל שלך אינו מורשה לגשת למערכת ניהול', 'red');
+                return false;
+            }
+            
             return true;
         }
-    } catch (e) {}
-    serverAwake = false;
-    if (showLoader) setTimeout(() => wakeUpServer(true), 2000);
-    return false;
-}
 
-// כל 4 דקות פינג לשרת
-function startServerKeepAlive() {
-    if (wakeupInterval) clearInterval(wakeupInterval);
-    wakeupInterval = setInterval(() => wakeUpServer(false), 240000);
-}
-
-// הפעלת השרת בטעינה ראשונית
-document.addEventListener('DOMContentLoaded', () => {
-    wakeUpServer(true).then(() => {
-        startServerKeepAlive();
-    });
-});
-</script>
+        // הגנה על כל הפונקציות של productManager
+        const originalProductManager = window.productManager;
+        if (originalProductManager) {
+            // יצירת wrapper מוגן לכל הפונקציות
+            const protectedProductManager = {};
+            
+            Object.keys(originalProductManager).forEach(key => {
+                if (typeof originalProductManager[key] === 'function') {
+                    protectedProductManager[key] = function(...args) {
+                        if (!checkAuthBeforeAction()) {
+                            return;
+                        }
+                        return originalProductManager[key].apply(this, args);
+                    };
+                } else {
+                    protectedProductManager[key] = originalProductManager[key];
+                }
+            });
+            
+            // החלפת productManager המקורי בגרסה המוגנת
+            window.productManager = protectedProductManager;
+        }
+    </script>
+</body>
 </html>
