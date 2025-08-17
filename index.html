@@ -238,6 +238,7 @@
         max-height: 150px;
         overflow-y: auto;
         border: 1px solid #ccc;
+        display: block;
       }
 
       ul#searchResults li {
@@ -4733,22 +4734,7 @@ document.addEventListener('keydown', function(e) {
         }
       }
 
-      // הפונקציה של ההדבקה נשארת אותה דבר
-      const originalPasteFunction = window.pasteFromClipboard;
-      window.pasteFromClipboard = async function () {
-        if (originalPasteFunction) {
-          await originalPasteFunction();
-        }
-
-        setTimeout(() => {
-          const searchInput = document.querySelector('input[type="text"]');
-          if (searchInput && searchInput.value) {
-            const code = searchInput.value.trim();
-            console.log('נמצא מק"ט:', code);
-            configureProduct(code);
-          }
-        }, 200);
-      };
+      // הפונקציה של ההדבקה - נמחקת כי יש גרסה חדשה בסוף הקובץ
 
       // מוסיפים את הקוד הזה בסוף הקובץ
       let timeoutId = null;
@@ -6336,6 +6322,16 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
               console.log('🔍 pasteFromClipboard: Dispatching change event after timeout');
               const changeEvent = new Event('change', { bubbles: true, cancelable: true });
               productCodeInput.dispatchEvent(changeEvent);
+            }, 50);
+            
+            // הפעלה ישירה של handleSearchInput במקום להסתמך על אירועים
+            setTimeout(() => {
+              console.log('🔍 pasteFromClipboard: Direct call to handleSearchInput');
+              if (window.productsLoader && typeof window.productsLoader.handleSearchInput === 'function') {
+                window.productsLoader.handleSearchInput(cleanCode);
+              } else {
+                console.log('🔍 pasteFromClipboard: productsLoader not available');
+              }
             }, 50);
           }
           showNotification('הודבק בהצלחה!', 'green');
