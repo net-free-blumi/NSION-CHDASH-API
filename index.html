@@ -6248,10 +6248,8 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
       // פונקציה להדבקה מלוח ההעתקה - מעודכנת לעבוד עם products-loader
       window.pasteFromClipboard = async function() {
         try {
-          console.log('🔍 pasteFromClipboard: Starting paste operation');
           const text = await navigator.clipboard.readText();
           const cleanCode = text.trim();
-          console.log('🔍 pasteFromClipboard: Clipboard text:', text, 'Clean code:', cleanCode);
 
           if (text.startsWith('http://') || text.startsWith('https://')) {
             showNotification('לא ניתן להדביק URL, יש להדביק רק מק"ט', 'red');
@@ -6264,29 +6262,22 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
           const productCodeInput = document.getElementById("productCode");
           if (productCodeInput) {
-            console.log('🔍 pasteFromClipboard: Setting value to productCode input:', cleanCode);
             productCodeInput.value = cleanCode;
             
             // הפעלת אירוע input כדיproducts-loader יטפל בחיפוש
-            console.log('🔍 pasteFromClipboard: Dispatching input event');
             const inputEvent = new Event('input', { bubbles: true, cancelable: true });
             productCodeInput.dispatchEvent(inputEvent);
-            console.log('🔍 pasteFromClipboard: Input event dispatched');
             
             // גם הפעל אירוע change כדי לוודא שהמערכת מגיבה
             setTimeout(() => {
-              console.log('🔍 pasteFromClipboard: Dispatching change event after timeout');
               const changeEvent = new Event('change', { bubbles: true, cancelable: true });
               productCodeInput.dispatchEvent(changeEvent);
             }, 50);
             
             // הפעלה ישירה של handleSearchInput במקום להסתמך על אירועים
             setTimeout(() => {
-              console.log('🔍 pasteFromClipboard: Direct call to handleSearchInput');
               if (window.productsLoader && typeof window.productsLoader.handleSearchInput === 'function') {
                 window.productsLoader.handleSearchInput(cleanCode);
-              } else {
-                console.log('🔍 pasteFromClipboard: productsLoader not available');
               }
             }, 50);
           }

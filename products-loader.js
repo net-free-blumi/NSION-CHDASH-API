@@ -56,16 +56,13 @@ class ProductsLoader {
         // תיבת מק"ט ייעודית (id=productCode) מפעילה גם תצוגת תוצאות
         const skuInput = document.getElementById('productCode');
         if (skuInput) {
-            console.log('🔍 setupProductSearch: Setting up input listener for productCode');
             skuInput.addEventListener('input', (e) => {
                 const val = e.target?.value || '';
-                console.log('🔍 setupProductSearch: Input event received, value:', val);
                 const si = document.getElementById('searchInput');
                 if (si) si.value = val; // סנכרון לשדה החיפוש
                 this.handleSearchInput(val);
             });
             // לא מוסיפים מאזין paste כאן כי index.html מטפל בזה עם pasteFromClipboard
-            console.log('🔍 setupProductSearch: Event listeners set up for productCode (input only)');
         }
 
         // תאימות לקוד ישן שמריץ oninput="searchProduct()" ללא פרמטר
@@ -346,17 +343,10 @@ class ProductsLoader {
         const term = String(query).trim().toLowerCase();
         const isNumeric = /^\d+$/.test(term);
         const results = [];
-        
-        console.log('🔍 searchProduct: Searching for term:', term, 'isNumeric:', isNumeric);
-        console.log('🔍 searchProduct: Available products count:', Object.keys(this.products).length);
-        console.log('🔍 searchProduct: Sample products:', Object.keys(this.products).slice(0, 5));
 
         // 1) התאמה מדויקת למק"ט
         if (this.products[term]) {
-            console.log('🔍 searchProduct: Exact match found for:', term);
             results.push({ code: String(term), ...this.products[term] });
-        } else {
-            console.log('🔍 searchProduct: No exact match for:', term);
         }
 
         // 2) התאמות קוד שמתחילות ב-term
@@ -384,30 +374,22 @@ class ProductsLoader {
             }
         }
 
-        console.log('🔍 searchProduct: Final results:', results);
         return results.slice(0, 10);
     }
 
     // טיפול בקלט חיפוש
     async handleSearchInput(query) {
         try {
-            console.log('🔍 handleSearchInput: Starting with query:', query, 'Type:', typeof query);
             const q = (typeof query === 'string') ? query : '';
-            console.log('🔍 handleSearchInput: Normalized query:', q);
             if (!q.trim()) {
-                console.log('🔍 handleSearchInput: Empty query, clearing results');
                 this.clearSearchResults();
                 return;
             }
 
             // חיפוש מהיר במוצרים
-            console.log('🔍 handleSearchInput: Searching for:', q);
             let results = this.searchProduct(q);
-            console.log('🔍 handleSearchInput: Search results:', results);
             this.lastResults = results;
-            console.log('🔍 handleSearchInput: About to call displaySearchResults');
             this.displaySearchResults(results, q);
-            console.log('🔍 handleSearchInput: displaySearchResults called');
 
             // אם אין תוצאות, נסה לרענן מה-API פעם אחת ואז חפש שוב
             if ((!results || results.length === 0) && !this._refreshOnMissInFlight) {
@@ -450,14 +432,10 @@ class ProductsLoader {
 
     // הצגת תוצאות חיפוש מרובות
     displaySearchResults(results, query) {
-        console.log('🔍 displaySearchResults: Displaying results for query:', query, 'Results:', results);
         // אם יש UL מוכן בדף (index.html), נשתמש בו
         const listEl = document.getElementById('searchResults');
-        console.log('🔍 displaySearchResults: Found searchResults element:', listEl);
         if (listEl && listEl.tagName === 'UL') {
-            console.log('🔍 displaySearchResults: Using UL element');
             if (results && results.length) {
-                console.log('🔍 displaySearchResults: Setting content for', results.length, 'results');
                 const content = results.map(r => `
                     <li style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 6px; border-bottom:1px solid #eee;">
                         <div>
@@ -472,55 +450,12 @@ class ProductsLoader {
                     </li>
                 `).join('');
                 listEl.innerHTML = content;
-                console.log('🔍 displaySearchResults: Content set, length:', content.length);
             } else {
-                console.log('🔍 displaySearchResults: No results, showing "no results" message');
                 listEl.innerHTML = `<li style="padding:10px; color:#666;">לא נמצאו תוצאות עבור "${query}"</li>`;
-                console.log('🔍 displaySearchResults: "No results" message set');
             }
             listEl.style.display = 'block';
-            console.log('🔍 displaySearchResults: Element display set to:', listEl.style.display);
-            console.log('🔍 displaySearchResults: Element visibility:', listEl.offsetParent !== null ? 'visible' : 'hidden');
-            console.log('🔍 displaySearchResults: Element position:', listEl.getBoundingClientRect());
-            console.log('🔍 displaySearchResults: Element parent:', listEl.parentElement);
-            console.log('🔍 displaySearchResults: Element computed style:', window.getComputedStyle(listEl).display);
-            console.log('🔍 displaySearchResults: Element innerHTML length:', listEl.innerHTML.length);
-            console.log('🔍 displaySearchResults: Element innerHTML preview:', listEl.innerHTML.substring(0, 100));
-            console.log('🔍 displaySearchResults: Element children count:', listEl.children.length);
-            console.log('🔍 displaySearchResults: Element offsetHeight:', listEl.offsetHeight);
-            console.log('🔍 displaySearchResults: Element clientHeight:', listEl.clientHeight);
-            console.log('🔍 displaySearchResults: Element scrollHeight:', listEl.scrollHeight);
-            console.log('🔍 displaySearchResults: Element z-index:', window.getComputedStyle(listEl).zIndex);
-            console.log('🔍 displaySearchResults: Element position:', window.getComputedStyle(listEl).position);
-            console.log('🔍 displaySearchResults: Element top:', window.getComputedStyle(listEl).top);
-            console.log('🔍 displaySearchResults: Element left:', window.getComputedStyle(listEl).left);
-            console.log('🔍 displaySearchResults: Element right:', window.getComputedStyle(listEl).right);
-            console.log('🔍 displaySearchResults: Element bottom:', window.getComputedStyle(listEl).bottom);
-            console.log('🔍 displaySearchResults: Element width:', window.getComputedStyle(listEl).width);
-            console.log('🔍 displaySearchResults: Element height:', window.getComputedStyle(listEl).height);
-            console.log('🔍 displaySearchResults: Element overflow:', window.getComputedStyle(listEl).overflow);
-            console.log('🔍 displaySearchResults: Element overflow-y:', window.getComputedStyle(listEl).overflowY);
-            console.log('🔍 displaySearchResults: Element max-height:', window.getComputedStyle(listEl).maxHeight);
-            console.log('🔍 displaySearchResults: Element background-color:', window.getComputedStyle(listEl).backgroundColor);
-            console.log('🔍 displaySearchResults: Element border:', window.getComputedStyle(listEl).border);
-            console.log('🔍 displaySearchResults: Element border-radius:', window.getComputedStyle(listEl).borderRadius);
-            console.log('🔍 displaySearchResults: Element box-shadow:', window.getComputedStyle(listEl).boxShadow);
-            console.log('🔍 displaySearchResults: Element margin:', window.getComputedStyle(listEl).margin);
-            console.log('🔍 displaySearchResults: Element padding:', window.getComputedStyle(listEl).padding);
-            console.log('🔍 displaySearchResults: Element font-family:', window.getComputedStyle(listEl).fontFamily);
-            console.log('🔍 displaySearchResults: Element font-size:', window.getComputedStyle(listEl).fontSize);
-            console.log('🔍 displaySearchResults: Element color:', window.getComputedStyle(listEl).color);
-            console.log('🔍 displaySearchResults: Element text-align:', window.getComputedStyle(listEl).textAlign);
-            console.log('🔍 displaySearchResults: Element line-height:', window.getComputedStyle(listEl).lineHeight);
-            console.log('🔍 displaySearchResults: Element white-space:', window.getComputedStyle(listEl).whiteSpace);
-            console.log('🔍 displaySearchResults: Element word-wrap:', window.getComputedStyle(listEl).wordWrap);
-            console.log('🔍 displaySearchResults: Element overflow-wrap:', window.getComputedStyle(listEl).overflowWrap);
-            console.log('🔍 displaySearchResults: Element text-overflow:', window.getComputedStyle(listEl).textOverflow);
-            console.log('🔍 displaySearchResults: Element direction:', window.getComputedStyle(listEl).direction);
-            console.log('🔍 displaySearchResults: Element unicode-bidi:', window.getComputedStyle(listEl).unicodeBidi);
             listEl.querySelectorAll('.copy-sku-btn').forEach(btn => btn.addEventListener('click', (e) => this.copySku(e.currentTarget.getAttribute('data-code'))));
             listEl.querySelectorAll('.select-sku-btn').forEach(btn => btn.addEventListener('click', (e) => this.selectSku(e.currentTarget.getAttribute('data-code'))));
-            console.log('🔍 displaySearchResults: Event listeners added, returning');
             return;
         }
 
