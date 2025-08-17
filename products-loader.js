@@ -34,17 +34,34 @@ class ProductsLoader {
 
     // הגדרת חיפוש מוצרים
     setupProductSearch() {
-        // חיפוש תיבת חיפוש קיימת
-        const searchInput = document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');
+        // תיבת חיפוש ראשית (id=searchInput אם קיימת, אחרת לפי placeholder)
+        const searchInput = document.getElementById('searchInput') || document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');
         if (searchInput) {
-            // הסרת event listeners קיימים
             searchInput.removeEventListener('input', this.boundHandleSearchInput);
             searchInput.addEventListener('input', this.boundHandleSearchInput);
-
-            console.log('🔍 תיבת חיפוש מוצרים הוגדרה בהצלחה');
-        } else {
-            console.log('⚠️ לא נמצאה תיבת חיפוש מוצרים');
+            // Enter בוחר את התוצאה הראשונה
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && Array.isArray(this.lastResults) && this.lastResults.length > 0) {
+                    e.preventDefault();
+                    this.selectSku(this.lastResults[0].code);
+                }
+            });
         }
+
+        // תיבת מק"ט ייעודית (id=productCode) מפעילה גם תצוגת תוצאות
+        const skuInput = document.getElementById('productCode');
+        if (skuInput) {
+            skuInput.addEventListener('input', (e) => this.handleSearchInput(e.target.value || ''));
+            skuInput.addEventListener('paste', () => {
+                setTimeout(() => this.handleSearchInput(skuInput.value || ''), 0);
+            });
+        }
+
+        // תאימות לקוד ישן שמריץ oninput="searchProduct()" ללא פרמטר
+        window.searchProduct = () => {
+            const val = (document.getElementById('searchInput') && document.getElementById('searchInput').value) || '';
+            this.handleSearchInput(val);
+        };
     }
 
     // טעינת מוצרים מה-API (MongoDB) עם נפילה לנתוני דיפולט
@@ -322,23 +339,42 @@ class ProductsLoader {
         }, 3000);
     }
 
-    // חיפוש מוצר לפי מק"ט/שם/שם-חיפוש
+    // חיפוש מוצר לפי מק"ט/שם/שם-חיפוש — מחזיר עד 10 תוצאות
     searchProduct(query) {
-        if (!query) return null;
-        const searchTerm = String(query).toLowerCase();
-        // חיפוש לפי מק"ט מדויק
-        if (this.products[query]) {
-            return { ...this.products[query], code: String(query) };
+        if (!query) return [];
+        const term = String(query).trim().toLowerCase();
+        const isNumeric = /^\d+$/.test(term);
+        const results = [];
+
+        // 1) התאמה מדויקת למק"ט
+        if (this.products[term]) results.push({ code: String(term), ...this.products[term] });
+
+        // 2) התאמות קוד שמתחילות ב-term
+        if (isNumeric) {
+            for (const code of Object.keys(this.products)) {
+                if (code !== term && code.startsWith(term)) results.push({ code, ...this.products[code] });
+            }
         }
-        // חיפוש לפי שם / שם-חיפוש
+
+        // 3) שם/שם-חיפוש מתחיל
         for (const [code, product] of Object.entries(this.products)) {
             const name = (product.name || '').toLowerCase();
             const sname = (product.searchName || '').toLowerCase();
-            if (name.includes(searchTerm) || sname.includes(searchTerm)) {
-                return { ...product, code };
+            if (name.startsWith(term) || sname.startsWith(term)) {
+                if (!results.find(r => r.code === code)) results.push({ code, ...product });
             }
         }
-        return null;
+
+        // 4) שם/שם-חיפוש מכיל
+        for (const [code, product] of Object.entries(this.products)) {
+            const name = (product.name || '').toLowerCase();
+            const sname = (product.searchName || '').toLowerCase();
+            if ((name.includes(term) || sname.includes(term)) && !name.startsWith(term) && !sname.startsWith(term)) {
+                if (!results.find(r => r.code === code)) results.push({ code, ...product });
+            }
+        }
+
+        return results.slice(0, 10);
     }
 
     // טיפול בקלט חיפוש
@@ -350,13 +386,15 @@ class ProductsLoader {
 
         // חיפוש מהיר במוצרים
         const results = this.searchProduct(query);
+        this.lastResults = results;
         this.displaySearchResults(results, query);
 
         // הוספת אפקט חיפוש
-        const searchInput = document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');
+        const searchInput = document.getElementById('searchInput') || document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');
         if (searchInput) {
-            searchInput.style.borderColor = results ? '#28a745' : '#dc3545';
-            searchInput.style.boxShadow = results ? '0 0 0 3px rgba(40,167,69,0.1)' : '0 0 0 3px rgba(220,53,69,0.1)';
+            const ok = Array.isArray(results) ? results.length > 0 : !!results;
+            searchInput.style.borderColor = ok ? '#28a745' : '#dc3545';
+            searchInput.style.boxShadow = ok ? '0 0 0 3px rgba(40,167,69,0.1)' : '0 0 0 3px rgba(220,53,69,0.1)';
 
             // החזרה למצב רגיל אחרי 2 שניות
             setTimeout(() => {
@@ -366,78 +404,86 @@ class ProductsLoader {
         }
     }
 
-    // הצגת תוצאות חיפוש
+    // הצגת תוצאות חיפוש מרובות
     displaySearchResults(results, query) {
-        // יצירת או עדכון תיבת תוצאות חיפוש
+        // אם יש UL מוכן בדף (index.html), נשתמש בו
+        const listEl = document.getElementById('searchResults');
+        if (listEl && listEl.tagName === 'UL') {
+            if (results && results.length) {
+                listEl.innerHTML = results.map(r => `
+                    <li style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 6px; border-bottom:1px solid #eee;">
+                        <div>
+                            <div style="font-weight:600;">${r.name || ''}</div>
+                            <div style="font-size:0.9em; color:#666;">מק"ט: <span class="sku">${r.code}</span></div>
+                            <div style="font-size:0.9em; color:#28a745;">${(r.sizes && r.sizes.length>0) ? r.sizes.map(s=>`${s.size} - ₪${s.price}`).join(', ') : (r.price ? `₪${r.price}` : '')}</div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <button type="button" data-code="${r.code}" class="copy-sku-btn">📋 העתק מק"ט</button>
+                            <button type="button" data-code="${r.code}" class="select-sku-btn">➕ בחר</button>
+                        </div>
+                    </li>
+                `).join('');
+            } else {
+                listEl.innerHTML = `<li style="padding:10px; color:#666;">לא נמצאו תוצאות עבור "${query}"</li>`;
+            }
+            listEl.querySelectorAll('.copy-sku-btn').forEach(btn => btn.addEventListener('click', (e) => this.copySku(e.currentTarget.getAttribute('data-code'))));
+            listEl.querySelectorAll('.select-sku-btn').forEach(btn => btn.addEventListener('click', (e) => this.selectSku(e.currentTarget.getAttribute('data-code'))));
+            return;
+        }
+
+        // אחרת, ניצור קונטיינר צף
         let resultsContainer = document.getElementById('searchResults');
-        if (!resultsContainer) {
+        if (!resultsContainer || resultsContainer.tagName === 'UL') {
             resultsContainer = document.createElement('div');
             resultsContainer.id = 'searchResults';
-            resultsContainer.style.cssText = `
-                position: absolute;
-                top: 100%;
-                left: 0;
-                right: 0;
-                background: white;
-                border: 1px solid #ddd;
-                border-top: none;
-                border-radius: 0 0 8px 8px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                z-index: 1000;
-                max-height: 300px;
-                overflow-y: auto;
-                animation: fadeIn 0.3s ease-in;
-            `;
-
-            const searchInput = document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');
-            if (searchInput && searchInput.parentElement) {
-                searchInput.parentElement.style.position = 'relative';
-                searchInput.parentElement.appendChild(resultsContainer);
+            resultsContainer.style.cssText = 'position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ddd; border-top:none; border-radius:0 0 8px 8px; box-shadow:0 4px 6px rgba(0,0,0,0.1); z-index:1000; max-height:300px; overflow-y:auto;';
+            const si = document.getElementById('searchInput') || document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');
+            if (si && si.parentElement) {
+                si.parentElement.style.position = 'relative';
+                si.parentElement.appendChild(resultsContainer);
             }
         }
 
-        if (results) {
-            resultsContainer.innerHTML = `
-                <div style="padding: 15px; border-bottom: 1px solid #eee;">
-                    <div style="font-weight: bold; color: #333; font-size: 1.1rem;">${results.name}</div>
-                    <div style="color: #666; font-size: 0.9em; margin: 5px 0;">מק"ט: ${results.code || query}</div>
-                    <div style="color: #28a745; font-weight: bold; margin-top: 8px;">
-                        💰 מחירים: ${results.sizes && results.sizes.length > 0 ? results.sizes.map(s => `${s.size} - ₪${s.price}`).join(', ') : 'ללא מחירים'}
+        if (results && results.length) {
+            resultsContainer.innerHTML = results.map(r => `
+                <div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; gap:8px;">
+                    <div>
+                        <div style=\"font-weight:600;\">${r.name || ''}</div>
+                        <div style=\"font-size:0.9em; color:#666;\">מק\"ט: <span class=\"sku\">${r.code}</span></div>
+                        <div style=\"font-size:0.9em; color:#28a745;\">${(r.sizes && r.sizes.length>0) ? r.sizes.map(s=>`${s.size} - ₪${s.price}`).join(', ') : (r.price ? `₪${r.price}` : '')}</div>
                     </div>
-                    <div style="color: #6c757d; font-size: 0.9em; margin-top: 5px;">
-                        📁 קטגוריה: ${this.categories[results.category] || 'לא מוגדר'}
+                    <div style=\"display:flex; gap:6px;\">
+                        <button type=\"button\" data-code=\"${r.code}\" class=\"copy-sku-btn\">📋 העתק מק\"ט</button>
+                        <button type=\"button\" data-code=\"${r.code}\" class=\"select-sku-btn\">➕ בחר</button>
                     </div>
-                    ${results.type === 'quantity' ? `
-                        <div style="color: #17a2b8; font-size: 0.9em; margin-top: 5px;">
-                            📦 יחידת מידה: ${results.unit || 'לא מוגדר'}
-                        </div>
-                    ` : ''}
                 </div>
-            `;
+            `).join('');
             resultsContainer.style.display = 'block';
-
-            // הוספת אפקט הצלחה
-            resultsContainer.style.borderColor = '#28a745';
-            resultsContainer.style.boxShadow = '0 4px 15px rgba(40,167,69,0.2)';
+            resultsContainer.querySelectorAll('.copy-sku-btn').forEach(btn => btn.addEventListener('click', (e) => this.copySku(e.currentTarget.getAttribute('data-code'))));
+            resultsContainer.querySelectorAll('.select-sku-btn').forEach(btn => btn.addEventListener('click', (e) => this.selectSku(e.currentTarget.getAttribute('data-code'))));
         } else {
-            resultsContainer.innerHTML = `
-                <div style="padding: 15px; color: #666; text-align: center;">
-                    <div style="font-size: 1.2rem; margin-bottom: 5px;">🔍</div>
-                    לא נמצאו תוצאות עבור "${query}"
-                    <div style="font-size: 0.9em; margin-top: 5px; color: #999;">
-                        נסה לחפש לפי מק"ט או שם מוצר
-                    </div>
-                </div>
-            `;
+            resultsContainer.innerHTML = `<div style="padding:10px; color:#666;">לא נמצאו תוצאות עבור "${query}"</div>`;
             resultsContainer.style.display = 'block';
-
-            // הוספת אפקט שגיאה
-            resultsContainer.style.borderColor = '#dc3545';
-            resultsContainer.style.boxShadow = '0 4px 15px rgba(220,53,69,0.2)';
         }
+    }
 
-        // הוספת אנימציה
-        resultsContainer.classList.add('fade-in');
+    // העתקת מק"ט
+    copySku(code) {
+        try {
+            navigator.clipboard.writeText(String(code));
+            this.showSystemNotification('✅ המק"ט הועתק', 'success');
+        } catch {}
+    }
+
+    // בחירת מק"ט לשדה הייעודי
+    selectSku(code) {
+        const skuInput = document.getElementById('productCode');
+        if (skuInput) {
+            skuInput.value = String(code);
+            skuInput.focus();
+            skuInput.select();
+        }
+        this.clearSearchResults();
     }
 
     // ניקוי תוצאות חיפוש
