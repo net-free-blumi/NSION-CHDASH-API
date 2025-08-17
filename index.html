@@ -5787,7 +5787,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
       function searchProduct() {
         const input = document
           .getElementById("searchInput")
-          .value.toLowerCase();
+          .value.trim().toLowerCase();
         const resultsList = document.getElementById("searchResults");
         resultsList.innerHTML = "";
 
@@ -5896,9 +5896,12 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
       // פונקציה לניקוי תיבת החיפוש
       function clearSearch() {
         // ניקוי החיפוש הקיים
-        document.getElementById("searchInput").value = "";
-        document.getElementById("searchResults").innerHTML = "";
-        document.getElementById("productCode").value = "";
+        const si = document.getElementById("searchInput");
+        const sr = document.getElementById("searchResults");
+        const pc = document.getElementById("productCode");
+        if (si) si.value = "";
+        if (sr) sr.innerHTML = "";
+        if (pc) pc.value = "";
 
         // מנקה את האפשרויות הקיימות
         const existingList = document.getElementById("quantityOptionsList");
@@ -6376,7 +6379,8 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           // הפעלת החיפוש אחרי 500ms של חוסר הקלדה
           searchTimeout = setTimeout(() => {
             // עדכון תיבת החיפוש הראשית והפעלת החיפוש
-            document.getElementById("searchInput").value = code;
+            const si4 = document.getElementById("searchInput");
+            if (si4) si4.value = code;
             searchProduct();
 
             // בדיקה אם זה מוצר ביס
