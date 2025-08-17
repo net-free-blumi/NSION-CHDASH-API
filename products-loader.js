@@ -56,9 +56,19 @@ class ProductsLoader {
         // תיבת מק"ט ייעודית (id=productCode) מפעילה גם תצוגת תוצאות
         const skuInput = document.getElementById('productCode');
         if (skuInput) {
-            skuInput.addEventListener('input', (e) => this.handleSearchInput(e.target.value || ''));
+            skuInput.addEventListener('input', (e) => {
+                const val = e.target?.value || '';
+                const si = document.getElementById('searchInput');
+                if (si) si.value = val; // סנכרון לשדה החיפוש
+                this.handleSearchInput(val);
+            });
             skuInput.addEventListener('paste', () => {
-                setTimeout(() => this.handleSearchInput(skuInput.value || ''), 0);
+                setTimeout(() => {
+                    const val = skuInput.value || '';
+                    const si = document.getElementById('searchInput');
+                    if (si) si.value = val; // סנכרון לשדה החיפוש
+                    this.handleSearchInput(val);
+                }, 0);
             });
         }
 
