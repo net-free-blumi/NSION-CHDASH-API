@@ -523,7 +523,7 @@ class ProductsLoader {
         if (typeof window.configureProduct === 'function') {
             try { window.configureProduct(String(code)); } catch {}
         }
-        this.clearSearchResults();
+        // אל תמחק את תוצאות החיפוש – השאר פתוח כדי לאפשר חיפוש נוסף מיד
     }
 
     // ניקוי תוצאות חיפוש

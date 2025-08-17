@@ -5829,7 +5829,10 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             };
 
             li.appendChild(copyButton);
-            li.onclick = () => addToOrder(code, product);
+            li.onclick = (e) => {
+              // לא מנקים את תוצאות החיפוש כדי שהמשתמש יוכל להמשיך מיד
+              addToOrder(code, product);
+            };
             resultsList.appendChild(li);
           });
 
