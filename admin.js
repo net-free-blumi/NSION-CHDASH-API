@@ -612,6 +612,8 @@ class ProductManager {
             });
             this.updateProductsDisplay();
             this.updateStats();
+            // ניקוי תיבת החיפוש אחרי שמירה
+            this.clearSearch();
             this.closeProductModal();
 
         } catch (error) {

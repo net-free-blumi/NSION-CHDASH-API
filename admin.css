@@ -1440,6 +1440,19 @@
         font-size: 0.9em;
         width: 100%;
     }
+    
+    /* הקטנת כפתור ההתנתקות במובייל */
+    .user-info .btn-small {
+        padding: 4px 8px;
+        font-size: 0.75em;
+        width: auto;
+        min-width: 60px;
+        opacity: 0.8;
+    }
+    
+    .user-info .btn-small:hover {
+        opacity: 1;
+    }
 }
 
 /* עיצוב למסכים קטנים מאוד */
@@ -1459,6 +1472,18 @@
     
     .login-box p {
         font-size: 0.9em;
+    }
+    
+    /* הקטנה נוספת של כפתור ההתנתקות במסכים קטנים */
+    .user-info {
+        padding: 6px 8px;
+        font-size: 0.8em;
+    }
+    
+    .user-info .btn-small {
+        padding: 3px 6px;
+        font-size: 0.7em;
+        min-width: 50px;
     }
 }
 
