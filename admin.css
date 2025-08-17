@@ -1443,12 +1443,12 @@
         width: 100%;
     }
     
-    /* כפתור התנתקות קטן כאייקון */
+    /* כפתור התנתקות קטן מאוד במובייל */
     .user-info .btn-small {
-        width: 32px;
-        height: 32px;
+        width: 24px;
+        height: 24px;
         padding: 0;
-        font-size: 16px;
+        font-size: 12px;
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -1456,15 +1456,18 @@
         background: #dc3545;
         color: white;
         border: none;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        opacity: 0.8;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        opacity: 0.7;
         transition: all 0.2s ease;
+        position: absolute;
+        top: 5px;
+        right: 5px;
     }
     
     .user-info .btn-small:hover {
         opacity: 1;
         transform: scale(1.1);
-        box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
     
     .user-info .btn-small::before {
@@ -1499,9 +1502,9 @@
     }
     
     .user-info .btn-small {
-        width: 28px;
-        height: 28px;
-        font-size: 14px;
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
     }
 }
 
