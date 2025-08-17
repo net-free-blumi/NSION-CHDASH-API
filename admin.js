@@ -466,6 +466,20 @@ class ProductManager {
                     unitSelect.value = product.unit;
                 }
             }
+        } else if (productType === 'size') {
+            // טעינת גודל ברירת מחדל למוצרי גודל
+            const defaultSizeSelect = document.getElementById('defaultSize');
+            if (defaultSizeSelect && product.defaultSize) {
+                if (defaultSizeSelect.querySelector(`option[value="${product.defaultSize}"]`)) {
+                    defaultSizeSelect.value = product.defaultSize;
+                } else {
+                    const newOption = document.createElement('option');
+                    newOption.value = product.defaultSize;
+                    newOption.textContent = product.defaultSize;
+                    defaultSizeSelect.appendChild(newOption);
+                    defaultSizeSelect.value = product.defaultSize;
+                }
+            }
         } else {
             document.getElementById('productQuantity').value = product.quantity || product.defaultQuantity || '';
             
@@ -525,6 +539,12 @@ class ProductManager {
             
             if (productData.type === 'quantity' && quantity) {
                 productData.defaultQuantity = parseInt(quantity);
+            } else if (productData.type === 'size') {
+                // שמירת גודל ברירת מחדל למוצרי גודל
+                const defaultSize = formData.get('defaultSize');
+                if (defaultSize) {
+                    productData.defaultSize = defaultSize;
+                }
             } else if (quantity) {
                 productData.quantity = quantity;
             }
@@ -645,21 +665,23 @@ class ProductManager {
         const basePriceField = document.getElementById('base-price-field');
         const sizesSection = document.getElementById('sizes-section');
 
+        // הסתרת כל השדות תחילה
         if (quantityFields) quantityFields.style.display = 'none';
         if (sizeFields) sizeFields.style.display = 'none';
         if (basePriceField) basePriceField.style.display = 'none';
         if (sizesSection) sizesSection.style.display = 'none';
 
         if (productType === 'quantity') {
+            // מוצרי כמות - מציגים שדה כמות + יחידת מידה + טבלת מחירים
             if (quantityFields) quantityFields.style.display = 'block';
             if (sizesSection) sizesSection.style.display = 'block';
         } else if (productType === 'size') {
-            if (quantityFields) quantityFields.style.display = 'block';
+            // מוצרי גודל - מציגים שדה גודל ברירת מחדל + טבלת מחירים
+            if (sizeFields) sizeFields.style.display = 'block';
             if (sizesSection) sizesSection.style.display = 'block';
         } else if (productType === 'none') {
-            if (quantityFields) quantityFields.style.display = 'block';
+            // מוצרים ללא כמות/גודל - יכולים להיות עם או בלי מחיר
             if (sizesSection) sizesSection.style.display = 'block';
-            if (basePriceField) basePriceField.style.display = 'block';
         }
     }
 
