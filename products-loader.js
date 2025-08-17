@@ -304,17 +304,7 @@ class ProductsLoader {
 
     // עדכון ממשק המשתמש
     updateUI() {
-        // עדכון תיבת חיפוש אם קיימת
-        const searchInput = document.querySelector('input[placeholder*="מקט"]');
-        if (searchInput) {
-            // הסרת מאזין קודם (אם הוגדר) והוספת מאזין אחד קבוע
-            searchInput.removeEventListener('input', this.boundHandleSearchInput);
-            searchInput.addEventListener('input', (e) => {
-                this.handleSearchInput(e.target.value);
-            });
-        }
-
-        // הודעה על עדכון מוצלח
+        // לא מוסיפים מאזינים כאן כדי למנוע כפילויות; המאזינים מנוהלים ב-setupProductSearch
         this.showSystemNotification('מערכת המוצרים עודכנה בהצלחה!', 'success');
     }
 
@@ -378,16 +368,29 @@ class ProductsLoader {
     }
 
     // טיפול בקלט חיפוש
-    handleSearchInput(query) {
+    async handleSearchInput(query) {
         if (!query.trim()) {
             this.clearSearchResults();
             return;
         }
 
         // חיפוש מהיר במוצרים
-        const results = this.searchProduct(query);
+        let results = this.searchProduct(query);
         this.lastResults = results;
         this.displaySearchResults(results, query);
+
+        // אם אין תוצאות, נסה לרענן מה-API פעם אחת ואז חפש שוב
+        if ((!results || results.length === 0) && !this._refreshOnMissInFlight) {
+            try {
+                this._refreshOnMissInFlight = true;
+                await this.refreshData();
+                results = this.searchProduct(query);
+                this.lastResults = results;
+                this.displaySearchResults(results, query);
+            } finally {
+                this._refreshOnMissInFlight = false;
+            }
+        }
 
         // הוספת אפקט חיפוש
         const searchInput = document.getElementById('searchInput') || document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');
@@ -401,6 +404,14 @@ class ProductsLoader {
                 searchInput.style.borderColor = '';
                 searchInput.style.boxShadow = '';
             }, 2000);
+        }
+
+        // אם יש התאמה מדויקת לקוד, קנפג את המוצר בממשק
+        const term = String(query).trim();
+        if (this.products[term]) {
+            if (typeof window.configureProduct === 'function') {
+                try { window.configureProduct(term); } catch {}
+            }
         }
     }
 
@@ -482,6 +493,14 @@ class ProductsLoader {
             skuInput.value = String(code);
             skuInput.focus();
             skuInput.select();
+        }
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = String(code);
+        }
+        // קנפג את המוצר בממשק (מציג מפרט/גדלים/מחירים)
+        if (typeof window.configureProduct === 'function') {
+            try { window.configureProduct(String(code)); } catch {}
         }
         this.clearSearchResults();
     }
