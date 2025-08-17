@@ -148,8 +148,8 @@ class ProductManager {
         const card = document.createElement('div');
         card.className = 'product-card';
         
-        // וידוא שיש לפחות שם למוצר
-        const productName = product.name || product.Name || 'ללא שם';
+        // וידוא שיש לפחות שם למוצר - אם אין name, נשתמש ב-searchName
+        const productName = product.name || product.Name || product.searchName || 'ללא שם';
         const productType = product.type || 'none';
         
         // בניית מידע על המוצר
@@ -433,8 +433,8 @@ class ProductManager {
             return;
         }
 
-        // וידוא שיש שם למוצר
-        const productName = product.name || product.Name || 'ללא שם';
+        // וידוא שיש שם למוצר - אם אין name, נשתמש ב-searchName
+        const productName = product.name || product.Name || product.searchName || 'ללא שם';
         const productType = product.type || 'none';
 
         const modalTitle = document.getElementById('modal-title');
@@ -448,7 +448,8 @@ class ProductManager {
         codeInput.removeAttribute('disabled');
         this.lastEditedProductCode = code;
         
-        document.getElementById('productName').value = productName;
+        // טעינת השדות - אם אין name אבל יש searchName, נשאיר את name ריק
+        document.getElementById('productName').value = product.name || product.Name || '';
         document.getElementById('productCategory').value = product.category || '';
         document.getElementById('searchName').value = product.searchName || '';
         document.getElementById('productType').value = productType;
@@ -531,8 +532,19 @@ class ProductManager {
                 sizes: []
             };
             
-            if (!productData.name || !productData.category) {
-                this.showNotification('❌ יש למלא שם וקטגוריה', 'error');
+            if (!productData.category) {
+                this.showNotification('❌ יש למלא קטגוריה', 'error');
+                return;
+            }
+            
+            // אם אין שם אבל יש searchName, נשתמש ב-searchName כשם
+            if (!productData.name && productData.searchName) {
+                productData.name = productData.searchName;
+            }
+            
+            // אם אין שם וגם אין searchName, לא נוכל לשמור
+            if (!productData.name && !productData.searchName) {
+                this.showNotification('❌ יש למלא שם או שם לחיפוש', 'error');
                 return;
             }
 
@@ -608,7 +620,8 @@ class ProductManager {
             return;
         }
 
-        const confirmDelete = confirm(`האם אתה בטוח שברצונך למחוק את המוצר "${product.name}" (${code})?`);
+        const productDisplayName = product.name || product.Name || product.searchName || 'ללא שם';
+        const confirmDelete = confirm(`האם אתה בטוח שברצונך למחוק את המוצר "${productDisplayName}" (${code})?`);
         if (confirmDelete) {
             try {
                 // מחיקה דרך ה-API

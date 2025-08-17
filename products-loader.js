@@ -439,7 +439,7 @@ class ProductsLoader {
                 const content = results.map(r => `
                     <li style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 6px; border-bottom:1px solid #eee;">
                         <div>
-                            <div style="font-weight:600;">${r.name || ''}</div>
+                            <div style="font-weight:600;">${r.name || r.searchName || ''}</div>
                             <div style="font-size:0.9em; color:#666;">מק"ט: <span class="sku">${r.code}</span></div>
                             <div style="font-size:0.9em; color:#28a745;">${(r.sizes && r.sizes.length>0) ? r.sizes.map(s=>`${s.size} - ₪${s.price}`).join(', ') : (r.price ? `₪${r.price}` : '')}</div>
                         </div>
@@ -476,7 +476,7 @@ class ProductsLoader {
             resultsContainer.innerHTML = results.map(r => `
                 <div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; gap:8px;">
                     <div>
-                        <div style=\"font-weight:600;\">${r.name || ''}</div>
+                        <div style=\"font-weight:600;\">${r.name || r.searchName || ''}</div>
                         <div style=\"font-size:0.9em; color:#666;\">מק\"ט: <span class=\"sku\">${r.code}</span></div>
                         <div style=\"font-size:0.9em; color:#28a745;\">${(r.sizes && r.sizes.length>0) ? r.sizes.map(s=>`${s.size} - ₪${s.price}`).join(', ') : (r.price ? `₪${r.price}` : '')}</div>
                     </div>

@@ -5498,18 +5498,18 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             const unitQuantity = document.getElementById("unitQuantity").value;
             const unitType = document.getElementById("unitType").value;
             productSummary = `${trayQuantity} ${
-              product.name
+              product.name || product.searchName || ''
             } (${unitQuantity} ${unitType}) ${
               finalNote ? ` ${finalNote}` : ""
             }`;
           } else if (isSize) {
             const productSize = document.getElementById("productSize").value;
             const sizeText = productSize === "medium" ? "בינוני" : "גדול";
-            productSummary = `${trayQuantity} ${product.name} (${sizeText}) ${
+            productSummary = `${trayQuantity} ${product.name || product.searchName || ''} (${sizeText}) ${
               finalNote ? ` ${finalNote}` : ""
             }`;
           } else {
-            productSummary = `${trayQuantity} ${product.name} ${
+            productSummary = `${trayQuantity} ${product.name || product.searchName || ''} ${
               finalNote ? ` ${finalNote}` : ""
             }`;
           }
