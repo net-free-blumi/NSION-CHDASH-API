@@ -4800,51 +4800,7 @@ document.addEventListener('keydown', function(e) {
           }, 500);
         });
 
-      // מעדכנים את פונקציית pasteFromClipboard
-      window.pasteFromClipboard = async function () {
-        try {
-          const text = await navigator.clipboard.readText();
-
-          // בדיקה שהטקסט אינו URL
-          if (text.startsWith('http://') || text.startsWith('https://')) {
-            showNotification('לא ניתן להדביק URL, יש להדביק רק מק"ט', 'red');
-            return;
-          }
-
-          const searchInput = document.getElementById("searchInput");
-          const productCodeInput = document.getElementById("productCode");
-
-          // בדיקה שהטקסט מכיל רק מספרים (מק"ט תקין)
-          const cleanCode = text.trim();
-          if (!/^\d+$/.test(cleanCode)) {
-            showNotification('מק"ט חייב להכיל רק מספרים', 'red');
-            return;
-          }
-
-          if (searchInput) searchInput.value = cleanCode;
-          if (productCodeInput) productCodeInput.value = cleanCode;
-
-          // הפעלת החיפוש
-          if (typeof searchProduct === 'function') {
-            searchProduct();
-          }
-
-          // בדיקה אם זה מק"ט של ביסים
-          if (typeof checkBisProduct === 'function') {
-            checkBisProduct(cleanCode);
-          }
-
-          // הגדרת המוצר
-          if (typeof configureProduct === 'function') {
-            configureProduct(cleanCode);
-          }
-
-          showNotification('הודבק בהצלחה!', 'green');
-        } catch (err) {
-          console.error('Failed to read clipboard:', err);
-          showNotification('לא הצלחנו לגשת ללוח ההעתקה', 'red');
-        }
-      };
+      // פונקציית pasteFromClipboard הוחלפה בגרסה חדשה בסוף הקובץ
 
       document
         .getElementById("increaseButton")
@@ -6290,7 +6246,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
       }
 
       // פונקציה להדבקה מלוח ההעתקה - מעודכנת לעבוד עם products-loader
-      async function pasteFromClipboard() {
+      window.pasteFromClipboard = async function() {
         try {
           console.log('🔍 pasteFromClipboard: Starting paste operation');
           const text = await navigator.clipboard.readText();
