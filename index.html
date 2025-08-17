@@ -5793,22 +5793,33 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
         if (input.length > 0) {
           // שימוש ב-unifiedProductData במקום products
-          const filteredProducts = Object.entries(unifiedProductData).filter(
-            ([code, product]) =>
-              code.includes(input) ||
-              (product.searchName && product.searchName.toLowerCase().includes(input)) ||
-              product.name.toLowerCase().includes(input)
-          );
+          let filteredProducts = [];
+          if (typeof unifiedProductData === 'object' && unifiedProductData) {
+            filteredProducts = Object.entries(unifiedProductData).filter(
+              ([code, product]) =>
+                code.includes(input) ||
+                (product.searchName && product.searchName.toLowerCase().includes(input)) ||
+                (product.name && product.name.toLowerCase().includes(input))
+            );
+          }
+
+          // אם אין תוצאות, ננסה דרך productsLoader (API)
+          if (filteredProducts.length === 0 && window.productsLoader && typeof window.productsLoader.searchProduct === 'function') {
+            const apiResults = window.productsLoader.searchProduct(input);
+            if (Array.isArray(apiResults) && apiResults.length > 0) {
+              filteredProducts = apiResults.map(r => [r.code, r]);
+            }
+          }
 
           // יצירת רשימת תוצאות
           filteredProducts.forEach(([code, product]) => {
             const li = document.createElement("li");
             const sizesInfo = product.sizes && product.sizes.length > 0
               ? product.sizes.map((sizeObj) => `${sizeObj.size} ${sizeObj.price} ש"ח`).join(" | ")
-              : "";
+              : (product.price ? `${product.price} ש"ח` : "");
             // הצג searchName אם קיים, אחרת name
-            const displayName = product.searchName || product.name;
-            li.innerHTML = `${displayName} (מק"ט: ${code}) - ${sizesInfo}`;
+            const displayName = product.searchName || product.name || '';
+            li.innerHTML = `${displayName} (מק"ט: ${code})${sizesInfo ? ' - ' + sizesInfo : ''}`;
 
             const copyButton = document.createElement("button");
             copyButton.textContent = 'העתק מס מק"ט';
