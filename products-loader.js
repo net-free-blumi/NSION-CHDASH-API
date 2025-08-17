@@ -20,11 +20,11 @@ class ProductsLoader {
     // אתחול רכיב הטעינה
     async init() {
         try {
-            await this.loadProducts();
-            this.replaceExistingData();
-            this.setupProductSearch();
+        await this.loadProducts();
+        this.replaceExistingData();
+        this.setupProductSearch();
             // אל תיצור כפתור רענון צף כפול
-            this.addSystemStatus();
+        this.addSystemStatus();
             console.log('🚀 ProductsLoader initialized');
         } catch (e) {
             console.warn('ProductsLoader init failed:', e);
@@ -75,9 +75,9 @@ class ProductsLoader {
             const baseUrl = (typeof config !== 'undefined' && config.getApiBaseUrl) ? config.getApiBaseUrl() : window.location.origin;
             const response = await fetch(`${baseUrl}/api/products`, { cache: 'no-store' });
             if (!response.ok) throw new Error(`API ${response.status}`);
-            const data = await response.json();
-            this.products = data.products || {};
-            this.categories = data.categories || {};
+                const data = await response.json();
+                this.products = data.products || {};
+                this.categories = data.categories || {};
         } catch (err) {
             console.error('טעינת מוצרים מה-API נכשלה:', err);
             // Fallback לקובץ products.json בשורש האתר
@@ -374,50 +374,54 @@ class ProductsLoader {
 
     // טיפול בקלט חיפוש
     async handleSearchInput(query) {
-        const q = (typeof query === 'string') ? query : '';
-        if (!q.trim()) {
+        try {
+            const q = (typeof query === 'string') ? query : '';
+            if (!q.trim()) {
             this.clearSearchResults();
             return;
         }
 
         // חיפוש מהיר במוצרים
-        let results = this.searchProduct(q);
-        this.lastResults = results;
-        this.displaySearchResults(results, q);
+            let results = this.searchProduct(q);
+            this.lastResults = results;
+            this.displaySearchResults(results, q);
 
-        // אם אין תוצאות, נסה לרענן מה-API פעם אחת ואז חפש שוב
-        if ((!results || results.length === 0) && !this._refreshOnMissInFlight) {
-            try {
-                this._refreshOnMissInFlight = true;
-                await this.refreshData();
-                results = this.searchProduct(q);
-                this.lastResults = results;
-                this.displaySearchResults(results, q);
-            } finally {
-                this._refreshOnMissInFlight = false;
+            // אם אין תוצאות, נסה לרענן מה-API פעם אחת ואז חפש שוב
+            if ((!results || results.length === 0) && !this._refreshOnMissInFlight) {
+                try {
+                    this._refreshOnMissInFlight = true;
+                    await this.refreshData();
+                    results = this.searchProduct(q);
+                    this.lastResults = results;
+                    this.displaySearchResults(results, q);
+                } finally {
+                    this._refreshOnMissInFlight = false;
+                }
             }
-        }
 
         // הוספת אפקט חיפוש
-        const searchInput = document.getElementById('searchInput') || document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');
+            const searchInput = document.getElementById('searchInput') || document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');
         if (searchInput) {
-            const ok = Array.isArray(results) ? results.length > 0 : !!results;
-            searchInput.style.borderColor = ok ? '#28a745' : '#dc3545';
-            searchInput.style.boxShadow = ok ? '0 0 0 3px rgba(40,167,69,0.1)' : '0 0 0 3px rgba(220,53,69,0.1)';
+                const ok = Array.isArray(results) ? results.length > 0 : !!results;
+                searchInput.style.borderColor = ok ? '#28a745' : '#dc3545';
+                searchInput.style.boxShadow = ok ? '0 0 0 3px rgba(40,167,69,0.1)' : '0 0 0 3px rgba(220,53,69,0.1)';
 
             // החזרה למצב רגיל אחרי 2 שניות
             setTimeout(() => {
                 searchInput.style.borderColor = '';
                 searchInput.style.boxShadow = '';
             }, 2000);
-        }
-
-        // אם יש התאמה מדויקת לקוד, קנפג את המוצר בממשק
-        const term = String(q).trim();
-        if (this.products[term]) {
-            if (typeof window.configureProduct === 'function') {
-                try { window.configureProduct(term); } catch {}
             }
+
+            // אם יש התאמה מדויקת לקוד, קנפג את המוצר בממשק
+            const term = String(q).trim();
+            if (this.products[term]) {
+                if (typeof window.configureProduct === 'function') {
+                    try { window.configureProduct(term); } catch {}
+                }
+            }
+        } catch (err) {
+            console.warn('handleSearchInput error:', err);
         }
     }
 
@@ -443,6 +447,7 @@ class ProductsLoader {
             } else {
                 listEl.innerHTML = `<li style="padding:10px; color:#666;">לא נמצאו תוצאות עבור "${query}"</li>`;
             }
+            listEl.style.display = '';
             listEl.querySelectorAll('.copy-sku-btn').forEach(btn => btn.addEventListener('click', (e) => this.copySku(e.currentTarget.getAttribute('data-code'))));
             listEl.querySelectorAll('.select-sku-btn').forEach(btn => btn.addEventListener('click', (e) => this.selectSku(e.currentTarget.getAttribute('data-code'))));
             return;
@@ -473,7 +478,7 @@ class ProductsLoader {
                         <button type=\"button\" data-code=\"${r.code}\" class=\"copy-sku-btn\">📋 העתק מק\"ט</button>
                         <button type=\"button\" data-code=\"${r.code}\" class=\"select-sku-btn\">➕ בחר</button>
                     </div>
-                </div>
+                        </div>
             `).join('');
             resultsContainer.style.display = 'block';
             resultsContainer.querySelectorAll('.copy-sku-btn').forEach(btn => btn.addEventListener('click', (e) => this.copySku(e.currentTarget.getAttribute('data-code'))));
@@ -513,9 +518,14 @@ class ProductsLoader {
 
     // ניקוי תוצאות חיפוש
     clearSearchResults() {
-        const resultsContainer = document.getElementById('searchResults');
-        if (resultsContainer) {
-            resultsContainer.style.display = 'none';
+        const el = document.getElementById('searchResults');
+        if (!el) return;
+        if (el.tagName === 'UL') {
+            el.innerHTML = '';
+            el.style.display = '';
+        } else {
+            el.style.display = 'none';
+            el.innerHTML = '';
         }
     }
 
@@ -576,9 +586,9 @@ class ProductsLoader {
     // פונקציה לרענון נתונים
     async refreshData() {
         try {
-            await this.loadProducts();
-            this.replaceExistingData();
-            console.log('נתוני המוצרים רועננו בהצלחה');
+        await this.loadProducts();
+        this.replaceExistingData();
+        console.log('נתוני המוצרים רועננו בהצלחה');
             this.showSystemNotification('✅ המוצרים רועננו', 'success');
         } catch (e) {
             this.showSystemNotification('❌ שגיאה ברענון מוצרים', 'error');
