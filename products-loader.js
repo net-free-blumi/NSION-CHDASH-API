@@ -433,15 +433,15 @@ class ProductsLoader {
                         ? r.sizes.map(s=>`${s.size} - ₪${s.price}`).join(', ')
                         : (r.price ? `₪${r.price}` : '');
                     return `
-                    <li style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 8px; border-bottom:1px solid #eee;">
-                        <div>
-                            <div style="font-weight:700; color:#2c3e50;">${title}</div>
-                            <div style="margin-top:4px; font-size:0.85em; color:#666;">
-                                <span style="background:#f1f3f5; color:#495057; border:1px solid #e9ecef; border-radius:12px; padding:2px 8px;">מק"ט: <span class="sku">${r.code}</span></span>
+                    <li style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 8px; border-bottom:1px solid #eee;">
+                        <div style="flex:1; min-width:0;">
+                            <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+                                <div style="font-weight:700; color:#2c3e50;">${title}</div>
+                                <span style="background:#f1f3f5; color:#495057; border:1px solid #e9ecef; border-radius:12px; padding:2px 10px; white-space:nowrap;">מק"ט: <span class="sku">${r.code}</span></span>
                             </div>
                             ${priceLine ? `<div style=\"margin-top:6px; font-size:0.95em; color:#28a745; font-weight:600;\">${priceLine}</div>` : ''}
                         </div>
-                        <div style="display:flex; gap:6px;">
+                        <div style="display:flex; gap:8px;">
                             <button type="button" data-code="${r.code}" class="copy-sku-btn">📋 העתק מק"ט</button>
                             <button type="button" data-code="${r.code}" class="select-sku-btn">➕ בחר</button>
                         </div>
@@ -479,15 +479,15 @@ class ProductsLoader {
                     ? r.sizes.map(s=>`${s.size} - ₪${s.price}`).join(', ')
                     : (r.price ? `₪${r.price}` : '');
                 return `
-                <div style=\"padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; gap:8px;\">
-                    <div>
-                        <div style=\"font-weight:700; color:#2c3e50;\">${title}</div>
-                        <div style=\"margin-top:4px; font-size:0.85em; color:#666;\">
-                            <span style=\"background:#f1f3f5; color:#495057; border:1px solid #e9ecef; border-radius:12px; padding:2px 8px;\">מק\"ט: <span class=\"sku\">${r.code}</span></span>
+                <div style=\"padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; gap:10px;\">
+                    <div style=\"flex:1; min-width:0;\">
+                        <div style=\"display:flex; align-items:center; gap:18px; flex-wrap:wrap;\">
+                            <div style=\"font-weight:700; color:#2c3e50;\">${title}</div>
+                            <span style=\"background:#f1f3f5; color:#495057; border:1px solid #e9ecef; border-radius:12px; padding:2px 10px; white-space:nowrap;\">מק\"ט: <span class=\"sku\">${r.code}</span></span>
                         </div>
                         ${priceLine ? `<div style=\\"margin-top:6px; font-size:0.95em; color:#28a745; font-weight:600;\\">${priceLine}</div>` : ''}
                     </div>
-                    <div style=\"display:flex; gap:6px;\">
+                    <div style=\"display:flex; gap:8px;\">
                         <button type=\"button\" data-code=\"${r.code}\" class=\"copy-sku-btn\">📋 העתק מק\"ט</button>
                         <button type=\"button\" data-code=\"${r.code}\" class=\"select-sku-btn\">➕ בחר</button>
                     </div>
