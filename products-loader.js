@@ -425,20 +425,28 @@ class ProductsLoader {
         const listEl = document.getElementById('searchResults');
         if (listEl && listEl.tagName === 'UL') {
             if (results && results.length) {
-                const content = results.map(r => `
-                    <li style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 6px; border-bottom:1px solid #eee;">
+                const content = results.map(r => {
+                    const title = r.name && r.searchName && r.searchName.toLowerCase() !== r.name.toLowerCase()
+                        ? `${r.name} <span style=\"font-size:0.9em; color:#6c757d; font-style:italic;\">(${r.searchName})</span>`
+                        : (r.name || r.searchName || '');
+                    const priceLine = (r.sizes && r.sizes.length>0)
+                        ? r.sizes.map(s=>`${s.size} - ₪${s.price}`).join(', ')
+                        : (r.price ? `₪${r.price}` : '');
+                    return `
+                    <li style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 8px; border-bottom:1px solid #eee;">
                         <div>
-                            <div style="font-weight:600;">${r.name || ''}</div>
-                            ${r.searchName && !r.name ? `<div style="font-size:0.8em; color:#666; font-style:italic;">${r.searchName}</div>` : ''}
-                            <div style="font-size:0.9em; color:#666;">מק"ט: <span class="sku">${r.code}</span></div>
-                            <div style="font-size:0.9em; color:#28a745;">${(r.sizes && r.sizes.length>0) ? r.sizes.map(s=>`${s.size} - ₪${s.price}`).join(', ') : (r.price ? `₪${r.price}` : '')}</div>
+                            <div style="font-weight:700; color:#2c3e50;">${title}</div>
+                            <div style="margin-top:4px; font-size:0.85em; color:#666;">
+                                <span style="background:#f1f3f5; color:#495057; border:1px solid #e9ecef; border-radius:12px; padding:2px 8px;">מק"ט: <span class="sku">${r.code}</span></span>
+                            </div>
+                            ${priceLine ? `<div style=\"margin-top:6px; font-size:0.95em; color:#28a745; font-weight:600;\">${priceLine}</div>` : ''}
                         </div>
                         <div style="display:flex; gap:6px;">
                             <button type="button" data-code="${r.code}" class="copy-sku-btn">📋 העתק מק"ט</button>
                             <button type="button" data-code="${r.code}" class="select-sku-btn">➕ בחר</button>
                         </div>
-                    </li>
-                `).join('');
+                    </li>`;
+                }).join('');
                 listEl.innerHTML = content;
             } else {
                 listEl.innerHTML = `<li style="padding:10px; color:#666;">לא נמצאו תוצאות עבור "${query}"</li>`;
@@ -463,20 +471,28 @@ class ProductsLoader {
         }
 
         if (results && results.length) {
-            resultsContainer.innerHTML = results.map(r => `
-                <div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; gap:8px;">
+            resultsContainer.innerHTML = results.map(r => {
+                const title = r.name && r.searchName && r.searchName.toLowerCase() !== r.name.toLowerCase()
+                    ? `${r.name} <span style=\"font-size:0.9em; color:#6c757d; font-style:italic;\">(${r.searchName})</span>`
+                    : (r.name || r.searchName || '');
+                const priceLine = (r.sizes && r.sizes.length>0)
+                    ? r.sizes.map(s=>`${s.size} - ₪${s.price}`).join(', ')
+                    : (r.price ? `₪${r.price}` : '');
+                return `
+                <div style=\"padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; gap:8px;\">
                     <div>
-                        <div style=\"font-weight:600;\">${r.name || ''}</div>
-                        ${r.searchName && !r.name ? `<div style=\"font-size:0.8em; color:#666; font-style:italic;\">${r.searchName}</div>` : ''}
-                        <div style=\"font-size:0.9em; color:#666;\">מק\"ט: <span class=\"sku\">${r.code}</span></div>
-                        <div style=\"font-size:0.9em; color:#28a745;\">${(r.sizes && r.sizes.length>0) ? r.sizes.map(s=>`${s.size} - ₪${s.price}`).join(', ') : (r.price ? `₪${r.price}` : '')}</div>
+                        <div style=\"font-weight:700; color:#2c3e50;\">${title}</div>
+                        <div style=\"margin-top:4px; font-size:0.85em; color:#666;\">
+                            <span style=\"background:#f1f3f5; color:#495057; border:1px solid #e9ecef; border-radius:12px; padding:2px 8px;\">מק\"ט: <span class=\"sku\">${r.code}</span></span>
+                        </div>
+                        ${priceLine ? `<div style=\\"margin-top:6px; font-size:0.95em; color:#28a745; font-weight:600;\\">${priceLine}</div>` : ''}
                     </div>
                     <div style=\"display:flex; gap:6px;\">
                         <button type=\"button\" data-code=\"${r.code}\" class=\"copy-sku-btn\">📋 העתק מק\"ט</button>
                         <button type=\"button\" data-code=\"${r.code}\" class=\"select-sku-btn\">➕ בחר</button>
                     </div>
-                        </div>
-            `).join('');
+                </div>`;
+            }).join('');
             resultsContainer.style.display = 'block';
             resultsContainer.querySelectorAll('.copy-sku-btn').forEach(btn => btn.addEventListener('click', (e) => this.copySku(e.currentTarget.getAttribute('data-code'))));
             resultsContainer.querySelectorAll('.select-sku-btn').forEach(btn => btn.addEventListener('click', (e) => this.selectSku(e.currentTarget.getAttribute('data-code'))));
