@@ -33,7 +33,7 @@ class ProductManager {
     }
 
 
-    async saveAllToServer() {
+    async saveAllToServer(replace = false) {
         try {
             // נסיון שמירה עם ניסיונות חוזרים
             const MAX_RETRIES = 3;
@@ -47,7 +47,8 @@ class ProductManager {
                         body: JSON.stringify({
                             products: this.products,
                             categories: this.categories,
-                            timestamp: new Date().toISOString()
+                            timestamp: new Date().toISOString(),
+                            replace
                         })
                     });
 
@@ -299,6 +300,11 @@ class ProductManager {
         }
     }
 
+    // ייצוא מוצרים (עטיפה נוחה לכפתור בממשק)
+    exportProducts() {
+        return this.saveProductsToFile();
+    }
+
     async refreshProducts() {
         this.showNotification('🔄 מרענן מוצרים...', 'info');
         // ניקוי תיבת החיפוש
@@ -343,8 +349,8 @@ class ProductManager {
                 this.categories = { ...this.categories, ...data.categories };
             }
 
-            // לאחר ייבוא קובץ: שמירה מלאה כדי לוודא סנכרון
-            await this.saveAllToServer();
+            // לאחר ייבוא קובץ: שמירה בהחלפה מלאה כדי לוודא שאין כפילויות/שאריות
+            await this.saveAllToServer(true);
 
             this.updateProductsDisplay();
             this.updateStats();

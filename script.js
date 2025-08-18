@@ -609,6 +609,10 @@ function copyCurrentSummary() {
 function newOrder() {
     // העיר את השרת בהתחלת הזמנה חדשה
     wakeUpServer();
+    // רענון נתוני מוצרים רק בעת התחלת הזמנה חדשה
+    if (window.productsLoader && typeof window.productsLoader.refreshData === 'function') {
+        try { window.productsLoader.refreshData(); } catch {}
+    }
     
     // ניקוי localStorage של ההזמנה
     localStorage.removeItem("orderNumber");

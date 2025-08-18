@@ -202,7 +202,7 @@ app.get('/api/stats', async (req, res) => {
 app.post('/api/products/save', async (req, res) => {
     try {
         console.log('Save products request received');
-        const { products, categories, timestamp } = req.body;
+        const { products, categories, timestamp, replace } = req.body;
         
         if (!products) {
             return res.status(400).json({ error: 'products missing' });
@@ -210,6 +210,11 @@ app.post('/api/products/save', async (req, res) => {
 
         if (mongoEnabled && mongoose.connection.readyState === 1) {
             // עדכון מוצרים ב-DB
+            const submittedCodes = Object.keys(products);
+            if (replace && submittedCodes.length > 0) {
+                // מחיקת מוצרים שלא קיימים בקובץ המיובא
+                await Product.deleteMany({ code: { $nin: submittedCodes } });
+            }
             for (const [code, productData] of Object.entries(products)) {
                 await Product.findOneAndUpdate(
                     { code },
@@ -234,9 +239,14 @@ app.post('/api/products/save', async (req, res) => {
             const raw = await fs.readFile(filePathToUse, 'utf8').catch(() => '{"products":{},"categories":{}}');
             const data = JSON.parse(raw || '{}');
             const merged = { products: data.products || {}, categories: data.categories || {} };
-            // כתיבת דלתא: עדכון רק מה שהגיע בבקשה
-            for (const [code, p] of Object.entries(products)) {
-                merged.products[code] = { ...(merged.products[code] || {}), ...p };
+            if (replace) {
+                // החלפה מלאה של המוצרים
+                merged.products = products;
+            } else {
+                // כתיבת דלתא: עדכון רק מה שהגיע בבקשה
+                for (const [code, p] of Object.entries(products)) {
+                    merged.products[code] = { ...(merged.products[code] || {}), ...p };
+                }
             }
             if (categories) {
                 merged.categories = { ...merged.categories, ...categories };

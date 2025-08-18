@@ -817,10 +817,7 @@ function startServerKeepAlive() {
 document.addEventListener('DOMContentLoaded', () => {
   wakeUpServer(true).then(() => {
     startServerKeepAlive();
-    // רענון נתוני מוצרים בעת פתיחת הדף בלבד
-    if (window.productsLoader && typeof window.productsLoader.refreshData === 'function') {
-      window.productsLoader.refreshData();
-    }
+    // בוטל: אין רענון מוצרים אוטומטי בטעינת הדף
   });
 });
 </script>
@@ -5742,17 +5739,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         if (input.length > 0) {
           // בדיקה אם המוצרים נטענו
           if (!window.unifiedProductData || Object.keys(window.unifiedProductData).length === 0) {
-            resultsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">⏳ טוען מוצרים...</div>';
-            
-            // נסיון לטעון מוצרים אם productsLoader זמין
-            if (window.productsLoader && typeof window.productsLoader.refreshData === 'function') {
-              window.productsLoader.refreshData().then(() => {
-                // ניסיון חיפוש חוזר אחרי טעינה
-                setTimeout(() => searchProduct(), 500);
-              }).catch(() => {
-                resultsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">❌ שגיאה בטעינת מוצרים</div>';
-              });
-            }
+            resultsList.innerHTML = '<div style="text-align: center; padding: 10px; color: #666;">❌ מוצרים לא נטענו. לחץ "סנכרון מוצרים" אם נדרש.</div>';
             return;
           }
 
@@ -6198,13 +6185,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         
         // וידוא שהמוצרים זמינים לחיפוש
         if (!window.unifiedProductData || Object.keys(window.unifiedProductData).length === 0) {
-          console.warn("unifiedProductData לא נטען - נסיון לטעון מחדש");
-          // נסיון לטעון מוצרים אם productsLoader זמין
-          if (window.productsLoader && typeof window.productsLoader.refreshData === 'function') {
-            window.productsLoader.refreshData().catch(err => {
-              console.error("שגיאה בטעינת מוצרים:", err);
-            });
-          }
+          console.warn("unifiedProductData לא נטען - אין רענון אוטומטי");
         }
       });
 

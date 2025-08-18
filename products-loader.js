@@ -391,18 +391,7 @@ class ProductsLoader {
             this.lastResults = results;
             this.displaySearchResults(results, q);
 
-            // אם אין תוצאות, נסה לרענן מה-API פעם אחת ואז חפש שוב
-            if ((!results || results.length === 0) && !this._refreshOnMissInFlight) {
-                try {
-                    this._refreshOnMissInFlight = true;
-                    await this.refreshData();
-                    results = this.searchProduct(q);
-                    this.lastResults = results;
-                    this.displaySearchResults(results, q);
-                } finally {
-                    this._refreshOnMissInFlight = false;
-                }
-            }
+            // בוטל: אין רענון אוטומטי בזמן חיפוש
 
         // הוספת אפקט חיפוש
             const searchInput = document.getElementById('searchInput') || document.querySelector('input[placeholder*="מקט"], input[placeholder*="מוצר"]');

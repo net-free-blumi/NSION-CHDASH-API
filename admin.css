@@ -1,4 +1,25 @@
 
+
+
+
+body {
+    font-family: "Rubik", sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    background-image: url("Black-logo.jpg");
+    background-size: cover;
+    background-attachment: fixed;
+    padding: 10px; /* מרווח כדי למנוע חיתוך במסכים קטנים */
+    text-align: right;
+    color: #333;
+    align-items: flex-start;
+    min-height: 100vh;
+  }
+
+
+
+
+
 /* עיצוב מערכת התחברות */
 .login-container {
     display: flex;
