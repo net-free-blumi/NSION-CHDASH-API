@@ -149,8 +149,8 @@ class ProductManager {
         const card = document.createElement('div');
         card.className = 'product-card';
         
-        // הצגת שם המוצר - אם אין name, נציג ריק
-        const productName = product.name || product.Name || '';
+        // הצגת שם המוצר - אם אין name, נציג searchName או ריק
+        const productName = product.name || product.Name || product.searchName || '';
         const productType = product.type || 'none';
         
         // בניית מידע על המוצר
@@ -164,8 +164,8 @@ class ProductManager {
                 <p><strong>סוג:</strong> ${this.getTypeDisplay(productType)}</p>
         `;
         
-        // הוספת שם חיפוש אם קיים
-        if (product.searchName) {
+        // הוספת שם חיפוש אם קיים ושונה מהשם הראשי
+        if (product.searchName && product.searchName !== productName) {
             productInfo += `<p><strong>שם לחיפוש:</strong> <span class="search-name">${product.searchName}</span></p>`;
         }
         
