@@ -1,0 +1,1031 @@
+// מערכת ניהול מוצרים - גולדיס
+class ProductManager {
+    constructor() {
+        this.products = {};
+        this.categories = {
+            "kitchen": "מוצרי מטבח",
+            "bakery": "קונדיטורייה",
+            "fruits": "פירות",
+            "sushi": "סושי",
+            "amar": "קונדיטורייה עמר",
+            "kitchenProducts": "מטבח מוסטפה",
+            "online": "אונליין",
+            "warehouse": "מחסן",
+            "sizes": "מוצרי גדלים",
+            "quantities": "מוצרי כמות",
+        };
+        this.init();
+    }
+
+    async init() {
+        try {
+            // בדיקת חיבור לשרת
+            const response = await fetch(`${config.getApiBaseUrl()}/api/stats`);
+            if (!response.ok) {
+                throw new Error('שגיאה בהתחברות לשרת');
+            }
+            await this.loadProducts();
+            this.updateStats();
+            window.productManager = this;
+        } catch (error) {
+            console.warn('Init failed:', error);
+            this.showNotification('❌ שגיאה בהתחברות לשרת', 'error');
+        }
+    }
+
+    async saveAllToServer() {
+        try {
+            const response = await fetch(`${config.getApiBaseUrl()}/api/products/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    products: this.products,
+                    categories: this.categories,
+                    timestamp: new Date().toISOString()
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('שגיאה בשמירת המוצרים');
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'שגיאה לא ידועה');
+            }
+
+            console.log('✅ המוצרים נשמרו בהצלחה:', result);
+            return true;
+        } catch (error) {
+            console.error('שגיאה בשמירה:', error);
+            this.showNotification('❌ שגיאה בשמירת המוצרים: ' + error.message, 'error');
+            throw error;
+        }
+    }
+            
+            this.showNotification('❌ שגיאה בשמירת המוצרים: ' + e.message, 'error');
+            throw e;
+        }
+    }
+    // בסיס URL לשרת
+    static getApiBaseUrl() {
+        return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:5000'
+            : 'https://nsaion-golsya.netlify.app';
+    }
+
+    // שמירה מיידית לשרת אחרי כל שינוי עם ניהול שגיאות משופר
+    async saveAllToServer(retryCount = 0) {
+        const MAX_RETRIES = 2;
+        try {
+            // שמירת כל המוצרים בבת אחת
+            const response = await fetch(`${ProductManager.getApiBaseUrl()}/api/products/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    products: this.products,
+                    categories: this.categories,
+                    timestamp: new Date().toISOString()
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'שגיאה בשמירת המוצרים');
+            }
+
+            const result = await response.json();
+            console.log('✅ כל המוצרים נשמרו בהצלחה:', result);
+            
+            // וידוא שהנתונים נשמרו
+            await this.loadProducts();
+            
+            return true;
+        } catch (e) {
+            console.error('שגיאה בשמירה לשרת:', e);
+            
+            if (retryCount < MAX_RETRIES) {
+                console.log(`ניסיון שמירה חוזר ${retryCount + 1} מתוך ${MAX_RETRIES}`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return this.saveAllToServer(retryCount + 1);
+            }
+            
+            this.showNotification('❌ שגיאה בשמירת המוצרים: ' + e.message, 'error');
+            throw e;
+        }
+    }
+    constructor() {
+        this.products = {};
+        this.categories = {
+            "kitchen": "מוצרי מטבח",
+            "bakery": "קונדיטורייה",
+            "fruits": "פירות",
+            "sushi": "סושי",
+            "amar": "קונדיטורייה עמר",
+            "kitchenProducts": "מטבח מוסטפה",
+            "online": "אונליין",
+            "warehouse": "מחסן",
+            "sizes": "מוצרי גדלים",
+            "quantities": "מוצרי כמות",
+        };
+        this.init();
+    }
+
+    async init() {
+        // Keep backend awake by pinging it
+        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:5000' 
+            : 'https://nsion-chdash-api.onrender.com';
+        try {
+            await fetch(`${API_BASE_URL}/api/stats`);
+        } catch (error) {
+            console.warn('Keep-alive ping failed:', error);
+        }
+
+    await this.loadProducts();
+    // this.displayProducts(); // Removed: Replaced by updateProductsDisplay
+    this.updateStats();
+    window.productManager = this;
+    }
+
+    // פונקציה לטעינת מוצרים מ-API
+    async loadProducts() {
+        try {
+            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:5000' 
+                : 'https://nsion-chdash-api.onrender.com';
+
+            const response = await fetch(`${API_BASE_URL}/api/products`);
+            if (!response.ok) {
+                throw new Error('שגיאה בטעינת מוצרים מהשרת');
+            }
+
+            const data = await response.json();
+            this.products = data.products || {};
+            this.categories = data.categories || {};
+
+            this.updateProductsDisplay();
+            this.updateStats();
+
+            console.log('✅ מוצרים נטענו בהצלחה מהשרת');
+        } catch (error) {
+            console.error('שגיאה בטעינת מוצרים:', error);
+            this.showNotification(`❌ ${error.message}`, 'error');
+        }
+    }
+
+    // פונקציה לעדכון תצוגת המוצרים
+    updateProductsDisplay() {
+        const container = document.getElementById('products-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        Object.entries(this.products).forEach(([code, product]) => {
+            const productCard = this.createProductCard(code, product);
+            container.appendChild(productCard);
+        });
+    }
+
+    // פונקציה ליצירת כרטיס מוצר
+    createProductCard(code, product) {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        
+        // וידוא שיש לפחות שם למוצר
+        const productName = product.name || product.Name || 'ללא שם';
+        const productType = product.type || 'none';
+        
+        // בניית מידע על המוצר
+        let productInfo = `
+            <div class="product-header">
+                <h3>${productName}</h3>
+                <span class="product-code">${code}</span>
+            </div>
+            <div class="product-details">
+                <p><strong>קטגוריה:</strong> ${this.categories[product.category] || 'לא מוגדר'}</p>
+                <p><strong>סוג:</strong> ${this.getTypeDisplay(productType)}</p>
+                <!-- Removed redundant line about base price -->
+        `;
+        
+        // הוספת שם חיפוש אם קיים
+        if (product.searchName) {
+            productInfo += `<p><strong>שם לחיפוש:</strong> <span class="search-name">${product.searchName}</span></p>`;
+        }
+        
+        // הצגת פרטים לפי סוג המוצר
+        if (productType === 'quantity') {
+            if (product.defaultQuantity) {
+                productInfo += `<p><strong>כמות ברירת מחדל:</strong> ${product.defaultQuantity} ${product.unit || ''}</p>`;
+            }
+            if (product.predefinedQuantities && product.predefinedQuantities.length > 0) {
+                productInfo += `<p><strong>כמויות זמינות:</strong> ${product.predefinedQuantities.join(', ')} ${product.unit || ''}</p>`;
+            }
+        } else if (productType === 'size' && product.defaultSize) {
+            productInfo += `<p><strong>גודל ברירת מחדל:</strong> ${product.defaultSize}</p>`;
+        }
+        
+        // הצגת יחידת מידה לכל סוגי המוצרים אם קיימת
+        if (product.unit && productType !== 'quantity') {
+            productInfo += `<p><strong>יחידת מידה:</strong> ${product.unit}</p>`;
+        }
+        
+        // הצגת מחירים - תמיכה בכל הפורמטים
+        if (product.sizes && product.sizes.length > 0) {
+            const validSizes = product.sizes.filter(s => s.size && (s.price !== undefined && s.price !== null));
+            if (validSizes.length > 0) {
+                const pricesDisplay = validSizes.map(s => {
+                    const price = s.price === 0 ? 'חינם' : `₪${s.price}`;
+                    return `${s.size}: ${price}`;
+                }).join(', ');
+                productInfo += `<p><strong>גדלים ומחירים:</strong> ${pricesDisplay}</p>`;
+            }
+        } else if (product.price !== undefined && product.price !== null) {
+            const price = product.price === 0 ? 'חינם' : `₪${product.price}`;
+            productInfo += `<p><strong>מחיר:</strong> ${price}</p>`;
+        }
+        
+        // הצגת יחידת מידה אם קיימת
+        if (product.unit) {
+            productInfo += `<p><strong>יחידת מידה:</strong> ${product.unit}</p>`;
+        }
+        
+        // הצגת כמות רגילה אם קיימת (לא defaultQuantity)
+        if (product.quantity && !product.defaultQuantity) {
+            productInfo += `<p><strong>כמות:</strong> ${product.quantity}</p>`;
+        }
+        
+        productInfo += `
+            </div>
+            <div class="product-actions">
+                <button onclick="productManager.editProduct('${code}')" class="btn btn-primary">✏️ עריכה</button>
+                <button onclick="productManager.deleteProductConfirm('${code}')" class="btn btn-danger">🗑️ מחיקה</button>
+            </div>
+        `;
+        
+        card.innerHTML = productInfo;
+        return card;
+    }
+
+    // פונקציה להצגת סוג המוצר
+    getTypeDisplay(type) {
+        const types = {
+            'quantity': 'כמות',
+            'size': 'גודל',
+            'none': 'ללא כמות/גודל'
+        };
+        return types[type] || 'לא מוגדר';
+    }
+
+    // פונקציה לעדכון סטטיסטיקות
+    updateStats() {
+        const stats = this.calculateStats();
+        const statsContainer = document.getElementById('stats-container');
+
+        if (statsContainer) {
+            const statItems = statsContainer.querySelectorAll('.stat-item .stat-number');
+            if (statItems.length >= 4) {
+                statItems[0].textContent = stats.total;
+                statItems[1].textContent = stats.sizeType;
+                statItems[2].textContent = stats.quantityType;
+                statItems[3].textContent = stats.noneType;
+            }
+        }
+    }
+
+    // פונקציה לחישוב סטטיסטיקות
+    calculateStats() {
+        const products = Object.values(this.products);
+        return {
+            total: products.length,
+            sizeType: products.filter(p => p.type === 'size').length,
+            quantityType: products.filter(p => p.type === 'quantity').length,
+            noneType: products.filter(p => p.type === 'none').length
+        };
+    }
+
+    // פונקציה להצגת הודעות
+    showNotification(message, type = 'info') {
+        const container = document.getElementById('notifications-container');
+        if (!container) return;
+
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+
+        container.appendChild(notification);
+
+        setTimeout(() => {
+            notification.remove();
+        }, 5000);
+    }
+
+    // פונקציה לשמירת מוצרים לקובץ JSON
+    async saveProductsToFile() {
+        try {
+            // נייצא את הקובץ ישירות ללא תלות בשרת
+            const jsonContent = JSON.stringify({ 
+                products: this.products, 
+                categories: this.categories,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            }, null, 2);
+
+            const blob = new Blob([jsonContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `products_export_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            this.showNotification('✅ מוצרים יוצאו בהצלחה', 'success');
+
+            // ננסה לשמור בשרת ברקע
+            this.saveAllToServer().catch(error => {
+                console.warn('שגיאה בשמירה לשרת אחרי ייצוא:', error);
+                // לא נציג הודעת שגיאה למשתמש כי הייצוא הצליח
+            });
+        } catch (error) {
+            console.error('שגיאה בשמירת קובץ:', error);
+            this.showNotification('❌ שגיאה בייצוא הקובץ: ' + error.message, 'error');
+        }
+    }
+
+    // פונקציה לרענון המוצרים
+    async refreshProducts() {
+        this.showNotification('🔄 מרענן מוצרים...', 'info');
+        await this.loadProducts();
+    }
+
+    // פונקציה לייבוא מוצרים
+    async importProducts() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.loadProductsFromFile(file);
+            }
+        };
+        input.click();
+    }
+
+    // פונקציה לטעינת מוצרים מקובץ
+    async loadProductsFromFile(file) {
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            if (!data.products) {
+                throw new Error('קובץ לא תקין - חסרים מוצרים');
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:5000' 
+                : 'https://nsion-chdash-api.onrender.com';
+
+            // שליחה לשרת לעדכון
+            const response = await fetch(`${API_BASE_URL}/api/products/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'שגיאה בשליחה לשרת');
+            }
+
+            // עדכון הנתונים המקומיים
+            this.products = data.products;
+            if (data.categories) {
+                this.categories = { ...this.categories, ...data.categories };
+            }
+
+            // שמירת הכל בשרת
+            await this.saveAllToServer();
+
+            // עדכון התצוגה
+            this.updateProductsDisplay();
+            this.updateStats();
+            
+            this.showNotification('✅ מוצרים יובאו בהצלחה', 'success');
+        } catch (error) {
+            console.error('שגיאה בייבוא:', error);
+            this.showNotification('❌ שגיאה בייבוא הקובץ: ' + error.message, 'error');
+        }
+    }
+
+    // פונקציה לייצוא מוצרים
+    exportProducts() {
+        this.saveProductsToFile();
+    }
+
+    // פונקציה ליצירת גיבוי
+    async backupProducts() {
+        try {
+            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:5000' 
+                : 'https://nsion-chdash-api.onrender.com';
+
+            // קודם נוודא שהכל מעודכן בשרת
+            await this.saveAllToServer();
+
+            // יצירת קובץ גיבוי
+            const backupData = {
+                products: this.products,
+                categories: this.categories,
+                backupDate: new Date().toISOString(),
+                version: '1.0'
+            };
+
+            const jsonContent = JSON.stringify(backupData, null, 2);
+            const blob = new Blob([jsonContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `products_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            this.showNotification('✅ גיבוי נוצר בהצלחה', 'success');
+        } catch (error) {
+            console.error('שגיאה ביצירת גיבוי:', error);
+            this.showNotification('❌ שגיאה ביצירת גיבוי: ' + error.message, 'error');
+        }
+    }
+
+    searchProducts(query) {
+        if (!query.trim()) {
+            this.displayProducts();
+            return;
+        }
+
+        const filteredProducts = {};
+        Object.entries(this.products).forEach(([code, product]) => {
+            const name = product.name || '';
+            const searchName = product.searchName || '';
+            if (
+                name.toLowerCase().includes(query.toLowerCase()) ||
+                code.includes(query) ||
+                searchName.toLowerCase().includes(query.toLowerCase())
+            ) {
+                filteredProducts[code] = product;
+            }
+        });
+
+        this.displayProducts(filteredProducts);
+    }
+
+    displayProducts(productsToDisplay = null) {
+        // This function is largely replaced by updateProductsDisplay, but kept for backward compatibility if needed.
+        // It's recommended to use updateProductsDisplay directly.
+        const container = document.getElementById('products-container');
+        if (!container) return;
+
+        const productsToShow = productsToDisplay || this.products;
+        const productsArray = Object.entries(productsToShow);
+
+        if (productsArray.length === 0) {
+            container.innerHTML = '<p class="no-products">אין מוצרים להצגה</p>';
+            return;
+        }
+
+        // הצגת כרטיסי מוצרים כ-HTML ולא כאובייקטים
+        container.innerHTML = productsArray
+            .map(([code, product]) => {
+                const card = this.createProductCard(code, product);
+                return card.outerHTML || card; // אם זה DOM, ניקח את ה-outerHTML, אחרת נניח שזה מחרוזת
+            })
+            .join('');
+    }
+
+    openAddProductModal() {
+        document.getElementById('productForm').reset();
+        document.getElementById('editMode').value = 'false';
+        document.getElementById('productCode').value = '';
+        document.getElementById('productQuantity').value = '';
+        this.resetSizeInputs();
+        const modalTitle = document.getElementById('modal-title');
+        if (modalTitle) {
+            modalTitle.textContent = 'הוספת מוצר חדש';
+        }
+        const sizesSection = document.getElementById('sizes-section');
+        if (sizesSection) {
+            sizesSection.style.display = 'block';
+        }
+        document.getElementById('productModal').style.display = 'block';
+    }
+
+    editProduct(code) {
+        const product = this.products[code];
+        if (!product) {
+            this.showNotification('❌ מוצר לא נמצא', 'error');
+            return;
+        }
+
+        // וידוא שיש שם למוצר
+        const productName = product.name || product.Name || 'ללא שם';
+        const productType = product.type || 'none';
+
+        const modalTitle = document.getElementById('modal-title');
+        if (modalTitle) {
+            modalTitle.textContent = `עריכת מוצר: ${productName}`;
+        }
+
+    document.getElementById('editMode').value = 'true';
+    const codeInput = document.getElementById('productCode');
+    codeInput.value = code;
+    codeInput.removeAttribute('disabled'); // ודא שהשדה לא נעול לעריכה
+    this.lastEditedProductCode = code; // שמור את הקוד המקורי לעריכה
+        document.getElementById('productName').value = productName;
+        document.getElementById('productCategory').value = product.category || '';
+        document.getElementById('searchName').value = product.searchName || '';
+        document.getElementById('productType').value = productType;
+        
+        // טעינת נתונים ספציפיים לפי סוג המוצר
+        if (productType === 'quantity') {
+            document.getElementById('productQuantity').value = product.defaultQuantity || '';
+            const unitSelect = document.getElementById('unitType');
+            if (unitSelect && product.unit) {
+                // תמיכה בכל יחידות המידה הקיימות
+                if (unitSelect.querySelector(`option[value="${product.unit}"]`)) {
+                    unitSelect.value = product.unit;
+                } else {
+                    // הוספת יחידת מידה חדשה אם לא קיימת ברשימה
+                    const newOption = document.createElement('option');
+                    newOption.value = product.unit;
+                    newOption.textContent = product.unit;
+                    unitSelect.appendChild(newOption);
+                    unitSelect.value = product.unit;
+                }
+            }
+        } else {
+            // עבור מוצרים אחרים - נבדוק אם יש כמות רגילה
+            document.getElementById('productQuantity').value = product.quantity || product.defaultQuantity || '';
+            
+            // טעינת יחידת מידה גם למוצרים שאינם מסוג quantity
+            const unitSelect = document.getElementById('unitType');
+            if (unitSelect && product.unit) {
+                if (unitSelect.querySelector(`option[value="${product.unit}"]`)) {
+                    unitSelect.value = product.unit;
+                } else {
+                    const newOption = document.createElement('option');
+                    newOption.value = product.unit;
+                    newOption.textContent = product.unit;
+                    unitSelect.appendChild(newOption);
+                    unitSelect.value = product.unit;
+                }
+            }
+        }
+        
+        // טעינת מחיר בסיסי
+
+        this.toggleQuantityFields();
+
+        // טעינת גדלים ומחירים אם קיימים
+        if (product.sizes && product.sizes.length > 0) {
+            this.loadProductSizes(product.sizes);
+            const sizesSection = document.getElementById('sizes-section');
+            if (sizesSection) {
+                sizesSection.style.display = 'block';
+            }
+        } else {
+            this.resetSizeInputs();
+        }
+
+        document.getElementById('productModal').style.display = 'block';
+    }
+
+    loadProductSizes(sizes) {
+        const sizesContainer = document.getElementById('sizes-container');
+        if (!sizesContainer) return;
+
+        sizesContainer.innerHTML = '';
+
+        // וידוא שsizes הוא מערך
+        const sizesArray = Array.isArray(sizes) ? sizes : [];
+        
+        sizesArray.forEach((sizeData) => {
+            if (sizeData && (sizeData.size || sizeData.Size)) {
+                const sizeRow = this.createSizeRow();
+                const sizeInput = sizeRow.querySelector('.size-input');
+                const priceInput = sizeRow.querySelector('.price-input');
+
+                sizeInput.value = sizeData.size || sizeData.Size || '';
+                priceInput.value = (sizeData.price !== undefined && sizeData.price !== null) ? sizeData.price : '';
+
+                sizesContainer.appendChild(sizeRow);
+            }
+        });
+        
+        // אם אין גדלים, נוסיף שורה ריקה אחת לנוחות
+        if (sizesArray.length === 0) {
+            this.addSizeRow();
+        }
+    }
+
+    createSizeRow() {
+        const sizeRow = document.createElement('div');
+        sizeRow.className = 'size-row';
+        sizeRow.innerHTML = `
+            <input type="text" class="size-input" placeholder="גודל/כמות" required>
+            <input type="number" class="price-input" placeholder="מחיר" step="0.01" required>
+            <button type="button" class="btn btn-remove" onclick="productManager.removeSize(this)">הסר</button>
+        `;
+        return sizeRow;
+    }
+
+    addSizeRow() {
+        const sizesContainer = document.getElementById('sizes-container');
+        if (!sizesContainer) return;
+
+        const sizeRow = this.createSizeRow();
+        sizesContainer.appendChild(sizeRow);
+    }
+
+    removeSize(button) {
+        const sizeRow = button.closest('.size-row');
+        if (sizeRow) {
+            sizeRow.remove();
+        }
+    }
+
+    toggleQuantityFields() {
+        const productType = document.getElementById('productType').value;
+        const quantityFields = document.getElementById('quantity-fields');
+        const sizeFields = document.getElementById('size-fields');
+        const basePriceField = document.getElementById('base-price-field');
+        const sizesSection = document.getElementById('sizes-section');
+
+        // הסתרת כל השדות תחילה
+        if (quantityFields) quantityFields.style.display = 'none';
+        if (sizeFields) sizeFields.style.display = 'none';
+        if (basePriceField) basePriceField.style.display = 'none';
+        if (sizesSection) sizesSection.style.display = 'none';
+
+        // הצגת שדות לפי סוג המוצר
+        if (productType === 'quantity') {
+            // מוצרי כמות - מציגים שדה כמות + יחידת מידה + טבלת מחירים
+            if (quantityFields) quantityFields.style.display = 'block';
+            if (sizesSection) sizesSection.style.display = 'block';
+        } else if (productType === 'size') {
+            // מוצרי גודל - טבלת גדלים ומחירים + יחידת מידה (אופציונלי)
+            if (quantityFields) quantityFields.style.display = 'block'; // מציג גם יחידת מידה
+            if (sizesSection) sizesSection.style.display = 'block';
+        } else if (productType === 'none') {
+            // מוצרים ללא כמות/גודל - יכולים להיות עם או בלי מחיר + יחידת מידה
+            if (quantityFields) quantityFields.style.display = 'block'; // מציג גם יחידת מידה
+            if (sizesSection) sizesSection.style.display = 'block';
+            if (basePriceField) basePriceField.style.display = 'block';
+        }
+    }
+
+    async saveProduct() {
+    try {
+            const form = document.getElementById('productForm');
+            const formData = new FormData(form);
+
+            const productData = {
+                name: formData.get('productName'),
+                category: formData.get('productCategory'),
+                searchName: formData.get('searchName'),
+                type: formData.get('productType'),
+                sizes: []
+            };
+            
+            // וידוא שדות חובה
+            if (!productData.name || !productData.category) {
+                this.showNotification('❌ יש למלא שם וקטגוריה', 'error');
+                return;
+            }
+
+            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:5000'
+                : 'https://nsaion-golsya.netlify.app';
+
+            // הוספת נתונים ספציפיים לפי סוג המוצר
+            const quantity = formData.get('productQuantity');
+            
+            // הוספת יחידת מידה לכל סוגי המוצרים
+            const unitType = document.getElementById('unitType');
+            if (unitType && unitType.value) {
+                productData.unit = unitType.value;
+            }
+            
+            if (productData.type === 'quantity') {
+                if (quantity) {
+                    productData.defaultQuantity = parseInt(quantity);
+                    productData.predefinedQuantities = productData.predefinedQuantities || [];
+                    if (!productData.predefinedQuantities.includes(parseInt(quantity))) {
+                        productData.predefinedQuantities.push(parseInt(quantity));
+                    }
+                }
+            } else if (productData.type === 'size') {
+                const defaultSize = document.getElementById('defaultSize');
+                if (defaultSize && defaultSize.value) {
+                    productData.defaultSize = defaultSize.value;
+                }
+                if (quantity) {
+                    productData.quantity = quantity;
+                }
+            } else {
+                if (quantity) {
+                    productData.quantity = quantity;
+                }
+            }
+
+            // איסוף נתוני מחירים וגדלים
+            const sizeRows = document.querySelectorAll('.size-row');
+            sizeRows.forEach(row => {
+                const sizeInput = row.querySelector('.size-input');
+                const priceInput = row.querySelector('.price-input');
+
+                if (sizeInput && sizeInput.value.trim()) {
+                    const price = priceInput && priceInput.value.trim() ? parseFloat(priceInput.value) : 0;
+                    productData.sizes.push({
+                        size: sizeInput.value.trim(),
+                        price: price
+                    });
+                }
+            });
+
+            // וידוא תקינות לפי סוג המוצר
+            if (productData.type === 'size' && productData.sizes.length === 0) {
+                this.showNotification('❌ מוצר מסוג "גודל" חייב לכלול לפחות גודל אחד', 'error');
+                return;
+            }
+
+            const isEdit = formData.get('editMode') === 'true';
+            let productCode = formData.get('productCode');
+
+            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:5000' 
+                : 'https://nsion-chdash-api.onrender.com';
+
+            if (!isEdit) {
+                if (!productCode || productCode.trim() === '') {
+                    productCode = this.generateProductCode();
+                }
+                if (this.products[productCode]) {
+                    this.showNotification('❌ קוד מוצר כבר קיים', 'error');
+                    return;
+                }
+            }
+
+            // ניסיון שמירה לשרת
+            let response;
+            if (isEdit && this.lastEditedProductCode && this.lastEditedProductCode !== productCode) {
+                // מחיקת המוצר הישן
+                await fetch(`${API_BASE_URL}/api/products/${this.lastEditedProductCode}`, { method: 'DELETE' });
+                
+                // עדכון או יצירת מוצר חדש
+                response = await fetch(
+                    this.products[productCode] 
+                        ? `${API_BASE_URL}/api/products/${productCode}`
+                        : `${API_BASE_URL}/api/products`,
+                    {
+                        method: this.products[productCode] ? 'PUT' : 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...productData, code: productCode })
+                    }
+                );
+            } else {
+                response = await fetch(
+                    isEdit 
+                        ? `${API_BASE_URL}/api/products/${productCode}`
+                        : `${API_BASE_URL}/api/products`,
+                    {
+                        method: isEdit ? 'PUT' : 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...productData, code: productCode })
+                    }
+                );
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'שגיאה בשמירת המוצר');
+            }
+
+            const result = await response.json();
+            
+            // עדכון המוצר במערכת
+            this.products[productCode] = { ...productData, code: productCode };
+            if (isEdit && this.lastEditedProductCode && this.lastEditedProductCode !== productCode) {
+                delete this.products[this.lastEditedProductCode];
+            }
+
+            // שמירה מיידית של כל השינויים לשרת
+            await this.saveAllToServer();
+            
+            // עדכון התצוגה
+            this.displayProducts();
+            this.updateStats();
+            this.closeProductModal();
+            
+            this.showNotification(isEdit ? '✅ מוצר עודכן בהצלחה' : '✅ מוצר נוסף בהצלחה', 'success');
+
+        } catch (error) {
+            console.error('שגיאה בשמירת מוצר:', error);
+            this.showNotification(`❌ ${error.message}`, 'error');
+        }
+    }
+
+
+    // Function to confirm deletion before performing it
+    async deleteProductConfirm(code) {
+        const product = this.products[code];
+        if (!product) {
+            this.showNotification('❌ מוצר לא נמצא', 'error');
+            return;
+        }
+
+        const confirmDelete = confirm(`האם אתה בטוח שברצונך למחוק את המוצר "${product.name}" (${code})?`);
+
+        if (confirmDelete) {
+            await this.deleteProduct(code);
+        }
+    }
+
+    // Function to actually delete the product (API call)
+    async deleteProduct(code) {
+    try {
+            const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://localhost:5000' 
+                : 'https://nsion-chdash-api.onrender.com';
+
+            const response = await fetch(`${API_BASE_URL}/api/products/${code}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const message = result.message || `✅ מוצר "${this.products[code]?.name || code}" נמחק בהצלחה`;
+                this.showNotification(message, 'success');
+                delete this.products[code];
+                await this.saveAllToServer();
+                this.displayProducts();
+                this.updateStats();
+            } else {
+                const errorText = await response.text();
+                let errorMessage = 'שגיאה במחיקת מוצר מהשרת';
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.message || errorMessage;
+                } catch {
+                    errorMessage = errorText || errorMessage;
+                }
+                throw new Error(errorMessage);
+            }
+        } catch (error) {
+            console.error('שגיאה במחיקת מוצר:', error);
+            this.showNotification(`❌ ${error.message}`, 'error');
+        }
+    }
+
+    closeProductModal() {
+        document.getElementById('productModal').style.display = 'none';
+        document.getElementById('productForm').reset();
+        const modalTitle = document.getElementById('modal-title');
+        if (modalTitle) {
+            modalTitle.textContent = 'הוספת מוצר חדש';
+        }
+        this.resetSizeInputs();
+        const quantityFields = document.getElementById('quantity-fields');
+        const sizeFields = document.getElementById('size-fields');
+        const sizesSection = document.getElementById('sizes-section');
+
+        if (quantityFields) quantityFields.style.display = 'none';
+        if (sizeFields) sizeFields.style.display = 'none';
+        if (sizesSection) sizesSection.style.display = 'none';
+    }
+
+    closeDeleteModal() {
+        // Assuming there's a modal for confirmation, if not, this does nothing.
+        // If a modal exists with id 'delete-modal', its display should be set to 'none'.
+        const deleteModal = document.getElementById('delete-modal');
+        if (deleteModal) {
+            deleteModal.style.display = 'none';
+        }
+    }
+
+    confirmDelete() {
+        const deleteModal = document.getElementById('delete-modal');
+        const productCode = deleteModal.dataset.productCode;
+
+        if (productCode) {
+            this.deleteProduct(productCode);
+            this.closeDeleteModal();
+        }
+    }
+
+    resetSizeInputs() {
+        const sizesContainer = document.getElementById('sizes-container');
+        if (sizesContainer) {
+            sizesContainer.innerHTML = '';
+        }
+    }
+
+    // generateProductCode() and isProductCodeExists() are likely not needed if API handles code generation
+    // Keeping them commented out for now, but they might be useful for fallback or specific client-side logic.
+    generateProductCode() {
+        let code = 10000;
+        while (this.products[code.toString()]) {
+            // שמירה אמיתית לשרת
+            this.saveAllToServer();
+            this.showNotification('✅ כל המוצרים נשמרו בקובץ בהצלחה', 'success');
+        }
+        const productForm = document.getElementById('productForm');
+        if (productForm) {
+            productForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveProduct();
+            });
+        }
+
+        const typeSelect = document.getElementById('productType');
+        if (typeSelect) {
+            typeSelect.addEventListener('change', () => this.toggleQuantityFields());
+            this.toggleQuantityFields(); // Initial call
+        }
+    }
+}
+
+// Global functions
+function openAddProductModal() {
+    if (window.productManager) {
+        window.productManager.openAddProductModal();
+    }
+}
+
+function closeProductModal() {
+    if (window.productManager) {
+        window.productManager.closeProductModal();
+    }
+}
+
+function addSizeRow() {
+    if (window.productManager) {
+        window.productManager.addSizeRow();
+    }
+}
+
+function removeSize(button) {
+    if (window.productManager) {
+        window.productManager.removeSize(button);
+    }
+}
+
+function deleteProductConfirm(code) { // Renamed from deleteProduct for clarity
+    if (window.productManager) {
+        window.productManager.deleteProductConfirm(code);
+    }
+}
+
+function searchProducts(query) {
+    if (window.productManager) {
+        window.productManager.searchProducts(query);
+    }
+}
+
+function backupProducts() {
+    if (window.productManager) {
+        window.productManager.backupProducts();
+    }
+}
+
+function exportProducts() {
+    if (window.productManager) {
+        window.productManager.exportProducts();
+    }
+}
+
+function importProducts() {
+    if (window.productManager) {
+        window.productManager.importProducts();
+    }
+}
+
+function refreshProducts() {
+    if (window.productManager) {
+        window.productManager.refreshProducts();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    new ProductManager();
+    // הפעלת חיפוש דינמי בשדה החיפוש
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            if (window.productManager) {
+                window.productManager.searchProducts(e.target.value);
+            }
+        });
+    }
+});

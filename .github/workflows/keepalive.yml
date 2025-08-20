@@ -1,0 +1,19 @@
+name: keep-alive-api
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API stats
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: |
+          URL="${API_BASE_URL:-https://example.com}"
+          echo "Pinging $URL/api/stats"
+          curl -fsS "$URL/api/stats" || true
+
