@@ -196,9 +196,16 @@ function checkAuthBeforeSending() {
 
 // פונקציה להעיר את השרת
 function wakeUpServer() {
-    fetch('https://whatsapp-order-system.onrender.com/health')
-        .then(() => console.log('Server is awake'))
-        .catch(() => console.log('Server waking up...'));
+    try {
+        const base = (typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function')
+            ? config.getApiBaseUrl()
+            : (window.API_BASE_URL || window.location.origin);
+        fetch(base + '/health')
+            .then(() => console.log('Server is awake'))
+            .catch(() => console.log('Server waking up...'));
+    } catch (e) {
+        console.log('Server wake-up skipped');
+    }
 }
 
 // אתחול המערכת בטעינת הדף
@@ -456,7 +463,7 @@ function sendMessageToWhatsApp(message, currentMessage) {
         groupId: "120363414923943659@g.us" // קבוצת הקונדיטוריה
     });
     
-    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+    fetch(((typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function') ? config.getApiBaseUrl() : (window.API_BASE_URL || window.location.origin)) + '/send-whatsapp', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -812,7 +819,7 @@ function sendWhatsAppFruitsMessage() {
         groupId: "120363314468223287@g.us" // קבוצת הפירות
     });
     
-    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+    fetch(((typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function') ? config.getApiBaseUrl() : (window.API_BASE_URL || window.location.origin)) + '/send-whatsapp', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -978,7 +985,7 @@ function sendWhatsAppBakeryMessage() {
         groupId: "120363314468223287@g.us" // קבוצת הקונדיטוריה
     });
     
-    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+    fetch(((typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function') ? config.getApiBaseUrl() : (window.API_BASE_URL || window.location.origin)) + '/send-whatsapp', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -1130,7 +1137,7 @@ function sendWhatsAppAmarMessage() {
         groupId: "120363314468223287@g.us" // קבוצת עמר
     });
     
-    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+    fetch(((typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function') ? config.getApiBaseUrl() : (window.API_BASE_URL || window.location.origin)) + '/send-whatsapp', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -1254,7 +1261,7 @@ function sendWhatsAppSushiMessage() {
         groupId: "120363314468223287@g.us" // קבוצת הסושי
     });
     
-    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+    fetch(((typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function') ? config.getApiBaseUrl() : (window.API_BASE_URL || window.location.origin)) + '/send-whatsapp', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -1411,7 +1418,7 @@ function sendWhatsAppWarehouseMessage() {
         groupId: "120363314468223287@g.us" // קבוצת המחסן
     });
     
-    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+    fetch(((typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function') ? config.getApiBaseUrl() : (window.API_BASE_URL || window.location.origin)) + '/send-whatsapp', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -1613,7 +1620,7 @@ function sendWhatsAppGeneralMessage() {
         groupId 
     });
     
-    fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+    fetch(((typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function') ? config.getApiBaseUrl() : (window.API_BASE_URL || window.location.origin)) + '/send-whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
@@ -1868,7 +1875,7 @@ function sendWhatsAppKitchenProductsMessage() {
       })
     : { message, groupId: '120363414923943659@g.us' };
 
-  fetch('https://whatsapp-order-system.onrender.com/send-whatsapp', {
+  fetch(((typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function') ? config.getApiBaseUrl() : (window.API_BASE_URL || window.location.origin)) + '/send-whatsapp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(requestBody)
