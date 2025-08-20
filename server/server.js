@@ -1,12 +1,9 @@
 import express from 'express';
 import cors from 'cors';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { promises as fs } from 'fs';
-import Product from './models/Product.js';
-import Category from './models/Category.js';
+import fetch from 'node-fetch';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,21 +11,29 @@ const __dirname = path.dirname(__filename);
 const PRODUCTS_FILE = path.join(__dirname, 'products.json');
 const ROOT_PRODUCTS_FILE = path.join(__dirname, '..', 'products.json');
 
-// Load environment variables
-dotenv.config();
+// Green API configuration
+const INSTANCE_ID = '7105260862';
+const API_TOKEN = '19d4910c994a45a58d22d1d7cc5d7121fc1575fd6ac143b295';
+const BASE_URL = `https://7105.api.greenapi.com/waInstance${INSTANCE_ID}`;
 
-// Connect to MongoDB (optional)
-const MONGODB_URI = process.env.MONGODB_URI;
-let mongoEnabled = Boolean(MONGODB_URI);
-if (mongoEnabled) {
-    mongoose.connect(MONGODB_URI)
-        .then(() => console.log('Connected to MongoDB successfully'))
-        .catch(err => {
-            mongoEnabled = false;
-            console.error('MongoDB connection error, falling back to file mode:', err.message);
-        });
-} else {
-    console.warn('MONGODB_URI not set. Running in file mode (no database).');
+// קבוצות וואטסאפ
+const GROUPS = {
+    CONDITORIA: "120363414923943659@g.us", //קונדיטורייה
+    FRUITS: "120363414923943659@g.us" //פירות
+};
+
+// רשימת המיילים המורשים לשליחת הודעות WhatsApp
+const ALLOWED_EMAILS = [
+    'BLUMI@GOLDYS.CO.IL',
+    'SERVICE@GOLDYS.CO.IL',
+    'tzvi@goldys.co.il',
+    'ch0548507825@gmail.com',
+    'zadok@goldys.co.il'
+];
+
+// בדיקה אם המייל מורשה
+function isEmailAuthorized(email) {
+    return ALLOWED_EMAILS.includes(email.toUpperCase());
 }
 
 const app = express();
@@ -39,9 +44,9 @@ const allowedOrigins = [
     'http://127.0.0.1:5500',
     'http://localhost:5000',
     'https://venerable-rugelach-127f4b.netlify.app',
-    // הוסף כאן דומיינים של הפרונט שלך בפרודקשן (Netlify/דומיין פרטי)
     'https://online-g.netlify.app',
-    'https://nsaion-golsya.netlify.app'
+    'https://nsaion-golsya.netlify.app',
+    'https://nsion-chdash-api-1.onrender.com'
 ];
 
 app.use(cors({
@@ -68,91 +73,134 @@ app.use(express.static(path.join(__dirname, '..')));
 // Initialize default categories if none exist
 async function initializeCategories() {
     try {
-        if (!mongoEnabled) throw new Error('Mongo disabled');
-        const count = await Category.countDocuments();
-        if (count === 0) {
-            const defaultCategories = {
-                "kitchen": "מוצרי מטבח",
-                "bakery": "קונדיטורייה",
-                "fruits": "פירות",
-                "sushi": "סושי",
-                "amar": "קונדיטורייה עמר",
-                "kitchenProducts": "מטבח מוסטפה",
-                "online": "אונליין",
-                "warehouse": "מחסן",
-                "sizes": "מוצרי גדלים",
-                "quantities": "מוצרי כמות"
-            };
-            
-            for (const [code, name] of Object.entries(defaultCategories)) {
-                await Category.create({ code, name });
-            }
-            console.log('Default categories initialized');
+        // This function is no longer needed as categories are managed by the file
+        // and the file itself contains the default categories.
+        // Keeping it for now, but it will not create categories if the file exists.
+        const filePath = ROOT_PRODUCTS_FILE; // Use ROOT_PRODUCTS_FILE for consistency
+        const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
+        const data = JSON.parse(raw || '{}');
+        if (data.categories) {
+            console.log('Categories already exist in products.json');
+            return;
         }
+        console.log('Creating initial categories in products.json...');
+        const initialCategories = {
+            "kitchen": "מוצרי מטבח",
+            "bakery": "קונדיטורייה",
+            "fruits": "פירות",
+            "sushi": "סושי",
+            "amar": "קונדיטורייה עמר",
+            "kitchenProducts": "מטבח מוסטפה",
+            "online": "אונליין",
+            "warehouse": "מחסן",
+            "sizes": "מוצרי גדלים",
+            "quantities": "מוצרי כמות"
+        };
+        await fs.writeFile(filePath, JSON.stringify({ ...data, categories: initialCategories }, null, 2), 'utf8');
+        console.log('Initial categories created in products.json');
     } catch (error) {
         console.error('Error initializing categories:', error);
-    }
-
-        // Check if products file exists
-        try {
-            await fs.access(PRODUCTS_FILE);
-        } catch (error) {
-            console.log('Creating initial products.json file...');
-        const initialData = {
-            products: {},
-            categories: {
-                "kitchen": "מוצרי מטבח",
-                "bakery": "קונדיטורייה",
-                "fruits": "פירות",
-                "sushi": "סושי",
-                "amar": "קונדיטורייה עמר",
-                "kitchenProducts": "מטבח מוסטפה",
-                "online": "אונליין",
-                "warehouse": "מחסן",
-                "sizes": "מוצרי גדלים",
-                "quantities": "מוצרי כמות"
-            }
-        };
-        await fs.writeFile(PRODUCTS_FILE, JSON.stringify(initialData, null, 2), 'utf8');
-        console.log('Initial products.json file created successfully');
     }
 }
 
 // One-time import from root products.json into MongoDB (if DB is empty)
 async function importProductsIfEmpty() {
     try {
-        if (!mongoEnabled) return;
-        const productCount = await Product.countDocuments();
-        if (productCount > 0) {
+        // This function is no longer needed as products are managed by the file
+        // and the file itself contains the default products.
+        // Keeping it for now, but it will not import products if the file exists.
+        const filePath = ROOT_PRODUCTS_FILE; // Use ROOT_PRODUCTS_FILE for consistency
+        const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
+        const data = JSON.parse(raw || '{}');
+        if (data.products) {
+            console.log('Products already exist in products.json');
             return;
         }
-        // Prefer root products.json if exists
-        let filePathToUse = ROOT_PRODUCTS_FILE;
-        try {
-            await fs.access(filePathToUse);
-        } catch {
-            // fallback to server/products.json
-            filePathToUse = PRODUCTS_FILE;
-            await fs.access(filePathToUse);
-        }
-        const raw = await fs.readFile(filePathToUse, 'utf8');
-        const parsed = JSON.parse(raw);
-        const products = parsed.products || {};
-        const categories = parsed.categories || {};
-
-        // Upsert categories
-        for (const [code, name] of Object.entries(categories)) {
-            await Category.findOneAndUpdate({ code }, { name }, { upsert: true });
-        }
-        // Upsert products
-        for (const [code, productData] of Object.entries(products)) {
-            await Product.findOneAndUpdate(
-                { code },
-                { ...productData, code, lastUpdate: new Date() },
-                { upsert: true, new: true }
-            );
-        }
-        console.log('Imported products from file into MongoDB successfully');
+        console.log('Creating initial products in products.json...');
+        const initialProducts = {
+            "kitchen": {
+                "code": "KITCHEN_001",
+                "name": "מוצרי מטבח",
+                "price": 100,
+                "quantity": 10,
+                "category": "kitchen",
+                "description": "מוצרי מטבח כללי"
+            },
+            "bakery": {
+                "code": "BAKERY_001",
+                "name": "קונדיטורייה",
+                "price": 50,
+                "quantity": 20,
+                "category": "bakery",
+                "description": "קונדיטורייה כללית"
+            },
+            "fruits": {
+                "code": "FRUITS_001",
+                "name": "פירות",
+                "price": 20,
+                "quantity": 50,
+                "category": "fruits",
+                "description": "פירות כלליים"
+            },
+            "sushi": {
+                "code": "SUSHI_001",
+                "name": "סושי",
+                "price": 150,
+                "quantity": 15,
+                "category": "sushi",
+                "description": "סושי כללי"
+            },
+            "amar": {
+                "code": "AMAR_001",
+                "name": "קונדיטורייה עמר",
+                "price": 80,
+                "quantity": 10,
+                "category": "amar",
+                "description": "קונדיטורייה עמר כללית"
+            },
+            "kitchenProducts": {
+                "code": "KITCHEN_PRODUCTS_001",
+                "name": "מטבח מוסטפה",
+                "price": 200,
+                "quantity": 5,
+                "category": "kitchenProducts",
+                "description": "מטבח מוסטפה כללית"
+            },
+            "online": {
+                "code": "ONLINE_001",
+                "name": "אונליין",
+                "price": 500,
+                "quantity": 1,
+                "category": "online",
+                "description": "אונליין כללי"
+            },
+            "warehouse": {
+                "code": "WAREHOUSE_001",
+                "name": "מחסן",
+                "price": 1000,
+                "quantity": 1,
+                "category": "warehouse",
+                "description": "מחסן כללי"
+            },
+            "sizes": {
+                "code": "SIZES_001",
+                "name": "מוצרי גדלים",
+                "price": 50,
+                "quantity": 100,
+                "category": "sizes",
+                "description": "מוצרי גדלים כלליים"
+            },
+            "quantities": {
+                "code": "QUANTITIES_001",
+                "name": "מוצרי כמות",
+                "price": 10,
+                "quantity": 200,
+                "category": "quantities",
+                "description": "מוצרי כמות כלליים"
+            }
+        };
+        await fs.writeFile(filePath, JSON.stringify({ ...data, products: initialProducts }, null, 2), 'utf8');
+        console.log('Initial products created in products.json');
     } catch (error) {
         console.error('Error importing products into MongoDB:', error.message);
     }
@@ -170,26 +218,15 @@ app.use((err, req, res, next) => {
 // API Stats endpoint for health check
 app.get('/api/stats', async (req, res) => {
     try {
-        let stats;
-        if (mongoEnabled && mongoose.connection.readyState === 1) {
-            const [productsCount, categoriesCount] = await Promise.all([
-                Product.countDocuments(),
-                Category.countDocuments()
-            ]);
-            stats = { total: productsCount, categories: categoriesCount, status: 'ok', server: 'running' };
-        } else {
-            // file mode
-            let filePathToUse = ROOT_PRODUCTS_FILE;
-            try { await fs.access(filePathToUse); } catch { filePathToUse = PRODUCTS_FILE; }
-            const raw = await fs.readFile(filePathToUse, 'utf8').catch(() => '{"products":{},"categories":{}}');
-            const data = JSON.parse(raw || '{}');
-            stats = {
-                total: data.products ? Object.keys(data.products).length : 0,
-                categories: data.categories ? Object.keys(data.categories).length : 0,
-                status: 'ok',
-                server: 'running(file)'
-            };
-        }
+        const filePath = ROOT_PRODUCTS_FILE; // Use ROOT_PRODUCTS_FILE for consistency
+        const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
+        const data = JSON.parse(raw || '{}');
+        const stats = {
+            total: data.products ? Object.keys(data.products).length : 0,
+            categories: data.categories ? Object.keys(data.categories).length : 0,
+            status: 'ok',
+            server: 'running(file)'
+        };
         console.log('Stats request successful:', stats);
         res.json(stats);
     } catch (error) {
@@ -208,51 +245,24 @@ app.post('/api/products/save', async (req, res) => {
             return res.status(400).json({ error: 'products missing' });
         }
 
-        if (mongoEnabled && mongoose.connection.readyState === 1) {
-            // עדכון מוצרים ב-DB
-            const submittedCodes = Object.keys(products);
-            if (replace && submittedCodes.length > 0) {
-                // מחיקת מוצרים שלא קיימים בקובץ המיובא
-                await Product.deleteMany({ code: { $nin: submittedCodes } });
-            }
-            for (const [code, productData] of Object.entries(products)) {
-                await Product.findOneAndUpdate(
-                    { code },
-                    { ...productData, lastUpdate: timestamp || new Date() },
-                    { upsert: true, new: true }
-                );
-            }
-            // עדכון קטגוריות ב-DB
-            if (categories) {
-                for (const [code, name] of Object.entries(categories)) {
-                    await Category.findOneAndUpdate(
-                        { code },
-                        { name },
-                        { upsert: true }
-                    );
-                }
-            }
+        const filePath = ROOT_PRODUCTS_FILE; // Use ROOT_PRODUCTS_FILE for consistency
+        const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
+        const data = JSON.parse(raw || '{}');
+        const merged = { products: data.products || {}, categories: data.categories || {} };
+
+        if (replace) {
+            // החלפה מלאה של המוצרים
+            merged.products = products;
         } else {
-            // מצב קובץ: כתיבה לקובץ מוצרים
-            let filePathToUse = ROOT_PRODUCTS_FILE;
-            try { await fs.access(filePathToUse); } catch { filePathToUse = PRODUCTS_FILE; }
-            const raw = await fs.readFile(filePathToUse, 'utf8').catch(() => '{"products":{},"categories":{}}');
-            const data = JSON.parse(raw || '{}');
-            const merged = { products: data.products || {}, categories: data.categories || {} };
-            if (replace) {
-                // החלפה מלאה של המוצרים
-                merged.products = products;
-            } else {
-                // כתיבת דלתא: עדכון רק מה שהגיע בבקשה
-                for (const [code, p] of Object.entries(products)) {
-                    merged.products[code] = { ...(merged.products[code] || {}), ...p };
-                }
+            // כתיבת דלתא: עדכון רק מה שהגיע בבקשה
+            for (const [code, p] of Object.entries(products)) {
+                merged.products[code] = { ...(merged.products[code] || {}), ...p };
             }
-            if (categories) {
-                merged.categories = { ...merged.categories, ...categories };
-            }
-            await fs.writeFile(filePathToUse, JSON.stringify(merged, null, 2), 'utf8');
         }
+        if (categories) {
+            merged.categories = { ...merged.categories, ...categories };
+        }
+        await fs.writeFile(filePath, JSON.stringify(merged, null, 2), 'utf8');
 
         res.json({
             success: true,
@@ -269,31 +279,10 @@ app.post('/api/products/save', async (req, res) => {
 app.get('/api/products', async (req, res) => {
     try {
         res.set('Cache-Control', 'no-store');
-        if (mongoEnabled && mongoose.connection.readyState === 1) {
-            const [products, categories] = await Promise.all([
-                Product.find().lean(),
-                Category.find().lean()
-            ]);
-
-            const productsMap = {};
-            products.forEach(product => {
-                productsMap[product.code] = product;
-            });
-
-            const categoriesMap = {};
-            categories.forEach(category => {
-                categoriesMap[category.code] = category.name;
-            });
-
-            res.json({ products: productsMap, categories: categoriesMap });
-        } else {
-            // File mode
-            let filePathToUse = ROOT_PRODUCTS_FILE;
-            try { await fs.access(filePathToUse); } catch { filePathToUse = PRODUCTS_FILE; }
-            const raw = await fs.readFile(filePathToUse, 'utf8').catch(() => '{"products":{},"categories":{}}');
-            const data = JSON.parse(raw || '{}');
-            res.json({ products: data.products || {}, categories: data.categories || {} });
-        }
+        const filePath = ROOT_PRODUCTS_FILE; // Use ROOT_PRODUCTS_FILE for consistency
+        const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
+        const data = JSON.parse(raw || '{}');
+        res.json({ products: data.products || {}, categories: data.categories || {} });
     } catch (error) {
         console.error('Error reading products:', error);
         res.status(500).json({ error: 'שגיאה בקריאת המוצרים' });
@@ -306,24 +295,81 @@ app.delete('/api/products/:code', async (req, res) => {
         const { code } = req.params;
         if (!code) return res.status(400).json({ error: 'missing code' });
 
-        if (mongoEnabled && mongoose.connection.readyState === 1) {
-            await Product.deleteOne({ code });
-        } else {
-            // File mode deletion
-            let filePathToUse = ROOT_PRODUCTS_FILE;
-            try { await fs.access(filePathToUse); } catch { filePathToUse = PRODUCTS_FILE; }
-            const raw = await fs.readFile(filePathToUse, 'utf8').catch(() => '{"products":{},"categories":{}}');
-            const data = JSON.parse(raw || '{}');
-            if (data.products && data.products[code]) {
-                delete data.products[code];
-                await fs.writeFile(filePathToUse, JSON.stringify(data, null, 2), 'utf8');
-            }
+        const filePath = ROOT_PRODUCTS_FILE; // Use ROOT_PRODUCTS_FILE for consistency
+        const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
+        const data = JSON.parse(raw || '{}');
+        if (data.products && data.products[code]) {
+            delete data.products[code];
+            await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
         }
 
         res.json({ success: true, message: `Product ${code} deleted` });
     } catch (error) {
         console.error('Error deleting product:', error);
         res.status(500).json({ error: 'שגיאה במחיקת המוצר' });
+    }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// WhatsApp message sending endpoint
+app.post('/send-whatsapp', async (req, res) => {
+    console.log('Received WhatsApp request:', req.body);
+    
+    try {
+        // בדיקת המייל המורשה
+        const userEmail = req.body.userEmail;
+        if (!userEmail) {
+            return res.status(401).json({ 
+                error: 'אין מייל משתמש בבקשה',
+                details: 'נדרשת התחברות עם Google' 
+            });
+        }
+        
+        if (!isEmailAuthorized(userEmail)) {
+            return res.status(403).json({ 
+                error: 'מייל לא מורשה',
+                details: `המייל ${userEmail} אינו מורשה לשלוח הודעות WhatsApp` 
+            });
+        }
+        
+        // קבלת מזהה הקבוצה מהבקשה
+        const groupId = req.body.groupId || GROUPS.CONDITORIA; // ברירת מחדל לקבוצת הקונדיטוריה
+        
+        const requestBody = {
+            chatId: groupId,
+            message: req.body.message
+        };
+        
+        console.log('Sending to Green API:', requestBody);
+        console.log('Authorized user:', userEmail);
+        
+        const response = await fetch(`${BASE_URL}/sendMessage/${API_TOKEN}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        const data = await response.json();
+        console.log('Green API response:', data);
+        
+        if (!response.ok) {
+            console.error('Green API error:', data);
+            throw new Error(data.message || 'שגיאה בשליחת ההודעה');
+        }
+        
+        res.json(data);
+    } catch (error) {
+        console.error('Server error:', error);
+        res.status(500).json({ 
+            error: 'Failed to send message',
+            details: error.message 
+        });
     }
 });
 
@@ -334,7 +380,6 @@ const PORT = process.env.PORT || 5000;
 initializeCategories().then(() => importProductsIfEmpty()).then(() => {
     app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
-        console.log('Connected to MongoDB database');
         console.log('Server is ready to handle requests');
     });
 }).catch(error => {
