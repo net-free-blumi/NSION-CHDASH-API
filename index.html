@@ -96,11 +96,20 @@
         text-align: center;
       }
 
+      .category-title { display: inline; }
+
+      /* שורות מסודרות ונעימות בתצוגת פרטי הזמנה */
+      #orderInfo .line { display: block; margin: 6px 0; }
+
       #notesSummary {
         font-weight: bold;
         font-size: large;
-        padding: 10px;
+        padding: 0;
+        display: inline;
+        margin-inline-start: 6px;
       }
+      /* הצגת חם/קר באותה שורה נקייה */
+      #summary .hot-cold-row { display: inline-flex; align-items: baseline; gap: 6px; }
       label {
         font-weight: bold;
         margin-top: 10px;
@@ -768,8 +777,11 @@
       }
     </style>
   </head>
-  <body>
-  <!-- עיגול טעינה לשרת -->
+      <body>
+    <!-- Toast notifications container -->
+    <div id="notifications-container"></div>
+
+    <!-- עיגול טעינה לשרת -->
   <div id="serverWakeupOverlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.85);z-index:9999;align-items:center;justify-content:center;flex-direction:column;">
     <div style="width:70px;height:70px;border:8px solid #eee;border-top:8px solid #007bff;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;"></div>
     <div style="font-size:1.3em;color:#007bff;font-weight:bold;">השרת בהפעלה...<br>אנא המתן</div>
@@ -1181,7 +1193,7 @@ function syncProducts() {
           <div class="category-title">מוצרי מטבח:</div>
           <ul id="kitchenProductsList"></ul>
         </div>
-        <div>
+        <div class="hot-cold-row">
           <strong class="category-title">מצב חם/קר:</strong>
           <span id="notesSummary"></span>
         </div>
@@ -4895,24 +4907,31 @@ document.addEventListener('keydown', function(e) {
       // קריאה לפונקציית הטעינה בעת טעינת הדף
       document.addEventListener("DOMContentLoaded", loadSavedOrder);
 
+      // עזר: שם יום מהתאריך
+      function getDayOfWeek(dateStr){
+        const days=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+        const d=new Date(dateStr); return isNaN(d)?'':days[d.getDay()];
+      }
+
       // הצגת פרטי ההזמנה על המסך
       function displayOrderInfo() {
         const orderNumber = localStorage.getItem("orderNumber") || "";
         const orderDate = localStorage.getItem("orderDate") || "";
         const orderTime = localStorage.getItem("orderTime") || "";
         const temperature = localStorage.getItem("temperature") || ""; // הצגת חם/קר
-        const formattedDate = orderDate
-          ? formatDateToDDMMYYYY(orderDate)
-          : "תאריך לא תקין";
-        document.getElementById(
-          "orderInfo"
-        ).innerHTML = `<strong>הזמנה מס: ${orderNumber}</strong><br>
-                <strong>לתאריך: ${formattedDate}</strong><br>
-                <strong>לשעה: ${orderTime}</strong>`;
+        const hasDate = Boolean(orderDate);
+        const formattedDate = hasDate ? formatDateToDDMMYYYY(orderDate) : "";
+        const dayName = hasDate ? getDayOfWeek(orderDate) : "";
 
-        document.getElementById("notesSummary").textContent = temperature
-          ? `''${temperature}''`
-          : "";
+        const dateLine = hasDate ? `<strong>לתאריך: ${formattedDate}${dayName? ' (יום ' + dayName + ')' : ''}</strong><br>` : "";
+        const timeLine = orderTime ? `<strong>לשעה: ${orderTime}</strong>` : "";
+        document.getElementById("orderInfo").innerHTML = `
+          <span class="line"><strong>הזמנה מס: ${orderNumber}</strong></span>
+          ${dateLine ? `<span class=\"line\">${dateLine.replace('<br>','')}</span>` : ''}
+          ${timeLine ? `<span class=\"line\">${timeLine}</span>` : ''}
+        `;
+
+        document.getElementById("notesSummary").textContent = temperature ? `''${temperature}''` : "";
       }
 
       function extractBreadDetails(text) {
@@ -5391,9 +5410,16 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
       // פונקציה לבדוק אם יש צורך להציג את תיבת סוג הלחם
       function checkBisProduct(productCode) {
+        const code = String(productCode || '').trim();
         const breadTypeDiv = document.getElementById("breadTypeDiv");
-        if (bisProducts.includes(productCode)) {
+        const breadTypeSelect = document.getElementById("breadType");
+        if (!breadTypeDiv) return;
+        if (bisProducts.includes(code)) {
           breadTypeDiv.style.display = "block";
+          // בחר ערך ברירת מחדל אם לא נבחר
+          if (breadTypeSelect && breadTypeSelect.selectedIndex < 0) {
+            breadTypeSelect.selectedIndex = 0;
+          }
         } else {
           breadTypeDiv.style.display = "none";
         }
@@ -5784,6 +5810,8 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             li.onclick = (e) => {
               // לא מנקים את תוצאות החיפוש כדי שהמשתמש יוכל להמשיך מיד
               addToOrder(code, product);
+              // הפעלת פתיחת סוג ביס גם בבחירה מתוצאות החיפוש, לאחר עדכון ה-UI
+              setTimeout(() => { try { checkBisProduct(code); } catch {} }, 0);
             };
             resultsList.appendChild(li);
           });
@@ -5808,15 +5836,16 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
         if (productCodeInput) {
           productCodeInput.value = code;
+          // מזרים את אותם אירועים כמו הקלדה/הדבקה ידנית
+          try { productCodeInput.dispatchEvent(new Event("input", { bubbles: true })); } catch {}
+          try { productCodeInput.dispatchEvent(new Event("change", { bubbles: true })); } catch {}
 
-          // הפעלת configureProduct ישירות
+          // מפעיל קונפיגורציה ובדיקת ביס אחרי שה-UI התעדכן
           if (typeof configureProduct === 'function') {
-            configureProduct(code);
+            setTimeout(() => { try { configureProduct(code); } catch {} }, 0);
           }
-
-          // הפעלת checkBisProduct
           if (typeof checkBisProduct === 'function') {
-            checkBisProduct(code);
+            setTimeout(() => { try { checkBisProduct(code); } catch {} }, 0);
           }
 
           // הצגת הודעה למשתמש

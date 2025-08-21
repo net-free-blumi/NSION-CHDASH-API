@@ -98,6 +98,135 @@ body {
     background: #c82333;
 }
 
+/* Email login section */
+.email-login-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.divider {
+    position: relative;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e0e0e0;
+}
+
+.divider span {
+    background: white;
+    padding: 0 15px;
+    color: #666;
+    font-size: 14px;
+}
+
+.btn-small {
+    padding: 8px 16px;
+    font-size: 13px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0.8;
+}
+
+.btn-small:hover {
+    opacity: 1;
+    background: #5a6268;
+}
+
+.email-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group input {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
+}
+
+.form-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+}
+
+.btn-outline {
+    background: transparent;
+    color: #6c757d;
+    border: 1px solid #6c757d;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-outline:hover {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
 /* סגנונות עבור כרטיסי המוצרים */
 .product-card {
     background: white;
@@ -127,6 +256,78 @@ body {
     margin: 0;
     color: #333;
     font-size: 1.1rem;
+}
+
+.product-header h3.no-name-product {
+    color: #888;
+    font-style: italic;
+}
+
+/* Toast notifications container */
+#notifications-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10000;
+    pointer-events: none;
+}
+
+/* Base toast */
+.notification {
+    pointer-events: all;
+    min-width: 240px;
+    max-width: min(92vw, 360px);
+    padding: 10px 14px 12px 14px;
+    border-radius: 8px;
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(2px);
+    animation: toastIn 220ms ease-out;
+}
+
+.notification.success { background: #28a745; }
+.notification.error   { background: #dc3545; }
+.notification.info    { background: #17a2b8; }
+.notification.warning { background: #ffc107; color: #2f2f2f; border-color: rgba(0,0,0,0.1); }
+
+.notification .progress {
+    height: 3px;
+    margin-top: 8px;
+    background: rgba(255,255,255,0.5);
+    transform-origin: left;
+    animation: toastProgress var(--toast-duration, 3s) linear forwards;
+}
+
+.notification.exit {
+    animation: toastOut 150ms ease-in forwards;
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(18px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(18px); }
+}
+
+@keyframes toastProgress {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+}
+
+@media (max-width: 600px) {
+    #notifications-container {
+        top: 10px;
+        right: 10px;
+        gap: 6px;
+    }
+    .notification { min-width: auto; }
 }
 
 .product-code {

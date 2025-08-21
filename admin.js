@@ -149,14 +149,15 @@ class ProductManager {
         const card = document.createElement('div');
         card.className = 'product-card';
         
-        // הצגת שם המוצר - אם אין name, נציג searchName או ריק
-        const productName = product.name || product.Name || product.searchName || '';
+        // הצגת שם המוצר - אם אין name, נציג searchName בצבע אפור
+        const hasName = product.name || product.Name;
+        const productName = hasName || product.searchName || '';
         const productType = product.type || 'none';
         
         // בניית מידע על המוצר
         let productInfo = `
             <div class="product-header">
-                <h3>${productName}</h3>
+                <h3${!hasName && product.searchName ? ' class="no-name-product"' : ''}>${productName}</h3>
                 <span class="product-code">${code}</span>
             </div>
             <div class="product-details">
@@ -256,19 +257,37 @@ class ProductManager {
         };
     }
 
-    showNotification(message, type = 'info') {
+    showNotification(message, type = 'info', { duration = 3000 } = {}) {
         const container = document.getElementById('notifications-container');
         if (!container) return;
 
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
+        // הגבלת מספר טוסטים מוצגים בו-זמנית
+        const maxToasts = 3;
+        while (container.children.length >= maxToasts) {
+            container.removeChild(container.firstChild);
+        }
 
-        container.appendChild(notification);
+        const toast = document.createElement('div');
+        toast.className = `notification ${type}`;
+        toast.style.setProperty('--toast-duration', `${Math.max(1500, duration)}ms`);
+        toast.innerHTML = `<div>${message}</div><div class="progress"></div>`;
 
-        setTimeout(() => {
-            notification.remove();
-        }, 5000);
+        container.appendChild(toast);
+
+        // הסרה אוטומטית עם אנימציית יציאה
+        const removeToast = () => {
+            if (!toast.isConnected) return;
+            toast.classList.add('exit');
+            setTimeout(() => toast.remove(), 180);
+        };
+
+        const timer = setTimeout(removeToast, Math.max(1500, duration));
+
+        // סגירה בלחיצה
+        toast.addEventListener('click', () => {
+            clearTimeout(timer);
+            removeToast();
+        });
     }
 
     async saveProductsToFile() {

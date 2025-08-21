@@ -19,6 +19,27 @@
                 <h2>🔐 התחברות למערכת ניהול</h2>
                 <p>יש להתחבר כדי לגשת למערכת ניהול המוצרים</p>
                 <div id="googleSignInButton" style="display: flex; justify-content: center; margin-top: 20px;"></div>
+                
+                <!-- התחברות עם מייל וסיסמה -->
+                <div class="email-login-section">
+                    <div class="divider">
+                        <span>או</span>
+                    </div>
+                    <button id="showEmailLoginBtn" class="btn btn-secondary btn-small">🔐 התחברות עם סיסמה</button>
+                    
+                    <form id="emailLoginForm" class="email-login-form" style="display: none;">
+                        <div class="form-group">
+                            <input type="email" id="loginEmail" placeholder="מייל" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="loginPassword" placeholder="סיסמה" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">התחבר</button>
+                            <button type="button" id="cancelEmailLoginBtn" class="btn btn-outline">ביטול</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -293,6 +314,12 @@
             'BLUMI@GOLDYS.CO.IL'
         ];
 
+        // פרטי התחברות עם מייל וסיסמה
+        const EMAIL_LOGIN = {
+            email: 'blumi@goldys.co.il',
+            password: '05567063'
+        };
+
         // בדיקה אם המייל מורשה
         function isEmailAuthorized(email) {
             return ALLOWED_EMAILS.includes(email.toUpperCase());
@@ -328,6 +355,42 @@
             
             // הצגת הממשק המתאים
             updateAuthUI();
+        }
+
+        // טיפול בהתחברות עם מייל וסיסמה
+        function handleEmailLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            // בדיקת פרטי התחברות
+            if (email.toLowerCase() === EMAIL_LOGIN.email.toLowerCase() && password === EMAIL_LOGIN.password) {
+                currentUser = {
+                    email: email,
+                    name: 'מנהל מערכת',
+                    picture: null
+                };
+                
+                // שמירת פרטי המשתמש ב-localStorage
+                localStorage.setItem('adminUserEmail', email);
+                localStorage.setItem('adminUserName', 'מנהל מערכת');
+                
+                // בדיקה אם המייל מורשה
+                isUserAuthorized = isEmailAuthorized(email);
+                
+                // הצגת הממשק המתאים
+                updateAuthUI();
+                
+                // ניקוי הטופס והסתרתו
+                const emailLoginForm = document.getElementById('emailLoginForm');
+                const showEmailLoginBtn = document.getElementById('showEmailLoginBtn');
+                emailLoginForm.reset();
+                emailLoginForm.style.display = 'none';
+                showEmailLoginBtn.style.display = 'inline-block';
+            } else {
+                showNotification('❌ פרטי התחברות שגויים', 'error');
+            }
         }
 
         // התנתקות
@@ -405,13 +468,36 @@
             const notification = document.createElement('div');
             notification.textContent = message;
             notification.style.position = 'fixed';
-            notification.style.top = '20px';
-            notification.style.right = '20px';
-            notification.style.padding = '10px 20px';
-            notification.style.backgroundColor = color;
-            notification.style.color = 'white';
-            notification.style.borderRadius = '5px';
+            notification.style.top = '50%';
+            notification.style.left = '50%';
+            notification.style.transform = 'translate(-50%, -50%)';
+            notification.style.padding = '15px 25px';
+            notification.style.borderRadius = '8px';
             notification.style.zIndex = '10000';
+            notification.style.boxShadow = '0 4px 20px rgba(0,0,0,0.3)';
+            notification.style.fontSize = '16px';
+            notification.style.fontWeight = '500';
+            notification.style.minWidth = '200px';
+            notification.style.textAlign = 'center';
+            
+            // הגדרת צבעים לפי סוג ההודעה
+            if (color === 'error' || color === 'red') {
+                notification.style.backgroundColor = 'white';
+                notification.style.color = 'black';
+                notification.style.border = '2px solid #dc3545';
+            } else if (color === 'green' || color === 'success') {
+                notification.style.backgroundColor = 'white';
+                notification.style.color = 'black';
+                notification.style.border = '2px solid #28a745';
+            } else if (color === 'orange' || color === 'warning') {
+                notification.style.backgroundColor = 'white';
+                notification.style.color = 'black';
+                notification.style.border = '2px solid #ffc107';
+            } else {
+                notification.style.backgroundColor = 'white';
+                notification.style.color = 'black';
+                notification.style.border = '2px solid #007bff';
+            }
             
             document.body.appendChild(notification);
             
@@ -432,6 +518,30 @@
                     document.getElementById("googleSignInButton"),
                     { theme: "outline", size: "large", text: "signin_with" }
                 );
+            }
+            
+            // הוספת מאזינים לטופס התחברות עם מייל
+            const emailLoginForm = document.getElementById('emailLoginForm');
+            const showEmailLoginBtn = document.getElementById('showEmailLoginBtn');
+            const cancelEmailLoginBtn = document.getElementById('cancelEmailLoginBtn');
+            
+            if (emailLoginForm) {
+                emailLoginForm.addEventListener('submit', handleEmailLogin);
+            }
+            
+            if (showEmailLoginBtn) {
+                showEmailLoginBtn.addEventListener('click', function() {
+                    emailLoginForm.style.display = 'flex';
+                    showEmailLoginBtn.style.display = 'none';
+                });
+            }
+            
+            if (cancelEmailLoginBtn) {
+                cancelEmailLoginBtn.addEventListener('click', function() {
+                    emailLoginForm.style.display = 'none';
+                    showEmailLoginBtn.style.display = 'inline-block';
+                    emailLoginForm.reset();
+                });
             }
             
             // בדיקת התחברות קיימת

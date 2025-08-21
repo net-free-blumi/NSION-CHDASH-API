@@ -161,7 +161,7 @@ class ProductsLoader {
         // עדכון ממשק המשתמש
         this.updateUI();
 
-        // הודעה על הצלחה
+        // הודעה על הצלחה (רק בקונסול, לא בממשק)
         console.log('✅ מערכת המוצרים הוחלפה בהצלחה');
         console.log('📊 סה"כ מוצרים:', Object.keys(this.products).length);
         console.log('🏷️ קטגוריות:', Object.keys(this.categories).length);
@@ -312,29 +312,23 @@ class ProductsLoader {
 
     // עדכון ממשק המשתמש
     updateUI() {
-        // לא מוסיפים מאזינים כאן כדי למנוע כפילויות; המאזינים מנוהלים ב-setupProductSearch
-        this.showSystemNotification('מערכת המוצרים עודכנה בהצלחה!', 'success');
+        // לא מציגים התראות כאן כדי למנוע עומס בעת טעינת הדף
+        // המאזינים מנוהלים ב-setupProductSearch
     }
 
-    // הצגת הודעת מערכת
+    // הצגת הודעת מערכת — מנותב לטוסט האחיד של האתר
     showSystemNotification(message, type = 'info') {
-        // בדיקה אם כבר קיימת הודעה
-        let notification = document.getElementById('systemNotification');
-        if (!notification) {
-            notification = document.createElement('div');
-            notification.id = 'systemNotification';
-            notification.className = `system-notification ${type}`;
-            document.body.appendChild(notification);
-        }
-
-        notification.textContent = message;
-        notification.className = `system-notification ${type}`;
-        notification.classList.add('show');
-
-        // הסתרת ההודעה אחרי 3 שניות
-        setTimeout(() => {
-            notification.classList.remove('show');
-        }, 3000);
+        try {
+            const color = type === 'success' ? 'green'
+                : type === 'error' ? 'red'
+                : type === 'warning' ? 'orange'
+                : 'blue';
+            if (typeof window.showNotification === 'function') {
+                window.showNotification(message, color, { duration: 2000 });
+            } else {
+                console.log(`[${type}]`, message);
+            }
+        } catch {}
     }
 
     // חיפוש מוצר לפי מק"ט/שם/שם-חיפוש — מחזיר עד 10 תוצאות
@@ -514,7 +508,11 @@ class ProductsLoader {
     selectSku(code) {
         const skuInput = document.getElementById('productCode');
         if (skuInput) {
-            skuInput.value = String(code);
+            const cleanCode = String(code);
+            skuInput.value = cleanCode;
+            // מזרים אירועים כדי להפעיל מאזיני input/change (בדיקת ביסים וכו')
+            try { skuInput.dispatchEvent(new Event('input', { bubbles: true })); } catch {}
+            try { skuInput.dispatchEvent(new Event('change', { bubbles: true })); } catch {}
             skuInput.focus();
             skuInput.select();
         }
@@ -525,6 +523,10 @@ class ProductsLoader {
         // קנפג את המוצר בממשק (מציג מפרט/גדלים/מחירים)
         if (typeof window.configureProduct === 'function') {
             try { window.configureProduct(String(code)); } catch {}
+        }
+        // ודא פתיחת סוג ביס אם נדרש
+        if (typeof window.checkBisProduct === 'function') {
+            try { setTimeout(() => window.checkBisProduct(String(code)), 0); } catch {}
         }
         // אל תמחק את תוצאות החיפוש – השאר פתוח כדי לאפשר חיפוש נוסף מיד
     }
@@ -602,9 +604,10 @@ class ProductsLoader {
         await this.loadProducts();
         this.replaceExistingData();
         console.log('נתוני המוצרים רועננו בהצלחה');
-            this.showSystemNotification('✅ המוצרים רועננו', 'success');
+        // לא מציג הודעה בממשק כדי לא ליצור בלאגן
         } catch (e) {
-            this.showSystemNotification('❌ שגיאה ברענון מוצרים', 'error');
+            console.error('שגיאה ברענון מוצרים:', e);
+            // לא מציג הודעה בממשק כדי לא ליצור בלאגן
         }
     }
 
@@ -622,29 +625,16 @@ class ProductsLoader {
     // הוספת כפתור רענון מהיר לממשק — מבוטל כדי לא ליצור כפילות
     addQuickRefreshButton() { /* no-op */ }
 
-    // הוספת סטטוס מערכת
+    // הוספת סטטוס מערכת — מציג טוסט אחיד ונעלם
     addSystemStatus() {
-        // בדיקה אם כבר קיים סטטוס
-        if (document.getElementById('systemStatus')) return;
-
-        const statusDiv = document.createElement('div');
-        statusDiv.id = 'systemStatus';
-        statusDiv.className = 'system-status online';
-        statusDiv.innerHTML = `
-            <div>🟢 מערכת מוצרים פעילה</div>
-            <div style="font-size: 0.8rem; margin-top: 5px;">
-                ${Object.keys(this.products).length} מוצרים |
-                ${Object.keys(this.categories).length} קטגוריות
-            </div>
-        `;
-
-        document.body.appendChild(statusDiv);
-
-        // הסתרה אחרי 3 שניות כדי שלא יישאר זמן רב במסך
-        setTimeout(() => {
-            const el = document.getElementById('systemStatus');
-            if (el) el.remove();
-        }, 3000);
+        const productsCount = Object.keys(this.products).length;
+        const categoriesCount = Object.keys(this.categories).length;
+        const message = `🟢 מערכת מוצרים פעילה\n${productsCount} מוצרים | ${categoriesCount} קטגוריות`;
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(message, 'green', { duration: 2000 });
+        } else {
+            console.log(message);
+        }
     }
 
     // עדכון סטטוס מערכת

@@ -127,7 +127,7 @@ function updateAuthUI() {
             userSection.style.display = 'block';
             unauthorizedSection.style.display = 'none';
             mainContent.style.display = 'block';
-            showNotification('התחברת בהצלחה! אתה מורשה לשלוח הודעות WhatsApp', 'green');
+            // showNotification('התחברת בהצלחה! אתה מורשה לשלוח הודעות WhatsApp', 'green');
             
             // הצגת כפתור ניהול מוצרים רק למנהל המערכת
             if (currentUser.email && currentUser.email.toUpperCase() === 'BLUMI@GOLDYS.CO.IL') {
@@ -195,8 +195,7 @@ function checkAuthBeforeSending() {
 }
 
 // פונקציה להעיר את השרת
-function wakeUpServer() {
-    try {
+function wakeUpServer() {    try {
         const base = (typeof config !== 'undefined' && typeof config.getApiBaseUrl === 'function')
             ? config.getApiBaseUrl()
             : (window.API_BASE_URL || window.location.origin);
@@ -259,11 +258,17 @@ function copyBakerySummary() {
         const orderNumber = localStorage.getItem("orderNumber") || "";
         const orderDate = localStorage.getItem("orderDate") || "";
         const orderDay = getDayOfWeek(orderDate);
+        const shortDate = orderDate ? (function(d){
+            const dt = new Date(d);
+            return String(dt.getDate()).padStart(2,'0') + '/' + String(dt.getMonth()+1).padStart(2,'0');
+        })(orderDate) : ''
         const orderTime = document.getElementById("orderTime").value;
+        
         const bakeryItems = Array.from(document.getElementById("bakeryList").children)
             .map(li => li.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, '').trim());
         if (bakeryItems.length > 0) {
-            const bakerySummary = `*ליום ${orderDay} עד השעה: ${orderTime}*\n\nמיהודה\n\n${bakeryItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
+            const dayWithDate = shortDate ? `${orderDay} ${shortDate}` : orderDay;
+            const bakerySummary = `*הזמנה אונליין ליום ${dayWithDate} עד השעה: ${orderTime}*\n\nמיהודה\n\n${bakeryItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
             navigator.clipboard
                 .writeText(bakerySummary.trim())
                 .then(() => showCopyNotification("סיכום קונדיטוריה הועתק בהצלחה!"))
@@ -372,6 +377,20 @@ window.addEventListener('DOMContentLoaded', function() {
             modal.style.display = 'none';
         }
     });
+
+    // עדכון מיידי של חם/קר לסיכום ול-localStorage בעת שינוי בחירה
+    const temperatureSelect = document.getElementById('temperature');
+    if (temperatureSelect) {
+        temperatureSelect.addEventListener('change', function() {
+            const value = this.value || '';
+            try { localStorage.setItem('temperature', value); } catch {}
+            const notesEl = document.getElementById('notesSummary');
+            if (notesEl) notesEl.textContent = value ? `''${value}''` : '';
+            if (typeof displayOrderInfo === 'function') {
+                try { displayOrderInfo(); } catch {}
+            }
+        });
+    }
 });
 
 
@@ -565,24 +584,45 @@ function getDayOfWeek(dateStr) {
     return days[date.getDay()];
 }
 
-// Helper function to show notifications
-function showNotification(message, color = "green") {
-    const notification = document.createElement('div');
-    notification.textContent = message;
-    notification.style.position = 'fixed';
-    notification.style.top = '20px';
-    notification.style.right = '20px';
-    notification.style.padding = '10px 20px';
-    notification.style.backgroundColor = color;
-    notification.style.color = 'white';
-    notification.style.borderRadius = '5px';
-    notification.style.zIndex = '1000';
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
+// Helper function to show notifications (copied from admin)
+function showNotification(message, color = 'green', { duration = 3000 } = {}) {
+    // Convert legacy color names to types
+    const type = color === 'green' ? 'success'
+               : color === 'red' ? 'error'
+               : color === 'orange' ? 'warning'
+               : color === 'blue' ? 'info'
+               : color;
+
+    const container = document.getElementById('notifications-container');
+    if (!container) return;
+
+    // הגבלת מספר טוסטים מוצגים בו-זמנית
+    const maxToasts = 3;
+    while (container.children.length >= maxToasts) {
+        container.removeChild(container.firstChild);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `notification ${type}`;
+    toast.style.setProperty('--toast-duration', `${Math.max(1500, duration)}ms`);
+    toast.innerHTML = `<div>${message}</div><div class="progress"></div>`;
+
+    container.appendChild(toast);
+
+    // הסרה אוטומטית עם אנימציית יציאה
+    const removeToast = () => {
+        if (!toast.isConnected) return;
+        toast.classList.add('exit');
+        setTimeout(() => toast.remove(), 180);
+    };
+
+    const timer = setTimeout(removeToast, Math.max(1500, duration));
+
+    // סגירה בלחיצה
+    toast.addEventListener('click', () => {
+        clearTimeout(timer);
+        removeToast();
+    });
 }
 
 function copyCurrentSummary() {
@@ -640,6 +680,19 @@ function newOrder() {
     document.getElementById("temperature").value = "";
     document.getElementById("notesSummary").value = "";
     document.getElementById("notesSummary").textContent = "";
+    
+    // רענון תצוגת פרטי הזמנה לאחר איפוס
+    if (typeof displayOrderInfo === 'function') {
+        try { displayOrderInfo(); } catch {}
+    }
+    
+    // איפוס בחירת סוג לחם והסתרת התיבה
+    const breadTypeDiv = document.getElementById("breadTypeDiv");
+    if (breadTypeDiv) breadTypeDiv.style.display = "none";
+    const breadTypeSelect = document.getElementById("breadType");
+    if (breadTypeSelect && typeof breadTypeSelect.selectedIndex === 'number') {
+        breadTypeSelect.selectedIndex = 0;
+    }
     
     // ניקוי כל הרשימות
     document.getElementById("kitchenList").innerHTML = "";
@@ -895,17 +948,22 @@ function openWhatsAppBakeryModal() {
     const modal = document.getElementById('whatsappBakeryModal');
     const waEditable = document.getElementById('waEditableBakery');
     if (!modal || !waEditable) {
-        console.error('Modal elements not found!');
+        console.error('Modal elements not found1!');
         return;
     }
     const orderNumber = localStorage.getItem("orderNumber") || "";
     const orderDate = localStorage.getItem("orderDate") || "";
     const orderDay = getDayOfWeek(orderDate);
+    const shortDate = orderDate ? (function(d){
+        const dt = new Date(d);
+        return String(dt.getDate()).padStart(2,'0') + '/' + String(dt.getMonth()+1).padStart(2,'0');
+    })(orderDate) : '';
     const orderTime = document.getElementById("orderTime").value;
     const bakeryItems = Array.from(document.getElementById("bakeryList").children)
         .map(li => li.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, '').trim());
     if (bakeryItems.length > 0) {
-        const bakerySummary = `*הזמנה אונליין ליום ${orderDay} עד השעה: ${orderTime}*\n\nמיהודה\n\n${bakeryItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
+        const dayWithDate = shortDate ? `${orderDay} ${shortDate}` : orderDay;
+        const bakerySummary = `*הזמנה אונליין ליום ${dayWithDate} עד השעה: ${orderTime}*\n\nמיהודה\n\n${bakeryItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
         // המרה ל-HTML עם הדגשות נכונות לוואטסאפ
         const htmlSummary = bakerySummary
             .replace(/\*([^*]+)\*/g, '<b>$1</b>')
@@ -1742,11 +1800,11 @@ function displayOrderInfo() {
     const orderDate = localStorage.getItem("orderDate") || "";
     const orderTime = localStorage.getItem("orderTime") || "";
     const temperature = localStorage.getItem("temperature") || ""; // הצגת חם/קר
-    const formattedDate = orderDate ? formatDateToDDMMYYYY(orderDate) : "תאריך לא תקין";
+    const formattedDate = orderDate ? formatDateToDDMMYYYY(orderDate) : "";
     const orderDay = orderDate ? getDayOfWeek(orderDate) : '';
-    document.getElementById("orderInfo").innerHTML = `<strong>הזמנה מס: ${orderNumber}</strong><br>
-                <strong>לתאריך: ${formattedDate}${orderDay ? ' (יום ' + orderDay + ')' : ''}</strong><br>
-                <strong>לשעה: ${orderTime}</strong>`;
+    const dateLine = formattedDate ? `<strong>לתאריך: ${formattedDate}${orderDay ? ' (יום ' + orderDay + ')' : ''}</strong><br>` : '';
+    const timeLine = orderTime ? `<strong>לשעה: ${orderTime}</strong>` : '';
+    document.getElementById("orderInfo").innerHTML = `<strong>הזמנה מס: ${orderNumber}</strong><br>${dateLine}${timeLine}`;
     document.getElementById("notesSummary").textContent = temperature ? `''${temperature}''` : '';
 }
 
@@ -2120,7 +2178,7 @@ function generateAmarSummary() {
             return;
         }
         navigator.clipboard.writeText(message)
-            .then(() => showNotification("הסיכום הערוך הועתק בהצלחה!", "green"))
+            .then(() => showNotification("הסיכום  הועתק בהצלחה!", "green"))
             .catch(() => showNotification("שגיאה בהעתקה", "red"));
     } else {
         // אם המודל לא פתוח – העתק סיכום אוטומטי
@@ -2183,9 +2241,6 @@ function openProductManagement() {
     const adminWindow = window.open('admin.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
     
     if (adminWindow) {
-        // הודעה למשתמש
-        showNotification('מערכת ניהול המוצרים נפתחה בחלון חדש', 'green');
-        
         // עדכון אוטומטי של המוצרים באתר הראשי כשהחלון נסגר
         adminWindow.onbeforeunload = function() {
             // רענון המוצרים באתר הראשי
