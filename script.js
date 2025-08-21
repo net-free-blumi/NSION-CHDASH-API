@@ -2237,26 +2237,6 @@ function generateAmarSummary() {
 
 // פונקציה לפתיחת מערכת ניהול המוצרים
 function openProductManagement() {
-    // פתיחת מערכת הניהול בחלון חדש
-    const adminWindow = window.open('admin.html', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-    
-    if (adminWindow) {
-        // עדכון אוטומטי של המוצרים באתר הראשי כשהחלון נסגר
-        adminWindow.onbeforeunload = function() {
-            // רענון המוצרים באתר הראשי
-            if (typeof refreshProductsData === 'function') {
-                refreshProductsData();
-            }
-            
-            // רענון תיבת החיפוש
-            if (typeof searchProduct === 'function') {
-                const searchInput = document.getElementById('searchInput');
-                if (searchInput && searchInput.value) {
-                    searchProduct();
-                }
-            }
-        };
-    } else {
-        showNotification('לא ניתן לפתוח חלון חדש. בדוק את חסימת החלונות הקופצים', 'red');
-    }
+    // פתיחת הבאק בדף חדש
+    window.open('admin.html', '_blank');
 }
