@@ -404,6 +404,9 @@ app.post('/api/products/save', async (req, res) => {
             return res.status(400).json({ error: 'products missing' });
         }
 
+        // Ensure data directory exists before any file operations
+        await ensureDataLocations();
+        
         const filePath = DATA_PRODUCTS_FILE;
         const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
         const data = JSON.parse(raw || '{}');
@@ -440,6 +443,9 @@ app.post('/api/products/save', async (req, res) => {
 app.get('/api/products', async (req, res) => {
     try {
         res.set('Cache-Control', 'no-store');
+        // Ensure data directory exists before any file operations
+        await ensureDataLocations();
+        
         const filePath = DATA_PRODUCTS_FILE;
         const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
         const data = JSON.parse(raw || '{}');
@@ -456,6 +462,9 @@ app.delete('/api/products/:code', async (req, res) => {
         const { code } = req.params;
         if (!code) return res.status(400).json({ error: 'missing code' });
 
+        // Ensure data directory exists before any file operations
+        await ensureDataLocations();
+        
         const filePath = DATA_PRODUCTS_FILE;
         const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
         const data = JSON.parse(raw || '{}');
