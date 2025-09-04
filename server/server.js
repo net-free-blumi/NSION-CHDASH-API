@@ -530,10 +530,39 @@ app.get('/api/backup-status', async (req, res) => {
         res.json({
             exists,
             latestPath: latest || null,
-            folderId: process.env.GOOGLE_DRIVE_FOLDER_ID || null
+            folderId: process.env.GOOGLE_DRIVE_FOLDER_ID || '1lzqjieLaOaGMgrUjzRvYzMIZndfg1DGe'
         });
     } catch (e) {
         res.status(500).json({ error: 'status failed', details: e?.message });
+    }
+});
+
+// Restore from latest backup
+app.post('/api/restore-latest', async (req, res) => {
+    try {
+        await ensureDataLocations();
+        const latest = await getLatestBackupFilePath();
+        
+        if (!latest) {
+            return res.status(404).json({ error: 'No backup found' });
+        }
+        
+        const backupData = await fs.readFile(latest, 'utf8');
+        await fs.writeFile(DATA_PRODUCTS_FILE, backupData, 'utf8');
+        
+        const parsed = JSON.parse(backupData);
+        const totals = {
+            products: Object.keys(parsed.products || {}).length,
+            categories: Object.keys(parsed.categories || {}).length
+        };
+        
+        res.json({
+            success: true,
+            message: `Restored from ${path.basename(latest)}`,
+            totals
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
