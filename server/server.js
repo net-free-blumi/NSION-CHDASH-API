@@ -43,8 +43,20 @@ async function ensureDataLocations() {
                 await fs.writeFile(DATA_PRODUCTS_FILE, JSON.stringify({ products: {}, categories: {} }, null, 2), 'utf8');
             }
         }
+        console.log('Data locations ensured. Using:', DATA_PRODUCTS_FILE);
     } catch (e) {
         console.error('Failed ensuring data locations:', e);
+        // Emergency fallback to local directory
+        DATA_DIR = __dirname;
+        DATA_PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+        BACKUPS_DIR = path.join(DATA_DIR, 'backups');
+        try {
+            await fs.mkdir(BACKUPS_DIR, { recursive: true });
+            await fs.writeFile(DATA_PRODUCTS_FILE, JSON.stringify({ products: {}, categories: {} }, null, 2), 'utf8');
+            console.log('Emergency fallback: using local directory');
+        } catch (fallbackError) {
+            console.error('Emergency fallback failed:', fallbackError);
+        }
     }
 }
 
