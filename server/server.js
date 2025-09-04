@@ -84,6 +84,7 @@ async function maybeUploadToGoogleDrive(fullPath, filename) {
     try {
         // Destination folder ID (must be provided via env). Test fallback added.
         const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || '1lzqjieLaOaGMgrUjzRvYzMIZndfg1DGe'; // destination folder
+        console.log('Google Drive folder ID:', folderId);
         if (!folderId) return; // not configured
 
         const scopes = ['https://www.googleapis.com/auth/drive.file'];
@@ -100,6 +101,7 @@ async function maybeUploadToGoogleDrive(fullPath, filename) {
         }
         if (svcAccountJson) {
             try {
+                console.log('Using Service Account credentials');
                 const creds = JSON.parse(svcAccountJson);
                 auth = new google.auth.GoogleAuth({ credentials: creds, scopes });
             } catch (e) {
@@ -109,13 +111,17 @@ async function maybeUploadToGoogleDrive(fullPath, filename) {
 
         // Option B: OAuth2 client with refresh token (no service account keys)
         if (!auth) {
+            console.log('Service Account not found, trying OAuth2...');
             const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
             const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
             const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
             if (clientId && clientSecret && refreshToken) {
+                console.log('Using OAuth2 credentials');
                 const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
                 oauth2.setCredentials({ refresh_token: refreshToken });
                 auth = oauth2;
+            } else {
+                console.log('OAuth2 credentials not found, skipping Google Drive upload');
             }
         }
 
