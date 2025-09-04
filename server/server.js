@@ -42,6 +42,13 @@ async function ensureDataLocations() {
                 // initialize empty structure
                 await fs.writeFile(DATA_PRODUCTS_FILE, JSON.stringify({ products: {}, categories: {} }, null, 2), 'utf8');
             }
+        } else {
+            console.log('Products data already exists in persistent storage');
+            // Verify the file has content
+            const stats = await fs.stat(DATA_PRODUCTS_FILE).catch(() => null);
+            if (stats) {
+                console.log('Data file size:', stats.size, 'bytes');
+            }
         }
         console.log('Data locations ensured. Using:', DATA_PRODUCTS_FILE);
     } catch (e) {
@@ -127,15 +134,27 @@ async function maybeUploadToGoogleDrive(fullPath, filename) {
 
         if (!auth) {
             console.warn('Google Drive not configured: no auth available');
+            console.log('Available env vars:', {
+                GOOGLE_SERVICE_ACCOUNT: !!process.env.GOOGLE_SERVICE_ACCOUNT,
+                GOOGLE_DRIVE_FOLDER_ID: !!process.env.GOOGLE_DRIVE_FOLDER_ID,
+                GOOGLE_OAUTH_CLIENT_ID: !!process.env.GOOGLE_OAUTH_CLIENT_ID
+            });
             return;
         }
 
         const drive = google.drive({ version: 'v3', auth });
+        console.log('Attempting to upload to Google Drive...', { filename, folderId });
+        
         const res = await drive.files.create({
             requestBody: { name: filename, parents: [folderId] },
             media: { mimeType: 'application/json', body: (await import('fs')).createReadStream(fullPath) }
         });
-        console.log('Backup uploaded to Google Drive fileId=', res.data?.id || '(unknown)');
+        
+        console.log('✅ Successfully uploaded to Google Drive!', {
+            fileId: res.data.id,
+            fileName: res.data.name,
+            folderId: folderId
+        });
     } catch (e) {
         console.warn('Google Drive upload skipped/failed:', e?.message || e);
     }
@@ -263,17 +282,17 @@ async function initializeCategories() {
         }
         console.log('Creating initial categories in products.json...');
         const initialCategories = {
-            "kitchen": "מוצרי מטבח",
-            "bakery": "קונדיטורייה",
-            "fruits": "פירות",
-            "sushi": "סושי",
-            "amar": "קונדיטורייה עמר",
-            "kitchenProducts": "מטבח מוסטפה",
-            "online": "אונליין",
-            "warehouse": "מחסן",
-            "sizes": "מוצרי גדלים",
-            "quantities": "מוצרי כמות"
-        };
+                "kitchen": "מוצרי מטבח",
+                "bakery": "קונדיטורייה",
+                "fruits": "פירות",
+                "sushi": "סושי",
+                "amar": "קונדיטורייה עמר",
+                "kitchenProducts": "מטבח מוסטפה",
+                "online": "אונליין",
+                "warehouse": "מחסן",
+                "sizes": "מוצרי גדלים",
+                "quantities": "מוצרי כמות"
+            };
         await fs.writeFile(filePath, JSON.stringify({ ...data, categories: initialCategories }, null, 2), 'utf8');
         console.log('Initial categories created in products.json');
     } catch (error) {

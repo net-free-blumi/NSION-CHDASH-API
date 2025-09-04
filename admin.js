@@ -870,3 +870,64 @@ document.addEventListener('DOMContentLoaded', () => {
         window.productManager.toggleQuantityFields();
     }
 });
+
+// Backup functions
+async function backupNow() {
+    try {
+        const response = await fetch('https://nsion-chdash-api-1.onrender.com/api/backup-now', {
+            method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`✅ גיבוי נוצר בהצלחה!\n\nמוצרים: ${data.totals.products}\nקטגוריות: ${data.totals.categories}`);
+        } else {
+            alert(`❌ שגיאה ביצירת גיבוי: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error creating backup:', error);
+        alert('שגיאה ביצירת גיבוי');
+    }
+}
+
+async function getBackupStatus() {
+    try {
+        const response = await fetch('https://nsion-chdash-api-1.onrender.com/api/backup-status');
+        const data = await response.json();
+        
+        if (data.exists) {
+            alert(`✅ גיבוי קיים!\n\nנתיב: ${data.latestPath}\nתיקיית Drive: ${data.folderId || 'לא מוגדר'}`);
+        } else {
+            alert('❌ לא נמצא גיבוי');
+        }
+    } catch (error) {
+        console.error('Error getting backup status:', error);
+        alert('שגיאה בקבלת סטטוס הגיבוי');
+    }
+}
+
+async function restoreFromBackup() {
+    if (!confirm('האם אתה בטוח שברצונך לשחזר את כל המוצרים מהגיבוי האחרון? זה יחליף את כל הנתונים הנוכחיים!')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('https://nsion-chdash-api-1.onrender.com/api/restore-latest', {
+            method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`✅ שחזור הושלם בהצלחה!\n\n${data.message}\n\nמוצרים: ${data.totals.products}\nקטגוריות: ${data.totals.categories}`);
+            // Refresh the products list
+            if (window.productManager) {
+                window.productManager.refreshProducts();
+            }
+        } else {
+            alert(`❌ שגיאה בשחזור: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error restoring from backup:', error);
+        alert('שגיאה בשחזור מהגיבוי');
+    }
+}
