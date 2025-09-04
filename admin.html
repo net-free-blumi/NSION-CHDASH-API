@@ -104,6 +104,7 @@
                         <button onclick="productManager.refreshProducts()" class="btn btn-success">🔄 רענון מוצרים</button>
                         <button onclick="productManager.exportProducts()" class="btn btn-warning">📤 ייצוא מוצרים</button>
                         <button onclick="productManager.importProducts()" class="btn btn-warning">📥 ייבוא מוצרים</button>
+                        <button onclick="backupNow()" class="btn btn-info">☁️ גיבוי ל-Drive עכשיו</button>
                     </div>
                     <div class="search-section">
                         <h3>🔍 חיפוש מוצרים</h3>
@@ -460,6 +461,18 @@
             } else {
                 // אם אין משתמש מחובר, הצג את מסך ההתחברות
                 updateAuthUI();
+            }
+        }
+
+        // גיבוי ידני עכשיו
+        async function backupNow() {
+            try {
+                const resp = await fetch((window.API_BASE_URL || window.location.origin) + '/api/backup-now', { method: 'POST' });
+                if (!resp.ok) throw new Error(await resp.text());
+                const data = await resp.json();
+                showNotification('✅ גיבוי נוצר' + (data?.totals ? ` (${data.totals.products} מוצרים)` : ''), 'green');
+            } catch (e) {
+                showNotification('❌ גיבוי נכשל: ' + (e?.message || e), 'red');
             }
         }
 

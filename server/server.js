@@ -10,14 +10,27 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const ROOT_PRODUCTS_FILE = path.join(__dirname, '..', 'products.json');
-const DATA_DIR = process.env.DATA_DIR || '/data';
-const DATA_PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
-const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
+let DATA_DIR = process.env.DATA_DIR || '/data';
+let DATA_PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+let BACKUPS_DIR = path.join(DATA_DIR, 'backups');
 
 async function ensureDataLocations() {
     try {
+        // Try primary data dir
         await fs.mkdir(DATA_DIR, { recursive: true });
         await fs.mkdir(BACKUPS_DIR, { recursive: true });
+        // Verify write access; if not, fallback to local server directory
+        try {
+            const probePath = path.join(DATA_DIR, '.write-probe');
+            await fs.writeFile(probePath, 'ok', 'utf8');
+            await fs.unlink(probePath).catch(() => {});
+        } catch {
+            console.warn('DATA_DIR not writable, falling back to local server directory');
+            DATA_DIR = __dirname;
+            DATA_PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+            BACKUPS_DIR = path.join(DATA_DIR, 'backups');
+            await fs.mkdir(BACKUPS_DIR, { recursive: true });
+        }
         // If data file does not exist but root products file exists with data, migrate once
         const dataExists = await fs.access(DATA_PRODUCTS_FILE).then(() => true).catch(() => false);
         if (!dataExists) {
@@ -462,6 +475,39 @@ app.delete('/api/products/:code', async (req, res) => {
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Manual backup endpoint (forces snapshot + optional Drive upload)
+app.post('/api/backup-now', async (req, res) => {
+    try {
+        const raw = await fs.readFile(DATA_PRODUCTS_FILE, 'utf8').catch(() => null);
+        if (!raw) return res.status(404).json({ error: 'no data file' });
+        const data = JSON.parse(raw || '{}');
+        await writeBackupSnapshot(data);
+        const totals = {
+            products: data.products ? Object.keys(data.products).length : 0,
+            categories: data.categories ? Object.keys(data.categories).length : 0
+        };
+        res.json({ success: true, message: 'Backup created', totals });
+    } catch (e) {
+        console.error('Manual backup failed:', e);
+        res.status(500).json({ error: 'backup failed', details: e?.message });
+    }
+});
+
+// Backup status endpoint
+app.get('/api/backup-status', async (req, res) => {
+    try {
+        const latest = await getLatestBackupFilePath();
+        const exists = !!latest;
+        res.json({
+            exists,
+            latestPath: latest || null,
+            folderId: process.env.GOOGLE_DRIVE_FOLDER_ID || null
+        });
+    } catch (e) {
+        res.status(500).json({ error: 'status failed', details: e?.message });
+    }
 });
 
 // WhatsApp message sending endpoint
