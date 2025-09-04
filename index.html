@@ -942,6 +942,17 @@ function syncProducts() {
     window.productsLoader.refreshData().then(() => {
       const msg = document.getElementById('syncProductsMsg');
       if (msg) {
+        try {
+          const stats = (window.productsLoader && typeof window.productsLoader.getStats === 'function')
+            ? window.productsLoader.getStats()
+            : { totalProducts: Object.keys(window.productsLoader?.products || {}).length, totalCategories: Object.keys(window.productsLoader?.categories || {}).length };
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+          msg.textContent = `המוצרים סונכרנו בהצלחה! (${stats.totalProducts} מוצרים, ${stats.totalCategories} קטגוריות, ${timeStr})`;
+        } catch (e) {
+          // במקרה של שגיאה נציג את ההודעה הבסיסית
+          msg.textContent = 'המוצרים סונכרנו בהצלחה!';
+        }
         msg.style.display = 'inline';
         setTimeout(() => { msg.style.display = 'none'; }, 2000);
       }

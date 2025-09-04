@@ -4,12 +4,160 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { promises as fs } from 'fs';
 import fetch from 'node-fetch';
+import { google } from 'googleapis';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PRODUCTS_FILE = path.join(__dirname, 'products.json');
 const ROOT_PRODUCTS_FILE = path.join(__dirname, '..', 'products.json');
+const DATA_DIR = process.env.DATA_DIR || '/data';
+const DATA_PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
+
+async function ensureDataLocations() {
+    try {
+        await fs.mkdir(DATA_DIR, { recursive: true });
+        await fs.mkdir(BACKUPS_DIR, { recursive: true });
+        // If data file does not exist but root products file exists with data, migrate once
+        const dataExists = await fs.access(DATA_PRODUCTS_FILE).then(() => true).catch(() => false);
+        if (!dataExists) {
+            const rootRaw = await fs.readFile(ROOT_PRODUCTS_FILE, 'utf8').catch(() => '');
+            if (rootRaw) {
+                await fs.writeFile(DATA_PRODUCTS_FILE, rootRaw, 'utf8');
+                console.log('Migrated products.json to persistent data disk');
+            } else {
+                // initialize empty structure
+                await fs.writeFile(DATA_PRODUCTS_FILE, JSON.stringify({ products: {}, categories: {} }, null, 2), 'utf8');
+            }
+        }
+    } catch (e) {
+        console.error('Failed ensuring data locations:', e);
+    }
+}
+
+function getNowTimestamp() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+async function writeBackupSnapshot(dataObject) {
+    try {
+        await fs.mkdir(BACKUPS_DIR, { recursive: true });
+        const filename = `products-${getNowTimestamp()}.json`;
+        const fullPath = path.join(BACKUPS_DIR, filename);
+        await fs.writeFile(fullPath, JSON.stringify(dataObject, null, 2), 'utf8');
+        console.log('Local backup created at', fullPath);
+        // Optionally upload to Google Drive
+        await maybeUploadToGoogleDrive(fullPath, filename);
+    } catch (e) {
+        console.warn('Failed to create local backup:', e?.message || e);
+    }
+}
+
+async function maybeUploadToGoogleDrive(fullPath, filename) {
+    try {
+        // Destination folder ID (must be provided via env). Test fallback added.
+        const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || '1lzqjieLaOaGMgrUjzRvYzMIZndfg1DGe'; // destination folder
+        if (!folderId) return; // not configured
+
+        const scopes = ['https://www.googleapis.com/auth/drive.file'];
+        let auth;
+
+        // Option A: Service Account (if allowed)
+        let svcAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT; // stringified JSON
+        if (!svcAccountJson) {
+            // Fallback: load from local file if exists (not committed; ignored via .gitignore)
+            try {
+                const localJson = await fs.readFile(path.join(__dirname, 'google-service-account.json'), 'utf8');
+                svcAccountJson = localJson;
+            } catch {}
+        }
+        if (svcAccountJson) {
+            try {
+                const creds = JSON.parse(svcAccountJson);
+                auth = new google.auth.GoogleAuth({ credentials: creds, scopes });
+            } catch (e) {
+                console.warn('Invalid GOOGLE_SERVICE_ACCOUNT JSON provided:', e?.message || e);
+            }
+        }
+
+        // Option B: OAuth2 client with refresh token (no service account keys)
+        if (!auth) {
+            const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+            const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+            const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+            if (clientId && clientSecret && refreshToken) {
+                const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
+                oauth2.setCredentials({ refresh_token: refreshToken });
+                auth = oauth2;
+            }
+        }
+
+        if (!auth) {
+            console.warn('Google Drive not configured: no auth available');
+            return;
+        }
+
+        const drive = google.drive({ version: 'v3', auth });
+        const res = await drive.files.create({
+            requestBody: { name: filename, parents: [folderId] },
+            media: { mimeType: 'application/json', body: (await import('fs')).createReadStream(fullPath) }
+        });
+        console.log('Backup uploaded to Google Drive fileId=', res.data?.id || '(unknown)');
+    } catch (e) {
+        console.warn('Google Drive upload skipped/failed:', e?.message || e);
+    }
+}
+
+async function getLatestBackupFilePath() {
+    try {
+        const files = await fs.readdir(BACKUPS_DIR).catch(() => []);
+        const productBackups = files.filter(f => /^products-\d{8}-\d{6}\.json$/.test(f));
+        if (productBackups.length === 0) return null;
+        productBackups.sort();
+        return path.join(BACKUPS_DIR, productBackups[productBackups.length - 1]);
+    } catch {
+        return null;
+    }
+}
+
+async function readJsonSafe(filePath) {
+    try {
+        const raw = await fs.readFile(filePath, 'utf8');
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
+async function createBackupIfChanged() {
+    try {
+        const current = await readJsonSafe(DATA_PRODUCTS_FILE);
+        if (!current) return;
+        const latestPath = await getLatestBackupFilePath();
+        if (latestPath) {
+            const latest = await readJsonSafe(latestPath);
+            if (latest && JSON.stringify(latest) === JSON.stringify(current)) {
+                console.log('Daily backup skipped: no changes since last snapshot');
+                return;
+            }
+        }
+        await writeBackupSnapshot(current);
+    } catch (e) {
+        console.warn('Daily backup check failed:', e?.message || e);
+    }
+}
+
+function scheduleDailyConditionalBackup() {
+    const days = Math.max(1, parseInt(process.env.BACKUP_INTERVAL_DAYS || '1', 10));
+    const intervalMs = days * 24 * 60 * 60 * 1000;
+    // run once shortly after start
+    setTimeout(() => { createBackupIfChanged(); }, 60 * 1000);
+    // schedule interval
+    setInterval(() => { createBackupIfChanged(); }, intervalMs);
+    console.log(`Scheduled conditional backups every ${days} day(s)`);
+}
 
 // Green API configuration
 const INSTANCE_ID = '7105260862';
@@ -73,10 +221,9 @@ app.use(express.static(path.join(__dirname, '..')));
 // Initialize default categories if none exist
 async function initializeCategories() {
     try {
-        // This function is no longer needed as categories are managed by the file
-        // and the file itself contains the default categories.
-        // Keeping it for now, but it will not create categories if the file exists.
-        const filePath = ROOT_PRODUCTS_FILE; // Use ROOT_PRODUCTS_FILE for consistency
+        await ensureDataLocations();
+        // categories are managed by file; ensure they exist in DATA file
+        const filePath = DATA_PRODUCTS_FILE;
         const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
         const data = JSON.parse(raw || '{}');
         if (data.categories) {
@@ -106,10 +253,9 @@ async function initializeCategories() {
 // One-time import from root products.json into MongoDB (if DB is empty)
 async function importProductsIfEmpty() {
     try {
-        // This function is no longer needed as products are managed by the file
-        // and the file itself contains the default products.
-        // Keeping it for now, but it will not import products if the file exists.
-        const filePath = ROOT_PRODUCTS_FILE; // Use ROOT_PRODUCTS_FILE for consistency
+        await ensureDataLocations();
+        // Products are managed by file; ensure they exist in DATA file
+        const filePath = DATA_PRODUCTS_FILE;
         const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
         const data = JSON.parse(raw || '{}');
         if (data.products) {
@@ -218,14 +364,14 @@ app.use((err, req, res, next) => {
 // API Stats endpoint for health check
 app.get('/api/stats', async (req, res) => {
     try {
-        const filePath = ROOT_PRODUCTS_FILE; // Use ROOT_PRODUCTS_FILE for consistency
+        const filePath = DATA_PRODUCTS_FILE;
         const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
         const data = JSON.parse(raw || '{}');
         const stats = {
             total: data.products ? Object.keys(data.products).length : 0,
             categories: data.categories ? Object.keys(data.categories).length : 0,
             status: 'ok',
-            server: 'running(file)'
+            server: 'running(file+data)'
         };
         console.log('Stats request successful:', stats);
         res.json(stats);
@@ -245,7 +391,7 @@ app.post('/api/products/save', async (req, res) => {
             return res.status(400).json({ error: 'products missing' });
         }
 
-        const filePath = ROOT_PRODUCTS_FILE; // Use ROOT_PRODUCTS_FILE for consistency
+        const filePath = DATA_PRODUCTS_FILE;
         const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
         const data = JSON.parse(raw || '{}');
         const merged = { products: data.products || {}, categories: data.categories || {} };
@@ -263,6 +409,8 @@ app.post('/api/products/save', async (req, res) => {
             merged.categories = { ...merged.categories, ...categories };
         }
         await fs.writeFile(filePath, JSON.stringify(merged, null, 2), 'utf8');
+        // Write timestamped local backup and optionally upload to Google Drive
+        await writeBackupSnapshot(merged);
 
         res.json({
             success: true,
@@ -279,7 +427,7 @@ app.post('/api/products/save', async (req, res) => {
 app.get('/api/products', async (req, res) => {
     try {
         res.set('Cache-Control', 'no-store');
-        const filePath = ROOT_PRODUCTS_FILE; // Use ROOT_PRODUCTS_FILE for consistency
+        const filePath = DATA_PRODUCTS_FILE;
         const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
         const data = JSON.parse(raw || '{}');
         res.json({ products: data.products || {}, categories: data.categories || {} });
@@ -295,12 +443,13 @@ app.delete('/api/products/:code', async (req, res) => {
         const { code } = req.params;
         if (!code) return res.status(400).json({ error: 'missing code' });
 
-        const filePath = ROOT_PRODUCTS_FILE; // Use ROOT_PRODUCTS_FILE for consistency
+        const filePath = DATA_PRODUCTS_FILE;
         const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
         const data = JSON.parse(raw || '{}');
         if (data.products && data.products[code]) {
             delete data.products[code];
             await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
+            await writeBackupSnapshot(data);
         }
 
         res.json({ success: true, message: `Product ${code} deleted` });
@@ -376,12 +525,14 @@ app.post('/send-whatsapp', async (req, res) => {
 // Port configuration
 const PORT = process.env.PORT || 5000;
 
-// Initialize categories and start server
-initializeCategories().then(() => importProductsIfEmpty()).then(() => {
+// Initialize data locations, categories/products and start server
+ensureDataLocations().then(() => initializeCategories()).then(() => importProductsIfEmpty()).then(() => {
     app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
         console.log('Server is ready to handle requests');
     });
+    // Start scheduled conditional backups (default daily, configurable)
+    scheduleDailyConditionalBackup();
 }).catch(error => {
     console.error('Failed to start server:', error);
     process.exit(1);
