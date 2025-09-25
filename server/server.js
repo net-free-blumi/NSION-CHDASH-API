@@ -90,7 +90,8 @@ async function writeBackupSnapshot(dataObject) {
             console.log('Attempting to upload to Google Drive...');
             await maybeUploadToGoogleDrive(fullPath, filename);
         } else {
-            console.log('Google Drive upload disabled');
+            console.log('Google Drive upload disabled - forcing upload anyway for testing');
+            await maybeUploadToGoogleDrive(fullPath, filename);
         }
     } catch (e) {
         console.warn('Failed to create local backup:', e?.message || e);
