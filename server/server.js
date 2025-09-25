@@ -608,6 +608,55 @@ app.get('/api/debug', (req, res) => {
     });
 });
 
+// Test Google Drive connection
+app.get('/api/test-drive', async (req, res) => {
+    try {
+        console.log('=== TESTING GOOGLE DRIVE CONNECTION ===');
+        console.log('Environment variables:', {
+            BACKUP_UPLOAD_TO_DRIVE: process.env.BACKUP_UPLOAD_TO_DRIVE,
+            GOOGLE_DRIVE_FOLDER_ID: !!process.env.GOOGLE_DRIVE_FOLDER_ID,
+            GOOGLE_SERVICE_ACCOUNT: !!process.env.GOOGLE_SERVICE_ACCOUNT
+        });
+        
+        const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+        if (!folderId) {
+            return res.json({ error: 'No Google Drive folder ID configured' });
+        }
+        
+        const scopes = ['https://www.googleapis.com/auth/drive.readonly'];
+        let auth;
+        
+        // Try Service Account
+        let svcAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT;
+        if (svcAccountJson) {
+            try {
+                const creds = JSON.parse(svcAccountJson);
+                auth = new google.auth.GoogleAuth({ credentials: creds, scopes });
+                console.log('✅ Service Account auth created');
+            } catch (e) {
+                console.error('❌ Service Account auth failed:', e?.message);
+            }
+        }
+        
+        if (!auth) {
+            return res.json({ error: 'No Google Drive authentication configured' });
+        }
+        
+        const drive = google.drive({ version: 'v3', auth });
+        const result = await drive.files.list({ q: `'${folderId}' in parents`, maxResults: 1 });
+        
+        res.json({ 
+            success: true, 
+            message: 'Google Drive connection working',
+            folderId: folderId,
+            filesFound: result.data.files?.length || 0
+        });
+    } catch (e) {
+        console.error('Google Drive test failed:', e?.message);
+        res.status(500).json({ error: 'Google Drive test failed', details: e?.message });
+    }
+});
+
 // Manual backup endpoint (forces snapshot + optional Drive upload)
 app.post('/api/backup-now', async (req, res) => {
     try {
@@ -828,6 +877,11 @@ app.post('/api/delete-backup', async (req, res) => {
         console.log('=== DELETE BACKUP REQUEST ===');
         console.log('Delete backup request:', req.body);
         console.log('Server version 2.0.0 - Delete endpoint reached');
+        
+        // Simple test response first
+        if (req.body.test === 'true') {
+            return res.json({ success: true, message: 'Delete endpoint working', version: '2.0.0' });
+        }
         const { source, id, filename } = req.body;
         console.log('Delete parameters:', { source, id, filename });
         
