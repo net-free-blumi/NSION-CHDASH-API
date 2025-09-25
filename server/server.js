@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { promises as fs } from 'fs';
+import { createReadStream } from 'fs';
 import fetch from 'node-fetch';
 import { google } from 'googleapis';
 
@@ -198,7 +199,7 @@ async function maybeUploadToGoogleDrive(fullPath, filename) {
         
         const res = await drive.files.create({
             requestBody: { name: filename, parents: [folderId] },
-            media: { mimeType: 'application/json', body: fs.createReadStream(fullPath) }
+            media: { mimeType: 'application/json', body: createReadStream(fullPath) }
         });
         
         console.log('✅ Successfully uploaded to Google Drive!', {
