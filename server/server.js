@@ -90,8 +90,7 @@ async function writeBackupSnapshot(dataObject) {
             console.log('Attempting to upload to Google Drive...');
             await maybeUploadToGoogleDrive(fullPath, filename);
         } else {
-            console.log('Google Drive upload disabled - forcing upload anyway for testing');
-            await maybeUploadToGoogleDrive(fullPath, filename);
+            console.log('Google Drive upload disabled');
         }
         
         console.log('=== BACKUP COMPLETED ===');
@@ -106,8 +105,8 @@ async function maybeUploadToGoogleDrive(fullPath, filename) {
         console.log('Full path:', fullPath);
         console.log('Filename:', filename);
         
-        // Destination folder ID (must be provided via env). Test fallback added.
-        const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || '1lzqjieLaOaGMgrUjzRvYzMIZndfg1DGe'; // destination folder
+        // Destination folder ID (must be provided via env)
+        const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
         console.log('Google Drive folder ID:', folderId);
         if (!folderId) {
             console.log('❌ No folder ID configured, skipping upload');
@@ -121,6 +120,7 @@ async function maybeUploadToGoogleDrive(fullPath, filename) {
         let svcAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT; // stringified JSON
         console.log('Service Account JSON exists:', !!svcAccountJson);
         console.log('Service Account JSON length:', svcAccountJson ? svcAccountJson.length : 0);
+        console.log('Service Account JSON preview:', svcAccountJson ? svcAccountJson.substring(0, 100) + '...' : 'null');
         
         if (!svcAccountJson) {
             console.log('No Service Account JSON in env, trying local file...');
