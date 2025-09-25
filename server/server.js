@@ -291,6 +291,9 @@ function isEmailAuthorized(email) {
 
 const app = express();
 
+console.log('🚀 Server starting with version 2.0.0');
+console.log('📅 Server start time:', new Date().toISOString());
+
 // Enable CORS with specific settings
 const allowedOrigins = [
     'http://localhost:3000',
@@ -596,6 +599,15 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Debug endpoint to check if server is updated
+app.get('/api/debug', (req, res) => {
+    res.json({ 
+        message: 'Server is updated with latest code',
+        timestamp: new Date().toISOString(),
+        version: '2.0.0'
+    });
+});
+
 // Manual backup endpoint (forces snapshot + optional Drive upload)
 app.post('/api/backup-now', async (req, res) => {
     try {
@@ -815,6 +827,7 @@ app.post('/api/delete-backup', async (req, res) => {
     try {
         console.log('=== DELETE BACKUP REQUEST ===');
         console.log('Delete backup request:', req.body);
+        console.log('Server version 2.0.0 - Delete endpoint reached');
         const { source, id, filename } = req.body;
         console.log('Delete parameters:', { source, id, filename });
         
