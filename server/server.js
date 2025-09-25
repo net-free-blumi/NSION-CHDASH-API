@@ -81,17 +81,8 @@ async function writeBackupSnapshot(dataObject) {
         const fullPath = path.join(BACKUPS_DIR, filename);
         await fs.writeFile(fullPath, JSON.stringify(dataObject, null, 2), 'utf8');
         console.log('Local backup created at', fullPath);
-        // Optionally upload to Google Drive (manual-only unless enabled)
-        const uploadEnabled = process.env.BACKUP_UPLOAD_TO_DRIVE === 'true' || process.env.BACKUP_MODE === 'manual';
-        console.log('Upload to Drive enabled:', uploadEnabled);
-        console.log('BACKUP_UPLOAD_TO_DRIVE:', process.env.BACKUP_UPLOAD_TO_DRIVE);
-        console.log('BACKUP_MODE:', process.env.BACKUP_MODE);
-        if (uploadEnabled) {
-            console.log('Attempting to upload to Google Drive...');
-            await maybeUploadToGoogleDrive(fullPath, filename);
-        } else {
-            console.log('Google Drive upload disabled');
-        }
+        // Google Drive upload disabled - using local backup only
+        console.log('Google Drive upload disabled - using local backup only');
         
         console.log('=== BACKUP COMPLETED ===');
     } catch (e) {
@@ -231,6 +222,89 @@ async function getLatestBackupFilePath() {
         productBackups.sort();
         return path.join(BACKUPS_DIR, productBackups[productBackups.length - 1]);
     } catch {
+        return null;
+    }
+}
+
+async function getLatestDriveBackup() {
+    try {
+        const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+        if (!folderId) {
+            console.log('No Google Drive folder ID configured');
+            return null;
+        }
+
+        const scopes = ['https://www.googleapis.com/auth/drive.readonly'];
+        let auth;
+        
+        // Try Service Account first
+        let svcAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT;
+        if (svcAccountJson) {
+            try {
+                const creds = JSON.parse(svcAccountJson);
+                auth = new google.auth.GoogleAuth({ credentials: creds, scopes });
+                console.log('✅ Service Account auth created for auto-restore');
+            } catch (e) {
+                console.error('❌ Service Account auth failed for auto-restore:', e?.message);
+            }
+        }
+        
+        // Fallback to OAuth
+        if (!auth) {
+            const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+            const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+            const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+            if (clientId && clientSecret && refreshToken) {
+                const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
+                oauth2.setCredentials({ refresh_token: refreshToken });
+                auth = oauth2;
+                console.log('✅ OAuth auth created for auto-restore');
+            }
+        }
+        
+        if (!auth) {
+            console.log('❌ No auth available for Drive auto-restore');
+            return null;
+        }
+
+        const drive = google.drive({ version: 'v3', auth });
+        const resp = await drive.files.list({ 
+            q: `'${folderId}' in parents and name contains 'products-' and mimeType = 'application/json'`, 
+            fields: 'files(id,name,modifiedTime)', 
+            orderBy: 'modifiedTime desc',
+            maxResults: 1,
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true
+        });
+
+        const files = resp.data.files || [];
+        if (files.length === 0) {
+            console.log('No backup files found in Google Drive');
+            return null;
+        }
+
+        const latestFile = files[0];
+        console.log('Found latest Drive backup:', latestFile.name);
+        
+        // Download the file
+        const fileResp = await drive.files.get({ 
+            fileId: latestFile.id, 
+            alt: 'media',
+            supportsAllDrives: true
+        }, { responseType: 'stream' });
+        
+        const chunks = [];
+        await new Promise((resolve, reject) => {
+            fileResp.data.on('data', d => chunks.push(d));
+            fileResp.data.on('end', resolve);
+            fileResp.data.on('error', reject);
+        });
+        
+        const data = Buffer.concat(chunks).toString('utf8');
+        return { name: latestFile.name, data: data };
+        
+    } catch (e) {
+        console.error('❌ Error getting latest Drive backup:', e?.message || e);
         return null;
     }
 }
@@ -558,17 +632,39 @@ app.get('/api/products', async (req, res) => {
         const autoRestore = process.env.AUTO_RESTORE_ON_EMPTY === 'true';
         const productsCount = data.products ? Object.keys(data.products).length : 0;
         if (autoRestore && productsCount === 0) {
+            console.log('🔄 Products count is 0, attempting auto-restore...');
+            
+            // Try local backup first
             const latest = await getLatestBackupFilePath();
             if (latest) {
                 try {
+                    console.log('📁 Found local backup, restoring from:', latest);
                     const backupData = await fs.readFile(latest, 'utf8');
                     await fs.writeFile(filePath, backupData, 'utf8');
                     const parsed = JSON.parse(backupData || '{}');
+                    console.log('✅ Auto-restored from local backup');
                     return res.json({ products: parsed.products || {}, categories: parsed.categories || {}, restoredFrom: latest });
                 } catch (e) {
-                    console.warn('Auto-restore failed:', e?.message || e);
+                    console.warn('❌ Local auto-restore failed:', e?.message || e);
                 }
             }
+            
+            // Try Google Drive backup
+            try {
+                console.log('☁️ Trying to restore from Google Drive...');
+                const driveBackup = await getLatestDriveBackup();
+                if (driveBackup) {
+                    console.log('📁 Found Drive backup, restoring from:', driveBackup.name);
+                    await fs.writeFile(filePath, driveBackup.data, 'utf8');
+                    const parsed = JSON.parse(driveBackup.data || '{}');
+                    console.log('✅ Auto-restored from Google Drive backup');
+                    return res.json({ products: parsed.products || {}, categories: parsed.categories || {}, restoredFrom: 'Google Drive: ' + driveBackup.name });
+                }
+            } catch (e) {
+                console.warn('❌ Drive auto-restore failed:', e?.message || e);
+            }
+            
+            console.log('❌ No backups found for auto-restore');
         }
         res.json({ products: data.products || {}, categories: data.categories || {} });
     } catch (error) {
@@ -1065,3 +1161,4 @@ ensureDataLocations().then(() => initializeCategories()).then(() => importProduc
     console.error('Failed to start server:', error);
     process.exit(1);
 });
+
