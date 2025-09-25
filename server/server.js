@@ -882,6 +882,9 @@ app.post('/api/delete-backup', async (req, res) => {
         if (req.body.test === 'true') {
             return res.json({ success: true, message: 'Delete endpoint working', version: '2.0.0' });
         }
+        
+        // For now, just return success to test
+        return res.json({ success: true, message: 'Delete endpoint reached', version: '2.0.0' });
         const { source, id, filename } = req.body;
         console.log('Delete parameters:', { source, id, filename });
         
