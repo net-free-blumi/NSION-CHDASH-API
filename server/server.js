@@ -82,8 +82,14 @@ async function writeBackupSnapshot(dataObject) {
         console.log('Local backup created at', fullPath);
         // Optionally upload to Google Drive (manual-only unless enabled)
         const uploadEnabled = process.env.BACKUP_UPLOAD_TO_DRIVE === 'true' || process.env.BACKUP_MODE === 'manual';
+        console.log('Upload to Drive enabled:', uploadEnabled);
+        console.log('BACKUP_UPLOAD_TO_DRIVE:', process.env.BACKUP_UPLOAD_TO_DRIVE);
+        console.log('BACKUP_MODE:', process.env.BACKUP_MODE);
         if (uploadEnabled) {
+            console.log('Attempting to upload to Google Drive...');
             await maybeUploadToGoogleDrive(fullPath, filename);
+        } else {
+            console.log('Google Drive upload disabled');
         }
     } catch (e) {
         console.warn('Failed to create local backup:', e?.message || e);
@@ -743,6 +749,7 @@ app.post('/api/restore-latest', async (req, res) => {
 // Delete backup endpoint
 app.post('/api/delete-backup', async (req, res) => {
     try {
+        console.log('Delete backup request:', req.body);
         const { source, id, filename } = req.body;
         
         if (source === 'local' && filename) {
