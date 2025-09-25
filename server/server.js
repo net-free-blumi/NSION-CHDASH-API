@@ -611,6 +611,19 @@ app.get('/api/debug', (req, res) => {
     });
 });
 
+// Environment variables debug endpoint
+app.get('/api/env-debug', (req, res) => {
+    res.json({
+        BACKUP_UPLOAD_TO_DRIVE: process.env.BACKUP_UPLOAD_TO_DRIVE,
+        BACKUP_MODE: process.env.BACKUP_MODE,
+        GOOGLE_DRIVE_FOLDER_ID: process.env.GOOGLE_DRIVE_FOLDER_ID,
+        GOOGLE_SERVICE_ACCOUNT: process.env.GOOGLE_SERVICE_ACCOUNT ? 'EXISTS' : 'MISSING',
+        GOOGLE_SERVICE_ACCOUNT_LENGTH: process.env.GOOGLE_SERVICE_ACCOUNT ? process.env.GOOGLE_SERVICE_ACCOUNT.length : 0,
+        AUTO_RESTORE_ON_EMPTY: process.env.AUTO_RESTORE_ON_EMPTY,
+        BACKUP_ENABLED: process.env.BACKUP_ENABLED
+    });
+});
+
 // Test Google Drive connection
 app.get('/api/test-drive', async (req, res) => {
     try {
@@ -667,8 +680,9 @@ app.post('/api/backup-now', async (req, res) => {
         console.log('Environment check:', {
             BACKUP_UPLOAD_TO_DRIVE: process.env.BACKUP_UPLOAD_TO_DRIVE,
             BACKUP_MODE: process.env.BACKUP_MODE,
-            GOOGLE_DRIVE_FOLDER_ID: !!process.env.GOOGLE_DRIVE_FOLDER_ID,
-            GOOGLE_SERVICE_ACCOUNT: !!process.env.GOOGLE_SERVICE_ACCOUNT
+            GOOGLE_DRIVE_FOLDER_ID: process.env.GOOGLE_DRIVE_FOLDER_ID,
+            GOOGLE_SERVICE_ACCOUNT: process.env.GOOGLE_SERVICE_ACCOUNT ? 'EXISTS' : 'MISSING',
+            GOOGLE_SERVICE_ACCOUNT_LENGTH: process.env.GOOGLE_SERVICE_ACCOUNT ? process.env.GOOGLE_SERVICE_ACCOUNT.length : 0
         });
         
         const raw = await fs.readFile(DATA_PRODUCTS_FILE, 'utf8').catch(() => null);
