@@ -1010,10 +1010,19 @@ function syncProducts() {
             <label for="orderDate">תאריך:</label>
             <input type="date" id="orderDate" class="date-time-input" />
           </div>
-          <div class="date-time-label3">
-            <label for="orderTime">שעה:</label>
-            <input type="time" id="orderTime" class="date-time-input" lang="he-IL" />
-          </div>
+        <div class="date-time-label3">
+          <label for="orderTimeMasked">שעה:</label>
+          <input type="hidden" id="orderTime" />
+          <input type="text" id="orderTimeMasked" class="date-time-input" list="timeOptions" inputmode="numeric" placeholder="HH:MM" maxlength="5" autocomplete="off" pattern="^(?:[01]\\d|2[0-3]):[0-5]\\d$" title="הכנס שעה בפורמט 24 שעות, למשל 15:30" />
+          <datalist id="timeOptions"></datalist>
+        </div>
+
+
+
+        <!-- <div class="date-time-label3">
+          <label for="orderTime">שעה:</label>
+          <input type="time" id="orderTime" class="date-time-input" lang="he-IL" />
+        </div> -->
         </div>
 
         <br />
@@ -5574,6 +5583,9 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           saveOrderDetails();
           resetFields();
 
+          // אחרי הוספה מוצלחת: אפס שעת הזמנה כתלות בדרישה? (לא נדרש כאן)
+          // אפס הערות ובחירת ביס כבר נעשה ב-resetFields
+
           // הוספת קריאה לבדוק אם יש צורך להציג את תיבת סוג הלחם
           checkBisProduct(productCode); // בדיקת הצגת תיבת סוג הלחם
         } else {
@@ -5604,6 +5616,9 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         document.getElementById("productQuantity").value = "1";
         document.getElementById("productNote").value = "";
         document.getElementById("breadTypeDiv").style.display = "none";
+        // ברירת מחדל לביס: ביס שומשום
+        const breadTypeEl = document.getElementById("breadType");
+        if (breadTypeEl) breadTypeEl.value = "ביס שומשום";
 
         document.getElementById("searchInput").value = "";
         document.getElementById("searchResults").innerHTML = "";
@@ -5644,6 +5659,8 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         document.getElementById("searchResults").innerHTML = "";
         document.getElementById("orderDate").value = "";
         document.getElementById("orderTime").value = "";
+        const orderTimeMasked = document.getElementById("orderTimeMasked");
+        if (orderTimeMasked) orderTimeMasked.value = "";
         document.getElementById("productCode").value = "";
         document.getElementById("productQuantity").value = 1;
         document.getElementById("unitQuantity").value = 20;
@@ -6382,6 +6399,56 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
       //     // אם השדה ריק - ניקוי תוצאות
             // products-loader מטפל בכל החיפוש עכשיו
+    </script>
+
+    <script>
+      // Time input: 24-hour universal with datalist (typing + pick list)
+      document.addEventListener('DOMContentLoaded', function () {
+        const hidden = document.getElementById('orderTime'); // canonical storage HH:MM
+        const masked = document.getElementById('orderTimeMasked');
+        const datalist = document.getElementById('timeOptions');
+        if (!hidden || !masked || !datalist) return;
+
+        function formatToHHMM(raw) {
+          const digits = String(raw).replace(/\D/g, '').slice(0, 4);
+          if (digits.length <= 2) return digits;
+          return digits.slice(0, 2) + ':' + digits.slice(2);
+        }
+
+        function setHiddenFromValue(v) {
+          const ok = /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v);
+          hidden.value = ok ? v : '';
+          try { localStorage.setItem('orderTime', hidden.value); } catch {}
+        }
+
+        // Build datalist options (every 15 min)
+        datalist.innerHTML = '';
+        for (let h = 0; h < 24; h++) {
+          for (let m = 0; m < 60; m += 15) {
+            const hh = String(h).padStart(2, '0');
+            const mm = String(m).padStart(2, '0');
+            const opt = document.createElement('option');
+            opt.value = `${hh}:${mm}`;
+            datalist.appendChild(opt);
+          }
+        }
+
+        // Sync masked -> hidden with formatting/validation
+        masked.addEventListener('input', function () {
+          masked.value = formatToHHMM(masked.value);
+        });
+        masked.addEventListener('blur', function () {
+          setHiddenFromValue(masked.value.trim());
+          masked.value = hidden.value;
+        });
+
+        // Initialize from saved value
+        const saved = (function(){ try { return localStorage.getItem('orderTime') || ''; } catch { return ''; } })();
+        if (saved) {
+          masked.value = saved;
+          hidden.value = saved;
+        }
+      });
     </script>
   </body>
 </html>
