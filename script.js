@@ -780,7 +780,7 @@ function openWhatsAppFruitsModal() {
     const fruitItems = getFruitItems();
 
     if (fruitItems.length > 0) {
-        const fruitSummary = `*ליום ${orderDay} עד השעה: ${orderTime}*\n\nמיהודה\n\n${fruitItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
+        const fruitSummary = `*הזמנה אונליין ליום ${orderDay} עד השעה: ${orderTime}*\n\nמיהודה\n\n${fruitItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
         
         // המרה ל-HTML עם הדגשות נכונות לוואטסאפ
         const htmlSummary = fruitSummary
@@ -2074,7 +2074,7 @@ function generateAmarSummary() {
       : '';
     const dayWithDate = shortDate ? `${dayName} ${shortDate}` : dayName;
 
-    let summary = `*ליום ${dayWithDate} עד השעה: ${orderTime}*\n\n`;
+    let summary = `*הזמנה אונליין ליום ${dayWithDate} עד השעה: ${orderTime}*\n\n`;
     let corassonTotal = 0, jabettaTotal = 0, grisiniTotal = 0;
     let focacciaTotal = 0, bakeryTotal = 0, finukimTotal = 0;
     let focaccinotTotal = 0;
