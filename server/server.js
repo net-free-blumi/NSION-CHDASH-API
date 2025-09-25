@@ -93,6 +93,8 @@ async function writeBackupSnapshot(dataObject) {
             console.log('Google Drive upload disabled - forcing upload anyway for testing');
             await maybeUploadToGoogleDrive(fullPath, filename);
         }
+        
+        console.log('=== BACKUP COMPLETED ===');
     } catch (e) {
         console.warn('Failed to create local backup:', e?.message || e);
     }
@@ -884,8 +886,6 @@ app.post('/api/delete-backup', async (req, res) => {
             return res.json({ success: true, message: 'Delete endpoint working', version: '2.0.0' });
         }
         
-        // For now, just return success to test
-        return res.json({ success: true, message: 'Delete endpoint reached', version: '2.0.0' });
         const { source, id, filename } = req.body;
         console.log('Delete parameters:', { source, id, filename });
         
