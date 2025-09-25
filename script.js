@@ -2061,13 +2061,20 @@ window.addEventListener('DOMContentLoaded', function() {
 
 function generateAmarSummary() {
     const amarList = document.getElementById("amarList");
-    const orderDate = new Date(document.getElementById("orderDate").value);
+    const orderDateInput = document.getElementById("orderDate").value;
+    const orderDate = new Date(orderDateInput);
     const orderTime = document.getElementById("orderTime").value;
     const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
     const dayName = days[orderDate.getDay()];
     const orderNumber = document.getElementById("orderNumber").value;
   
-    let summary = `*ליום ${dayName} עד השעה: ${orderTime}*\n\n`;
+    // הוספת תאריך קצר (יום/חודש) בכותרת כמו בקונדיטוריה הרגילה
+    const shortDate = orderDateInput
+      ? `${String(orderDate.getDate()).padStart(2, '0')}/${String(orderDate.getMonth() + 1).padStart(2, '0')}`
+      : '';
+    const dayWithDate = shortDate ? `${dayName} ${shortDate}` : dayName;
+
+    let summary = `*ליום ${dayWithDate} עד השעה: ${orderTime}*\n\n`;
     let corassonTotal = 0, jabettaTotal = 0, grisiniTotal = 0;
     let focacciaTotal = 0, bakeryTotal = 0, finukimTotal = 0;
     let focaccinotTotal = 0;
