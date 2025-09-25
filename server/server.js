@@ -491,6 +491,22 @@ app.get('/api/products', async (req, res) => {
         const filePath = DATA_PRODUCTS_FILE;
         const raw = await fs.readFile(filePath, 'utf8').catch(() => '{"products":{},"categories":{}}');
         const data = JSON.parse(raw || '{}');
+        // Auto-restore if products are empty and auto-restore is enabled
+        const autoRestore = process.env.AUTO_RESTORE_ON_EMPTY === 'true';
+        const productsCount = data.products ? Object.keys(data.products).length : 0;
+        if (autoRestore && productsCount === 0) {
+            const latest = await getLatestBackupFilePath();
+            if (latest) {
+                try {
+                    const backupData = await fs.readFile(latest, 'utf8');
+                    await fs.writeFile(filePath, backupData, 'utf8');
+                    const parsed = JSON.parse(backupData || '{}');
+                    return res.json({ products: parsed.products || {}, categories: parsed.categories || {}, restoredFrom: latest });
+                } catch (e) {
+                    console.warn('Auto-restore failed:', e?.message || e);
+                }
+            }
+        }
         res.json({ products: data.products || {}, categories: data.categories || {} });
     } catch (error) {
         console.error('Error reading products:', error);
