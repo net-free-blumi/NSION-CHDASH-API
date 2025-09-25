@@ -80,8 +80,11 @@ async function writeBackupSnapshot(dataObject) {
         const fullPath = path.join(BACKUPS_DIR, filename);
         await fs.writeFile(fullPath, JSON.stringify(dataObject, null, 2), 'utf8');
         console.log('Local backup created at', fullPath);
-        // Optionally upload to Google Drive
-        await maybeUploadToGoogleDrive(fullPath, filename);
+        // Optionally upload to Google Drive (manual-only unless enabled)
+        const uploadEnabled = process.env.BACKUP_UPLOAD_TO_DRIVE === 'true' || process.env.BACKUP_MODE === 'manual';
+        if (uploadEnabled) {
+            await maybeUploadToGoogleDrive(fullPath, filename);
+        }
     } catch (e) {
         console.warn('Failed to create local backup:', e?.message || e);
     }
@@ -462,8 +465,10 @@ app.post('/api/products/save', async (req, res) => {
             merged.categories = { ...merged.categories, ...categories };
         }
         await fs.writeFile(filePath, JSON.stringify(merged, null, 2), 'utf8');
-        // Write timestamped local backup and optionally upload to Google Drive
-        await writeBackupSnapshot(merged);
+        // Optional backup on save (disabled by default)
+        if (process.env.BACKUP_ON_SAVE === 'true') {
+            await writeBackupSnapshot(merged);
+        }
 
         res.json({
             success: true,
@@ -553,6 +558,137 @@ app.get('/api/backup-status', async (req, res) => {
         });
     } catch (e) {
         res.status(500).json({ error: 'status failed', details: e?.message });
+    }
+});
+
+// List local backups with metadata and counts
+app.get('/api/backups', async (req, res) => {
+    try {
+        await ensureDataLocations();
+        const files = await fs.readdir(BACKUPS_DIR).catch(() => []);
+        const list = [];
+        for (const f of files.filter(x => /^products-\d{8}-\d{6}\.json$/.test(x)).sort().reverse()) {
+            const p = path.join(BACKUPS_DIR, f);
+            const st = await fs.stat(p).catch(() => null);
+            let totals = { products: 0, categories: 0 };
+            try {
+                const raw = await fs.readFile(p, 'utf8');
+                const data = JSON.parse(raw || '{}');
+                totals.products = data.products ? Object.keys(data.products).length : 0;
+                totals.categories = data.categories ? Object.keys(data.categories).length : 0;
+            } catch {}
+            list.push({
+                type: 'local',
+                filename: f,
+                path: p,
+                size: st?.size || 0,
+                mtime: st?.mtime || null,
+                totals
+            });
+        }
+        res.json({ success: true, backups: list });
+    } catch (e) {
+        res.status(500).json({ error: 'list failed', details: e?.message });
+    }
+});
+
+// List Google Drive backups (if configured)
+app.get('/api/drive-backups', async (req, res) => {
+    try {
+        const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+        if (!folderId) return res.json({ success: true, backups: [] });
+
+        const scopes = ['https://www.googleapis.com/auth/drive.readonly'];
+        let auth;
+        let svcAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT;
+        if (svcAccountJson) {
+            try { auth = new google.auth.GoogleAuth({ credentials: JSON.parse(svcAccountJson), scopes }); } catch {}
+        }
+        if (!auth) {
+            const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+            const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+            const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+            if (clientId && clientSecret && refreshToken) {
+                const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
+                oauth2.setCredentials({ refresh_token: refreshToken });
+                auth = oauth2;
+            }
+        }
+        if (!auth) return res.json({ success: true, backups: [] });
+
+        const drive = google.drive({ version: 'v3', auth });
+        const resp = await drive.files.list({ q: `'${folderId}' in parents and name contains 'products-' and mimeType = 'application/json'`, fields: 'files(id,name,modifiedTime,size)', orderBy: 'modifiedTime desc' });
+
+        const files = resp.data.files || [];
+        const backups = [];
+        for (const f of files) {
+            let totals = { products: 0, categories: 0 };
+            try {
+                const fileResp = await drive.files.get({ fileId: f.id, alt: 'media' }, { responseType: 'stream' });
+                const chunks = [];
+                await new Promise((resolve, reject) => {
+                    fileResp.data.on('data', d => chunks.push(d));
+                    fileResp.data.on('end', resolve);
+                    fileResp.data.on('error', reject);
+                });
+                const raw = Buffer.concat(chunks).toString('utf8');
+                const data = JSON.parse(raw || '{}');
+                totals.products = data.products ? Object.keys(data.products).length : 0;
+                totals.categories = data.categories ? Object.keys(data.categories).length : 0;
+            } catch {}
+            backups.push({ type: 'drive', id: f.id, name: f.name, modifiedTime: f.modifiedTime, size: parseInt(f.size || '0', 10), totals });
+        }
+        res.json({ success: true, backups });
+    } catch (e) {
+        res.status(500).json({ error: 'drive list failed', details: e?.message });
+    }
+});
+
+// Restore from chosen backup (local or drive)
+app.post('/api/restore', async (req, res) => {
+    try {
+        const { source, id, filename } = req.body || {};
+        await ensureDataLocations();
+        let raw;
+        if (source === 'local' && filename) {
+            const p = path.join(BACKUPS_DIR, filename);
+            raw = await fs.readFile(p, 'utf8');
+        } else if (source === 'drive' && id) {
+            const scopes = ['https://www.googleapis.com/auth/drive.readonly'];
+            let auth;
+            let svcAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT;
+            if (svcAccountJson) {
+                try { auth = new google.auth.GoogleAuth({ credentials: JSON.parse(svcAccountJson), scopes }); } catch {}
+            }
+            if (!auth) {
+                const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+                const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+                const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+                if (clientId && clientSecret && refreshToken) {
+                    const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
+                    oauth2.setCredentials({ refresh_token: refreshToken });
+                    auth = oauth2;
+                }
+            }
+            if (!auth) return res.status(400).json({ error: 'drive not configured' });
+            const drive = google.drive({ version: 'v3', auth });
+            const fileResp = await drive.files.get({ fileId: id, alt: 'media' }, { responseType: 'stream' });
+            const chunks = [];
+            await new Promise((resolve, reject) => {
+                fileResp.data.on('data', d => chunks.push(d));
+                fileResp.data.on('end', resolve);
+                fileResp.data.on('error', reject);
+            });
+            raw = Buffer.concat(chunks).toString('utf8');
+        } else {
+            return res.status(400).json({ error: 'invalid source' });
+        }
+
+        await fs.writeFile(DATA_PRODUCTS_FILE, raw, 'utf8');
+        const parsed = JSON.parse(raw || '{}');
+        res.json({ success: true, totals: { products: Object.keys(parsed.products || {}).length, categories: Object.keys(parsed.categories || {}).length } });
+    } catch (e) {
+        res.status(500).json({ error: 'restore failed', details: e?.message });
     }
 });
 
@@ -652,8 +788,12 @@ ensureDataLocations().then(() => initializeCategories()).then(() => importProduc
         console.log(`Server is running on port ${PORT}`);
         console.log('Server is ready to handle requests');
     });
-    // Start scheduled conditional backups (default daily, configurable)
-    scheduleDailyConditionalBackup();
+    // Start scheduled conditional backups only if explicitly enabled
+    if (process.env.BACKUP_ENABLED === 'true') {
+        scheduleDailyConditionalBackup();
+    } else {
+        console.log('Scheduled backups are disabled (BACKUP_ENABLED!=true)');
+    }
 }).catch(error => {
     console.error('Failed to start server:', error);
     process.exit(1);
