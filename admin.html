@@ -524,7 +524,10 @@
                      <td>${b.totals?.categories||0}</td>
                      <td>${b.mtime? new Date(b.mtime).toLocaleString('he-IL'):''}</td>
                      <td>${b.size? (Math.round(b.size/1024))+' KB':''}</td>
-                     <td><button class="btn btn-warning" onclick='restoreBySelection(${JSON.stringify({source:b.type, id:b.id||null, filename:b.filename||null}).replace(/"/g,"&quot;")})'>שחזר</button></td>
+                     <td>
+                       <button class="btn btn-warning" onclick='restoreBySelection(${JSON.stringify({source:b.type, id:b.id||null, filename:b.filename||null}).replace(/"/g,"&quot;")})'>שחזר</button>
+                       <button class="btn btn-danger" onclick='deleteBackup(${JSON.stringify({source:b.type, id:b.id||null, filename:b.filename||null}).replace(/"/g,"&quot;")})' style="margin-right: 5px;">מחק</button>
+                     </td>
                   </tr>`).join('')}
                   </tbody></table>`;
             } catch (e) {
@@ -549,6 +552,27 @@
                 }
             } catch (e) {
                 showNotification('❌ שגיאה בשחזור', 'red');
+            }
+        }
+
+        async function deleteBackup(sel) {
+            if (!confirm('למחוק את הגיבוי שנבחר?')) return;
+            try {
+                const base = (window.API_BASE_URL || window.location.origin);
+                const resp = await fetch(base + '/api/delete-backup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sel)
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    showNotification('✅ הגיבוי נמחק בהצלחה', 'green');
+                    openBackupsBrowser(); // רענן את הרשימה
+                } else {
+                    showNotification('❌ שגיאה במחיקה: ' + (data.error||''), 'red');
+                }
+            } catch (e) {
+                showNotification('❌ שגיאה במחיקה', 'red');
             }
         }
 

@@ -112,8 +112,11 @@ async function maybeUploadToGoogleDrive(fullPath, filename) {
         if (svcAccountJson) {
             try {
                 console.log('Using Service Account credentials');
+                console.log('Service Account JSON length:', svcAccountJson.length);
                 const creds = JSON.parse(svcAccountJson);
+                console.log('Service Account parsed successfully, client_email:', creds.client_email);
                 auth = new google.auth.GoogleAuth({ credentials: creds, scopes });
+                console.log('GoogleAuth created successfully');
             } catch (e) {
                 console.warn('Invalid GOOGLE_SERVICE_ACCOUNT JSON provided:', e?.message || e);
             }
@@ -150,7 +153,7 @@ async function maybeUploadToGoogleDrive(fullPath, filename) {
         
         const res = await drive.files.create({
             requestBody: { name: filename, parents: [folderId] },
-            media: { mimeType: 'application/json', body: (await import('fs')).createReadStream(fullPath) }
+            media: { mimeType: 'application/json', body: fs.createReadStream(fullPath) }
         });
         
         console.log('✅ Successfully uploaded to Google Drive!', {
@@ -734,6 +737,50 @@ app.post('/api/restore-latest', async (req, res) => {
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
+    }
+});
+
+// Delete backup endpoint
+app.post('/api/delete-backup', async (req, res) => {
+    try {
+        const { source, id, filename } = req.body;
+        
+        if (source === 'local' && filename) {
+            const backupPath = path.join(BACKUPS_DIR, filename);
+            await fs.unlink(backupPath);
+            res.json({ success: true, message: 'Local backup deleted' });
+        } else if (source === 'drive' && id) {
+            const scopes = ['https://www.googleapis.com/auth/drive.file'];
+            let auth;
+            
+            // Try Service Account first
+            let svcAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT;
+            if (svcAccountJson) {
+                try { auth = new google.auth.GoogleAuth({ credentials: JSON.parse(svcAccountJson), scopes }); } catch {}
+            }
+            
+            // Fallback to OAuth
+            if (!auth) {
+                const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+                const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+                const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+                if (clientId && clientSecret && refreshToken) {
+                    const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
+                    oauth2.setCredentials({ refresh_token: refreshToken });
+                    auth = oauth2;
+                }
+            }
+            
+            if (!auth) return res.status(400).json({ error: 'drive not configured' });
+            
+            const drive = google.drive({ version: 'v3', auth });
+            await drive.files.delete({ fileId: id });
+            res.json({ success: true, message: 'Drive backup deleted' });
+        } else {
+            res.status(400).json({ error: 'invalid parameters' });
+        }
+    } catch (e) {
+        res.status(500).json({ error: 'delete failed', details: e?.message });
     }
 });
 
