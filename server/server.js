@@ -201,8 +201,13 @@ async function maybeUploadToGoogleDrive(fullPath, filename) {
         }
         
         const res = await drive.files.create({
-            requestBody: { name: filename, parents: [folderId] },
-            media: { mimeType: 'application/json', body: createReadStream(fullPath) }
+            requestBody: { 
+                name: filename, 
+                parents: [folderId],
+                supportsAllDrives: true
+            },
+            media: { mimeType: 'application/json', body: createReadStream(fullPath) },
+            supportsAllDrives: true
         });
         
         console.log('✅ Successfully uploaded to Google Drive!', {
@@ -659,7 +664,12 @@ app.get('/api/test-drive', async (req, res) => {
         }
         
         const drive = google.drive({ version: 'v3', auth });
-        const result = await drive.files.list({ q: `'${folderId}' in parents`, maxResults: 1 });
+        const result = await drive.files.list({ 
+            q: `'${folderId}' in parents`, 
+            maxResults: 1,
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true
+        });
         
         res.json({ 
             success: true, 
@@ -784,7 +794,13 @@ app.get('/api/drive-backups', async (req, res) => {
         if (!auth) return res.json({ success: true, backups: [] });
 
         const drive = google.drive({ version: 'v3', auth });
-        const resp = await drive.files.list({ q: `'${folderId}' in parents and name contains 'products-' and mimeType = 'application/json'`, fields: 'files(id,name,modifiedTime,size)', orderBy: 'modifiedTime desc' });
+        const resp = await drive.files.list({ 
+            q: `'${folderId}' in parents and name contains 'products-' and mimeType = 'application/json'`, 
+            fields: 'files(id,name,modifiedTime,size)', 
+            orderBy: 'modifiedTime desc',
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true
+        });
 
         const files = resp.data.files || [];
         const backups = [];
@@ -839,7 +855,11 @@ app.post('/api/restore', async (req, res) => {
             }
             if (!auth) return res.status(400).json({ error: 'drive not configured' });
             const drive = google.drive({ version: 'v3', auth });
-            const fileResp = await drive.files.get({ fileId: id, alt: 'media' }, { responseType: 'stream' });
+            const fileResp = await drive.files.get({ 
+                fileId: id, 
+                alt: 'media',
+                supportsAllDrives: true
+            }, { responseType: 'stream' });
             const chunks = [];
             await new Promise((resolve, reject) => {
                 fileResp.data.on('data', d => chunks.push(d));
@@ -950,7 +970,10 @@ app.post('/api/delete-backup', async (req, res) => {
             
             const drive = google.drive({ version: 'v3', auth });
             console.log('🚀 Attempting to delete from Drive...');
-            await drive.files.delete({ fileId: id });
+            await drive.files.delete({ 
+                fileId: id,
+                supportsAllDrives: true
+            });
             console.log('✅ Drive backup deleted successfully');
             res.json({ success: true, message: 'Drive backup deleted' });
         } else {
