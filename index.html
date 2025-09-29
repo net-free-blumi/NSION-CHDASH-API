@@ -793,12 +793,14 @@
   <style>
     /* Mobile: restore natural page scrolling and avoid background-attachment issues */
     @media (max-width: 900px) {
-      html, body { height: auto; min-height: 100vh; overflow: auto; }
+      html, body { height: auto; min-height: 100vh; overflow: auto; overflow-x: hidden; }
       body {
         display: block;           /* break flex that may lock viewport */
         -webkit-overflow-scrolling: touch;
         background-attachment: scroll; /* fixed background can block scroll on mobile */
+        padding: 0;               /* remove outer padding that causes side gaps */
       }
+      .container { max-width: 100vw; width: 100vw; margin: 0; border-radius: 0; box-sizing: border-box; }
     }
   </style>
 <script>
