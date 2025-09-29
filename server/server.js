@@ -3,7 +3,6 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { promises as fs } from 'fs';
-import { createReadStream } from 'fs';
 import fetch from 'node-fetch';
 import { google } from 'googleapis';
 
@@ -174,15 +173,7 @@ async function writeBackupSnapshot(dataObject) {
         const fullPath = path.join(BACKUPS_DIR, filename);
         await fs.writeFile(fullPath, JSON.stringify(dataObject, null, 2), 'utf8');
         console.log('Local backup created at', fullPath);
-        // Optional Google Drive upload
-        if (process.env.BACKUP_UPLOAD_TO_DRIVE === 'true') {
-            const driveName = getFriendlyBackupName();
-            console.log('Uploading backup to Google Drive as:', driveName);
-            await maybeUploadToGoogleDrive(fullPath, driveName);
-        } else {
-            console.log('Google Drive upload disabled - using local backup only');
-        }
-        // Also upload to Supabase if enabled
+        // Upload to Supabase if enabled (manual backups only)
         try {
             await uploadToSupabase(fullPath, getCloudBackupName());
         } catch (e) {
@@ -195,129 +186,7 @@ async function writeBackupSnapshot(dataObject) {
     }
 }
 
-async function maybeUploadToGoogleDrive(fullPath, filename) {
-    try {
-        console.log('=== STARTING GOOGLE DRIVE UPLOAD ===');
-        console.log('Full path:', fullPath);
-        console.log('Filename:', filename);
-        
-        // Destination folder ID (must be provided via env)
-        const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-        console.log('Google Drive folder ID:', folderId);
-        if (!folderId) {
-            console.log('❌ No folder ID configured, skipping upload');
-            return; // not configured
-        }
-
-        const scopes = ['https://www.googleapis.com/auth/drive.file'];
-        let auth;
-
-        // Option A: Service Account (if allowed)
-        let svcAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT; // stringified JSON
-        console.log('Service Account JSON exists:', !!svcAccountJson);
-        console.log('Service Account JSON length:', svcAccountJson ? svcAccountJson.length : 0);
-        console.log('Service Account JSON preview:', svcAccountJson ? svcAccountJson.substring(0, 100) + '...' : 'null');
-        
-        if (!svcAccountJson) {
-            console.log('No Service Account JSON in env, trying local file...');
-            // Fallback: load from local file if exists (not committed; ignored via .gitignore)
-            try {
-                const localJson = await fs.readFile(path.join(__dirname, 'google-service-account.json'), 'utf8');
-                svcAccountJson = localJson;
-                console.log('Found local Service Account file');
-            } catch (e) {
-                console.log('No local Service Account file found');
-            }
-        }
-        
-        if (svcAccountJson) {
-            try {
-                console.log('🔑 Using Service Account credentials');
-                console.log('Service Account JSON length:', svcAccountJson.length);
-                const creds = JSON.parse(svcAccountJson);
-                console.log('✅ Service Account parsed successfully');
-                console.log('Client email:', creds.client_email);
-                console.log('Project ID:', creds.project_id);
-                auth = new google.auth.GoogleAuth({ credentials: creds, scopes });
-                console.log('✅ GoogleAuth created successfully');
-            } catch (e) {
-                console.error('❌ Invalid GOOGLE_SERVICE_ACCOUNT JSON provided:', e?.message || e);
-                console.error('JSON content preview:', svcAccountJson.substring(0, 100) + '...');
-            }
-        } else {
-            console.log('❌ No Service Account JSON found');
-        }
-
-        // Option B: OAuth2 client with refresh token (no service account keys)
-        if (!auth) {
-            console.log('🔑 Service Account not found, trying OAuth2...');
-            const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-            const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-            const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
-            console.log('OAuth2 credentials check:', {
-                clientId: !!clientId,
-                clientSecret: !!clientSecret,
-                refreshToken: !!refreshToken
-            });
-            if (clientId && clientSecret && refreshToken) {
-                console.log('✅ Using OAuth2 credentials');
-                const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
-                oauth2.setCredentials({ refresh_token: refreshToken });
-                auth = oauth2;
-                console.log('✅ OAuth2 auth created successfully');
-            } else {
-                console.log('❌ OAuth2 credentials not found, skipping Google Drive upload');
-            }
-        }
-
-        if (!auth) {
-            console.error('❌ Google Drive not configured: no auth available');
-            console.log('Available env vars:', {
-                GOOGLE_SERVICE_ACCOUNT: !!process.env.GOOGLE_SERVICE_ACCOUNT,
-                GOOGLE_DRIVE_FOLDER_ID: !!process.env.GOOGLE_DRIVE_FOLDER_ID,
-                GOOGLE_OAUTH_CLIENT_ID: !!process.env.GOOGLE_OAUTH_CLIENT_ID
-            });
-            console.log('Environment variables values:', {
-                BACKUP_UPLOAD_TO_DRIVE: process.env.BACKUP_UPLOAD_TO_DRIVE,
-                BACKUP_MODE: process.env.BACKUP_MODE,
-                GOOGLE_DRIVE_FOLDER_ID: process.env.GOOGLE_DRIVE_FOLDER_ID
-            });
-            return;
-        }
-
-        const drive = google.drive({ version: 'v3', auth });
-        console.log('🚀 Attempting to upload to Google Drive...', { filename, folderId });
-        
-        // Check if file exists
-        const fileExists = await fs.access(fullPath).then(() => true).catch(() => false);
-        console.log('File exists for upload:', fileExists);
-        if (!fileExists) {
-            console.error('❌ File does not exist for upload:', fullPath);
-            return;
-        }
-        
-        const res = await drive.files.create({
-            requestBody: { 
-                name: filename, 
-                parents: [folderId],
-                supportsAllDrives: true
-            },
-            media: { mimeType: 'application/json', body: createReadStream(fullPath) },
-            supportsAllDrives: true
-        });
-        
-        console.log('✅ Successfully uploaded to Google Drive!', {
-            fileId: res.data.id,
-            fileName: res.data.name,
-            folderId: folderId
-        });
-        console.log('=== GOOGLE DRIVE UPLOAD COMPLETED ===');
-    } catch (e) {
-        console.error('❌ Google Drive upload failed:', e?.message || e);
-        console.error('Error details:', e);
-        console.log('=== GOOGLE DRIVE UPLOAD FAILED ===');
-    }
-}
+// Google Drive upload removed per product requirements (listing/restore still supported)
 
 async function getLatestBackupFilePath() {
     try {
@@ -832,10 +701,7 @@ app.post('/api/products/save', async (req, res) => {
             merged.categories = { ...merged.categories, ...categories };
         }
         await fs.writeFile(filePath, JSON.stringify(merged, null, 2), 'utf8');
-        // Optional backup on save (disabled by default)
-        if (process.env.BACKUP_ON_SAVE === 'true') {
-            await writeBackupSnapshot(merged);
-        }
+        // Auto backups on save are disabled per product requirements
 
         res.json({
             success: true,
@@ -862,17 +728,20 @@ app.get('/api/products', async (req, res) => {
         const autoRestore = process.env.AUTO_RESTORE_ON_EMPTY === 'true';
         const productsCount = data.products ? Object.keys(data.products).length : 0;
         if (autoRestore && productsCount === 0) {
-            console.log('🔄 Products count is 0, attempting auto-restore (latest across all sources)...');
-            const latestDesc = await findLatestBackupAcrossSources();
-            if (latestDesc) {
-                const ok = await restoreFromDescriptor(latestDesc);
-                if (ok) {
-                    const rawNow = await fs.readFile(filePath, 'utf8').catch(() => '{}');
-                    const parsed = JSON.parse(rawNow || '{}');
-                    return res.json({ products: parsed.products || {}, categories: parsed.categories || {}, restoredFrom: `${latestDesc.source}` });
+            console.log('🔄 Products count is 0, attempting auto-restore from cloud...');
+            try {
+                const list = await listSupabaseBackups();
+                if (list && list.length) {
+                    const latest = list[0];
+                    const rawCloud = await downloadSupabaseBackup(latest.name);
+                    await fs.writeFile(filePath, rawCloud, 'utf8');
+                    const parsed = JSON.parse(rawCloud || '{}');
+                    return res.json({ products: parsed.products || {}, categories: parsed.categories || {}, restoredFrom: 'cloud' });
                 }
+            } catch (e) {
+                console.warn('Cloud auto-restore failed:', e?.message || e);
             }
-            console.log('❌ No backups found for auto-restore');
+            console.log('❌ No cloud backups found for auto-restore');
         }
         res.json({ products: data.products || {}, categories: data.categories || {} });
     } catch (error) {
@@ -896,7 +765,6 @@ app.delete('/api/products/:code', async (req, res) => {
         if (data.products && data.products[code]) {
             delete data.products[code];
             await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
-            await writeBackupSnapshot(data);
         }
 
         res.json({ success: true, message: `Product ${code} deleted` });
@@ -936,12 +804,7 @@ app.get('/api/env-debug', (req, res) => {
 // Test Google Drive connection
 app.get('/api/test-drive', async (req, res) => {
     try {
-        console.log('=== TESTING GOOGLE DRIVE CONNECTION ===');
-        console.log('Environment variables:', {
-            BACKUP_UPLOAD_TO_DRIVE: process.env.BACKUP_UPLOAD_TO_DRIVE,
-            GOOGLE_DRIVE_FOLDER_ID: !!process.env.GOOGLE_DRIVE_FOLDER_ID,
-            GOOGLE_SERVICE_ACCOUNT: !!process.env.GOOGLE_SERVICE_ACCOUNT
-        });
+    // Google Drive connection test (kept minimal logging)
         
         const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
         if (!folderId) {
@@ -991,13 +854,6 @@ app.get('/api/test-drive', async (req, res) => {
 app.post('/api/backup-now', async (req, res) => {
     try {
         console.log('=== MANUAL BACKUP REQUEST ===');
-        console.log('Environment check:', {
-            BACKUP_UPLOAD_TO_DRIVE: process.env.BACKUP_UPLOAD_TO_DRIVE,
-            BACKUP_MODE: process.env.BACKUP_MODE,
-            GOOGLE_DRIVE_FOLDER_ID: process.env.GOOGLE_DRIVE_FOLDER_ID,
-            GOOGLE_SERVICE_ACCOUNT: process.env.GOOGLE_SERVICE_ACCOUNT ? 'EXISTS' : 'MISSING',
-            GOOGLE_SERVICE_ACCOUNT_LENGTH: process.env.GOOGLE_SERVICE_ACCOUNT ? process.env.GOOGLE_SERVICE_ACCOUNT.length : 0
-        });
         
         const raw = await fs.readFile(DATA_PRODUCTS_FILE, 'utf8').catch(() => null);
         if (!raw) {
@@ -1196,41 +1052,12 @@ app.post('/api/restore', async (req, res) => {
     }
 });
 
-// Restore from latest backup
-app.post('/api/restore-latest', async (req, res) => {
-    try {
-        await ensureDataLocations();
-        const latest = await getLatestBackupFilePath();
-        
-        if (!latest) {
-            return res.status(404).json({ error: 'No backup found' });
-        }
-        
-        const backupData = await fs.readFile(latest, 'utf8');
-        await fs.writeFile(DATA_PRODUCTS_FILE, backupData, 'utf8');
-        
-        const parsed = JSON.parse(backupData);
-        const totals = {
-            products: Object.keys(parsed.products || {}).length,
-            categories: Object.keys(parsed.categories || {}).length
-        };
-        
-        res.json({
-            success: true,
-            message: `Restored from ${path.basename(latest)}`,
-            totals
-        });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
+// Restore-latest (local) removed from UI use; manual restore via modal remains
 
 // Delete backup endpoint
 app.post('/api/delete-backup', async (req, res) => {
     try {
-        console.log('=== DELETE BACKUP REQUEST ===');
-        console.log('Delete backup request:', req.body);
-        console.log('Server version 2.0.0 - Delete endpoint reached');
+        // Minimal logging for delete backup
         
         // Simple test response first
         if (req.body.test === 'true') {
@@ -1248,7 +1075,7 @@ app.post('/api/delete-backup', async (req, res) => {
             console.log('✅ Local backup deleted successfully');
             res.json({ success: true, message: 'Local backup deleted' });
         } else if (source === 'drive' && id) {
-            console.log('🗑️ Deleting Drive backup:', id);
+            console.log('Deleting Drive backup');
             const scopes = ['https://www.googleapis.com/auth/drive.file'];
             let auth;
             
@@ -1286,12 +1113,12 @@ app.post('/api/delete-backup', async (req, res) => {
             }
             
             const drive = google.drive({ version: 'v3', auth });
-            console.log('🚀 Attempting to delete from Drive...');
+            
             await drive.files.delete({ 
                 fileId: id,
                 supportsAllDrives: true
             });
-            console.log('✅ Drive backup deleted successfully');
+            
             res.json({ success: true, message: 'Drive backup deleted' });
         } else if (source === 'cloud' && (id || filename)) {
             const name = filename || id;
