@@ -6,6 +6,7 @@ import { promises as fs } from 'fs';
 import { createReadStream } from 'fs';
 import fetch from 'node-fetch';
 import { google } from 'googleapis';
+import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -83,6 +84,66 @@ function getFriendlyBackupName() {
     return `גיבוי מוצרים מהבאַק ${datePart} - ${timePart}.json`;
 }
 
+// ===== Supabase helpers =====
+function getSupabase() {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_KEY;
+    if (!url || !key) return null;
+    return createClient(url, key, { auth: { persistSession: false } });
+}
+
+async function uploadToSupabase(fullPath, destName) {
+    const supabase = getSupabase();
+    if (!supabase || process.env.BACKUP_UPLOAD_TO_CLOUD !== 'true') return;
+    const bucket = process.env.SUPABASE_BUCKET || 'backups';
+    const fileBuffer = await fs.readFile(fullPath);
+    const pathKey = destName;
+    const { error } = await supabase.storage.from(bucket).upload(pathKey, fileBuffer, {
+        contentType: 'application/json',
+        upsert: true
+    });
+    if (error) throw error;
+    console.log('✅ Uploaded to Supabase:', pathKey);
+}
+
+async function listSupabaseBackups() {
+    const supabase = getSupabase();
+    if (!supabase) return [];
+    const bucket = process.env.SUPABASE_BUCKET || 'backups';
+    const { data, error } = await supabase.storage.from(bucket).list('', { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+    if (error) return [];
+    const results = [];
+    for (const f of (data || []).filter(x => x.name.endsWith('.json'))) {
+        let totals = { products: 0, categories: 0 };
+        try {
+            const { data: fileData } = await supabase.storage.from(bucket).download(f.name);
+            const raw = await fileData.text();
+            const parsed = JSON.parse(raw || '{}');
+            totals.products = parsed.products ? Object.keys(parsed.products).length : 0;
+            totals.categories = parsed.categories ? Object.keys(parsed.categories).length : 0;
+        } catch {}
+        results.push({ type: 'cloud', id: f.id || f.name, name: f.name, size: f.metadata?.size || f.size || 0, modifiedTime: f.updated_at || f.created_at || null, totals });
+    }
+    return results;
+}
+
+async function downloadSupabaseBackup(name) {
+    const supabase = getSupabase();
+    if (!supabase) throw new Error('supabase not configured');
+    const bucket = process.env.SUPABASE_BUCKET || 'backups';
+    const { data, error } = await supabase.storage.from(bucket).download(name);
+    if (error) throw error;
+    return await data.text();
+}
+
+async function deleteSupabaseBackup(name) {
+    const supabase = getSupabase();
+    if (!supabase) throw new Error('supabase not configured');
+    const bucket = process.env.SUPABASE_BUCKET || 'backups';
+    const { error } = await supabase.storage.from(bucket).remove([name]);
+    if (error) throw error;
+}
+
 async function writeBackupSnapshot(dataObject) {
     try {
         await fs.mkdir(BACKUPS_DIR, { recursive: true });
@@ -97,6 +158,12 @@ async function writeBackupSnapshot(dataObject) {
             await maybeUploadToGoogleDrive(fullPath, driveName);
         } else {
             console.log('Google Drive upload disabled - using local backup only');
+        }
+        // Also upload to Supabase if enabled
+        try {
+            await uploadToSupabase(fullPath, getFriendlyBackupName());
+        } catch (e) {
+            console.warn('Supabase upload failed:', e?.message || e);
         }
         
         console.log('=== BACKUP COMPLETED ===');
@@ -925,6 +992,16 @@ app.get('/api/drive-backups', async (req, res) => {
     }
 });
 
+// List Supabase cloud backups
+app.get('/api/cloud-backups', async (req, res) => {
+    try {
+        const list = await listSupabaseBackups();
+        res.json({ success: true, backups: list });
+    } catch (e) {
+        res.status(500).json({ error: 'cloud list failed', details: e?.message });
+    }
+});
+
 // Restore from chosen backup (local or drive)
 app.post('/api/restore', async (req, res) => {
     try {
@@ -965,6 +1042,9 @@ app.post('/api/restore', async (req, res) => {
                 fileResp.data.on('error', reject);
             });
             raw = Buffer.concat(chunks).toString('utf8');
+        } else if (source === 'cloud' && (id || filename)) {
+            const name = filename || id;
+            raw = await downloadSupabaseBackup(name);
         } else {
             return res.status(400).json({ error: 'invalid source' });
         }
@@ -1074,6 +1154,10 @@ app.post('/api/delete-backup', async (req, res) => {
             });
             console.log('✅ Drive backup deleted successfully');
             res.json({ success: true, message: 'Drive backup deleted' });
+        } else if (source === 'cloud' && (id || filename)) {
+            const name = filename || id;
+            await deleteSupabaseBackup(name);
+            res.json({ success: true, message: 'Cloud backup deleted' });
         } else {
             console.error('❌ Invalid delete parameters');
             res.status(400).json({ error: 'invalid parameters' });

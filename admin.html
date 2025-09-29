@@ -496,12 +496,14 @@
         async function loadBackupsList(container) {
             try {
                 const base = (window.API_BASE_URL || window.location.origin);
-                const [localResp, driveResp] = await Promise.all([
+                const [localResp, driveResp, cloudResp] = await Promise.all([
                     fetch(base + '/api/backups'),
-                    fetch(base + '/api/drive-backups')
+                    fetch(base + '/api/drive-backups'),
+                    fetch(base + '/api/cloud-backups')
                 ]);
                 const local = await localResp.json().catch(()=>({backups:[]}));
                 const drive = await driveResp.json().catch(()=>({backups:[]}));
+                const cloud = await cloudResp.json().catch(()=>({backups:[]}));
                 const items = [];
                 const normalize = (b, typeOverride) => ({
                     type: typeOverride || b.type || 'local',
@@ -513,6 +515,14 @@
                 });
                 (local.backups||[]).forEach(b=>items.push(normalize(b, 'local')));
                 (drive.backups||[]).forEach(b=>items.push(normalize(b, 'drive')));
+                (cloud.backups||[]).forEach(b=>items.push({
+                    type: 'cloud',
+                    id: b.id || b.name,
+                    filename: b.name || b.filename,
+                    mtime: b.modifiedTime || b.createdTime,
+                    size: b.size,
+                    totals: b.totals
+                }));
                 if (!items.length) {
                     container.textContent = 'לא נמצאו גיבויים';
                     return;
