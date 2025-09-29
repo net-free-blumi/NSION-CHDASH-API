@@ -108,20 +108,16 @@
                         <!-- כפתור שחזור מגיבוי אחרון הוסר - משתמשים רק בדפדוף גיבויים -->
                         <button onclick="openBackupsBrowser()" class="btn">🗂️ הצג גיבויים</button>
                     </div>
-                    <div class="search-section">
-                        <h3>🔍 חיפוש מוצרים</h3>
-                        <div class="search-container">
-                            <input type="text" id="search-input" placeholder="חפש לפי שם, קוד או קטגוריה..." class="search-input">
-                            <button onclick="clearSearch()" class="clear-search-btn" title="ניקוי חיפוש">🗑️</button>
-                        </div>
-                    </div>
+                    
                 </div>
                 <div class="main-content">
                     <div class="content-header">
                         <h2>📋 רשימת המוצרים</h2>
-                        <div class="header-actions">
-                            <input type="file" id="file-input" accept=".json" style="display: none;" onchange="productManager.loadProductsFromFile(this.files[0])">
-                            <button onclick="document.getElementById('file-input').click()" class="btn btn-info">📁 טען מקובץ</button>
+                        <div class="search-section" style="margin:0;">
+                            <div class="search-container">
+                                <input type="text" id="search-input" placeholder="חפש לפי שם, קוד או קטגוריה..." class="search-input">
+                                <button onclick="clearSearch()" class="clear-search-btn" title="ניקוי חיפוש">🗑️</button>
+                            </div>
                         </div>
                     </div>
                     <div id="products-container" class="products-grid">
@@ -498,17 +494,10 @@
         async function loadBackupsList(container) {
             try {
                 const base = (window.API_BASE_URL || window.location.origin);
-                const [localResp, driveResp] = await Promise.all([
-                    fetch(base + '/api/backups'),
-                    fetch(base + '/api/drive-backups')
-                ]);
+                const localResp = await fetch(base + '/api/backups');
                 const local = await localResp.json().catch(()=>({backups:[]}));
-                const drive = await driveResp.json().catch(()=>({backups:[]}));
                 const items = [];
                 (local.backups||[]).forEach(b=>items.push({...b}));
-                (drive.backups||[]).forEach(b=>items.push({
-                    type:'drive', id:b.id, filename:b.name, size:b.size, mtime:b.modifiedTime, totals:b.totals
-                }));
                 if (!items.length) {
                     container.textContent = 'לא נמצאו גיבויים';
                     return;
