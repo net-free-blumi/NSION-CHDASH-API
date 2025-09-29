@@ -503,8 +503,16 @@
                 const local = await localResp.json().catch(()=>({backups:[]}));
                 const drive = await driveResp.json().catch(()=>({backups:[]}));
                 const items = [];
-                (local.backups||[]).forEach(b=>items.push({...b}));
-                (drive.backups||[]).forEach(b=>items.push({...b, type:'drive'}));
+                const normalize = (b, typeOverride) => ({
+                    type: typeOverride || b.type || 'local',
+                    id: b.id || b.fileId || null,
+                    filename: b.filename || b.name || '',
+                    mtime: b.mtime || b.modifiedTime || b.createdTime || null,
+                    size: (b.size !== undefined ? Number(b.size) : (b.bytes !== undefined ? Number(b.bytes) : null)),
+                    totals: b.totals || null
+                });
+                (local.backups||[]).forEach(b=>items.push(normalize(b, 'local')));
+                (drive.backups||[]).forEach(b=>items.push(normalize(b, 'drive')));
                 if (!items.length) {
                     container.textContent = 'לא נמצאו גיבויים';
                     return;
@@ -515,11 +523,11 @@
                   <tbody>
                   ${items.map(b=>`<tr>
                      <td>${b.type}</td>
-                     <td>${b.filename}</td>
-                     <td>${b.totals?.products||0}</td>
-                     <td>${b.totals?.categories||0}</td>
+                     <td title="${b.filename}">${b.filename||''}</td>
+                     <td>${(b.totals&&b.totals.products!=null)? b.totals.products : ''}</td>
+                     <td>${(b.totals&&b.totals.categories!=null)? b.totals.categories : ''}</td>
                      <td>${b.mtime? new Date(b.mtime).toLocaleString('he-IL'):''}</td>
-                     <td>${b.size? (Math.round(b.size/1024))+' KB':''}</td>
+                     <td>${(b.size!=null)? (Math.round(Number(b.size)/1024))+' KB' : ''}</td>
                      <td>
                       <button class="btn btn-warning" onclick='confirmRestore(${JSON.stringify({source:b.type, id:b.id||null, filename:b.filename||null}).replace(/"/g,"&quot;")})'>שחזר</button>
                       <button class="btn btn-danger" onclick='confirmDeleteBackup(${JSON.stringify({source:b.type, id:b.id||null, filename:b.filename||null}).replace(/"/g,"&quot;")})' style="margin-right: 5px;">מחק</button>
@@ -542,6 +550,9 @@
                 if (data.success) {
                     showNotification(`✅ שוחזר בהצלחה (מוצרים: ${data.totals.products})`, 'green');
                     if (window.productManager) window.productManager.refreshProducts();
+                    // רענון רשימת הגיבויים ללא פתיחת חלון חדש
+                    const cont = document.getElementById('backupsContainer');
+                    if (cont) loadBackupsList(cont);
                 } else {
                     showNotification('❌ שגיאה בשחזור: ' + (data.error||''), 'red');
                 }
@@ -561,7 +572,8 @@
                 const data = await resp.json();
                 if (data.success) {
                     showNotification('✅ הגיבוי נמחק בהצלחה', 'green');
-                    openBackupsBrowser(); // רענן את הרשימה
+                    const cont = document.getElementById('backupsContainer');
+                    if (cont) loadBackupsList(cont); // רענן באותו חלון
                 } else {
                     showNotification('❌ שגיאה במחיקה: ' + (data.error||''), 'red');
                 }
