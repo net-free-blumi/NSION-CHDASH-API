@@ -83,6 +83,12 @@ function getFriendlyBackupName() {
     return `גיבוי מוצרים מהבאַק ${datePart} - ${timePart}.json`;
 }
 
+function getCloudBackupName() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `products-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+}
+
 // ===== Supabase helpers via REST (no external SDK) =====
 function getSupabaseEnv() {
     const url = process.env.SUPABASE_URL;
@@ -178,7 +184,7 @@ async function writeBackupSnapshot(dataObject) {
         }
         // Also upload to Supabase if enabled
         try {
-            await uploadToSupabase(fullPath, getFriendlyBackupName());
+            await uploadToSupabase(fullPath, getCloudBackupName());
         } catch (e) {
             console.warn('Supabase upload failed:', e?.message || e);
         }
