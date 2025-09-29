@@ -531,8 +531,10 @@
                 container.innerHTML = `<table style="width:100%">
                   <thead><tr><th>סוג</th><th>שם</th><th>מוצרים</th><th>קטגוריות</th><th>תאריך</th><th>גודל</th><th></th></tr></thead>
                   <tbody>
-                  ${items.map(b=>`<tr>
-                     <td>${b.type}</td>
+                   ${items.map(b=>`<tr>
+                      <td>
+                        <span class="backup-source-tag ${b.type==='local'?'backup-source-local':b.type==='drive'?'backup-source-drive':'backup-source-cloud'}">${b.type}</span>
+                      </td>
                      <td title="${b.filename}">${b.filename||''}</td>
                      <td>${(b.totals&&b.totals.products!=null)? b.totals.products : ''}</td>
                      <td>${(b.totals&&b.totals.categories!=null)? b.totals.categories : ''}</td>

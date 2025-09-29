@@ -755,6 +755,21 @@ app.get('/api/products', async (req, res) => {
             } catch (e) {
                 console.warn('❌ Drive auto-restore failed:', e?.message || e);
             }
+            // Try Supabase cloud backup
+            try {
+                console.log('☁️ Trying to restore from Supabase cloud...');
+                const list = await listSupabaseBackups();
+                if (list && list.length) {
+                    const latest = list[0];
+                    const raw = await downloadSupabaseBackup(latest.name);
+                    await fs.writeFile(filePath, raw, 'utf8');
+                    const parsed = JSON.parse(raw || '{}');
+                    console.log('✅ Auto-restored from Supabase cloud backup');
+                    return res.json({ products: parsed.products || {}, categories: parsed.categories || {}, restoredFrom: 'Cloud: ' + latest.name });
+                }
+            } catch (e) {
+                console.warn('❌ Cloud auto-restore failed:', e?.message || e);
+            }
             
             console.log('❌ No backups found for auto-restore');
         }

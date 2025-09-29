@@ -401,6 +401,19 @@ body {
     padding: 24px 8px 32px 8px;
     align-items: stretch;
 }
+
+/* Colored source badges in backups table */
+.backup-source-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #fff;
+}
+.backup-source-local { background: #6c757d; }
+.backup-source-drive { background: #17a2b8; }
+.backup-source-cloud { background: #28a745; }
 /* תצוגה מותאמת למובייל - 2 מוצרים בשורה */
 @media (max-width: 700px) {
     .products-grid {
