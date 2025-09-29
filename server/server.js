@@ -74,6 +74,15 @@ function getNowTimestamp() {
     return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 }
 
+function getFriendlyBackupName() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    // Avoid illegal '/' for Drive filenames
+    const datePart = `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+    const timePart = `${pad(d.getHours())}-${pad(d.getMinutes())}`;
+    return `גיבוי מוצרים מהבאַק ${datePart} - ${timePart}.json`;
+}
+
 async function writeBackupSnapshot(dataObject) {
     try {
         await fs.mkdir(BACKUPS_DIR, { recursive: true });
@@ -81,8 +90,14 @@ async function writeBackupSnapshot(dataObject) {
         const fullPath = path.join(BACKUPS_DIR, filename);
         await fs.writeFile(fullPath, JSON.stringify(dataObject, null, 2), 'utf8');
         console.log('Local backup created at', fullPath);
-        // Google Drive upload disabled - using local backup only
-        console.log('Google Drive upload disabled - using local backup only');
+        // Optional Google Drive upload
+        if (process.env.BACKUP_UPLOAD_TO_DRIVE === 'true') {
+            const driveName = getFriendlyBackupName();
+            console.log('Uploading backup to Google Drive as:', driveName);
+            await maybeUploadToGoogleDrive(fullPath, driveName);
+        } else {
+            console.log('Google Drive upload disabled - using local backup only');
+        }
         
         console.log('=== BACKUP COMPLETED ===');
     } catch (e) {
@@ -891,7 +906,7 @@ app.get('/api/drive-backups', async (req, res) => {
 
         const drive = google.drive({ version: 'v3', auth });
         const resp = await drive.files.list({ 
-            q: `'${folderId}' in parents and name contains 'products-' and mimeType = 'application/json'`, 
+            q: `'${folderId}' in parents and mimeType = 'application/json'`, 
             fields: 'files(id,name,modifiedTime,size)', 
             orderBy: 'modifiedTime desc',
             supportsAllDrives: true,
