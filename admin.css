@@ -31,6 +31,47 @@ body {
     box-sizing: border-box;
 }
 
+/* --- Small-screen independent scroll for controls and products --- */
+@media (max-width: 900px) {
+    html, body {
+        height: 100%;
+        overflow: hidden; /* prevent page scroll; enable inner panes to scroll */
+    }
+    .admin-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+    .header {
+        flex: 0 0 auto;
+    }
+    .admin-panel {
+        /* stack sidebar (controls) and main-content (products) */
+        flex: 1 1 auto;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 0;
+    }
+    .sidebar {
+        /* controls area gets its own scroll */
+        position: static; /* disable sticky on small screens */
+        max-height: 45vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 0;
+    }
+    .main-content {
+        /* products area fills the rest and scrolls independently */
+        flex: 1 1 auto;
+        min-height: 0; /* critical for flex scrolling */
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
 .login-box {
     background: white;
     padding: 40px;
