@@ -414,6 +414,144 @@ async function getLatestDriveBackup() {
     }
 }
 
+// Aggregate latest backup across all sources (local, drive, cloud)
+async function findLatestBackupAcrossSources() {
+    try {
+        const candidates = [];
+
+        // Local backups by mtime
+        try {
+            await fs.mkdir(BACKUPS_DIR, { recursive: true });
+            const files = await fs.readdir(BACKUPS_DIR).catch(() => []);
+            for (const f of files.filter(x => /^products-\d{8}-\d{6}\.json$/.test(x))) {
+                const p = path.join(BACKUPS_DIR, f);
+                const st = await fs.stat(p).catch(() => null);
+                if (st) {
+                    candidates.push({ source: 'local', when: st.mtimeMs, meta: { filename: f, path: p } });
+                }
+            }
+        } catch {}
+
+        // Google Drive backups by modifiedTime
+        try {
+            const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+            if (folderId) {
+                const scopes = ['https://www.googleapis.com/auth/drive.readonly'];
+                let auth;
+                let svcAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT;
+                if (svcAccountJson) {
+                    try { auth = new google.auth.GoogleAuth({ credentials: JSON.parse(svcAccountJson), scopes }); } catch {}
+                }
+                if (!auth) {
+                    const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+                    const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+                    const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+                    if (clientId && clientSecret && refreshToken) {
+                        const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
+                        oauth2.setCredentials({ refresh_token: refreshToken });
+                        auth = oauth2;
+                    }
+                }
+                if (auth) {
+                    const drive = google.drive({ version: 'v3', auth });
+                    const resp = await drive.files.list({
+                        q: `'${folderId}' in parents and mimeType = 'application/json'`,
+                        fields: 'files(id,name,modifiedTime)',
+                        orderBy: 'modifiedTime desc',
+                        supportsAllDrives: true,
+                        includeItemsFromAllDrives: true
+                    });
+                    const files = resp.data.files || [];
+                    for (const f of files) {
+                        const when = Date.parse(f.modifiedTime || '') || 0;
+                        candidates.push({ source: 'drive', when, meta: { id: f.id, name: f.name } });
+                    }
+                }
+            }
+        } catch {}
+
+        // Supabase backups by updated_at/created_at
+        try {
+            const env = getSupabaseEnv();
+            if (env) {
+                const endpoint = `${env.url}/storage/v1/object/list/${encodeURIComponent(env.bucket)}`;
+                const resp = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prefix: '', limit: 100, sortBy: { column: 'updated_at', order: 'desc' } })
+                });
+                if (resp.ok) {
+                    const data = await resp.json().catch(() => []);
+                    for (const f of (data || []).filter(x => (x.name||'').endsWith('.json'))) {
+                        const when = Date.parse(f.updated_at || f.created_at || '') || 0;
+                        candidates.push({ source: 'cloud', when, meta: { name: f.name } });
+                    }
+                }
+            }
+        } catch {}
+
+        if (!candidates.length) return null;
+        candidates.sort((a, b) => b.when - a.when);
+        return candidates[0];
+    } catch (e) {
+        console.warn('findLatestBackupAcrossSources failed:', e?.message || e);
+        return null;
+    }
+}
+
+async function restoreFromDescriptor(desc) {
+    if (!desc) return false;
+    try {
+        if (desc.source === 'local') {
+            const raw = await fs.readFile(desc.meta.path, 'utf8');
+            await fs.writeFile(DATA_PRODUCTS_FILE, raw, 'utf8');
+            console.log('✅ Restored from local backup:', desc.meta.filename);
+            return true;
+        }
+        if (desc.source === 'drive') {
+            const scopes = ['https://www.googleapis.com/auth/drive.readonly'];
+            let auth;
+            let svcAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT;
+            if (svcAccountJson) {
+                try { auth = new google.auth.GoogleAuth({ credentials: JSON.parse(svcAccountJson), scopes }); } catch {}
+            }
+            if (!auth) {
+                const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+                const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+                const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+                if (clientId && clientSecret && refreshToken) {
+                    const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
+                    oauth2.setCredentials({ refresh_token: refreshToken });
+                    auth = oauth2;
+                }
+            }
+            if (!auth) throw new Error('drive not configured');
+            const drive = google.drive({ version: 'v3', auth });
+            const fileResp = await drive.files.get({ fileId: desc.meta.id, alt: 'media', supportsAllDrives: true }, { responseType: 'stream' });
+            const chunks = [];
+            await new Promise((resolve, reject) => {
+                fileResp.data.on('data', d => chunks.push(d));
+                fileResp.data.on('end', resolve);
+                fileResp.data.on('error', reject);
+            });
+            const raw = Buffer.concat(chunks).toString('utf8');
+            await fs.writeFile(DATA_PRODUCTS_FILE, raw, 'utf8');
+            console.log('✅ Restored from Drive backup:', desc.meta.name);
+            return true;
+        }
+        if (desc.source === 'cloud') {
+            const raw = await downloadSupabaseBackup(desc.meta.name);
+            await fs.writeFile(DATA_PRODUCTS_FILE, raw, 'utf8');
+            console.log('✅ Restored from Cloud backup:', desc.meta.name);
+            return true;
+        }
+        return false;
+    } catch (e) {
+        console.warn('restoreFromDescriptor failed:', e?.message || e);
+        return false;
+    }
+}
+
 async function readJsonSafe(filePath) {
     try {
         const raw = await fs.readFile(filePath, 'utf8');
@@ -724,53 +862,16 @@ app.get('/api/products', async (req, res) => {
         const autoRestore = process.env.AUTO_RESTORE_ON_EMPTY === 'true';
         const productsCount = data.products ? Object.keys(data.products).length : 0;
         if (autoRestore && productsCount === 0) {
-            console.log('🔄 Products count is 0, attempting auto-restore...');
-            
-            // Try local backup first
-            const latest = await getLatestBackupFilePath();
-            if (latest) {
-                try {
-                    console.log('📁 Found local backup, restoring from:', latest);
-                    const backupData = await fs.readFile(latest, 'utf8');
-                    await fs.writeFile(filePath, backupData, 'utf8');
-                    const parsed = JSON.parse(backupData || '{}');
-                    console.log('✅ Auto-restored from local backup');
-                    return res.json({ products: parsed.products || {}, categories: parsed.categories || {}, restoredFrom: latest });
-                } catch (e) {
-                    console.warn('❌ Local auto-restore failed:', e?.message || e);
+            console.log('🔄 Products count is 0, attempting auto-restore (latest across all sources)...');
+            const latestDesc = await findLatestBackupAcrossSources();
+            if (latestDesc) {
+                const ok = await restoreFromDescriptor(latestDesc);
+                if (ok) {
+                    const rawNow = await fs.readFile(filePath, 'utf8').catch(() => '{}');
+                    const parsed = JSON.parse(rawNow || '{}');
+                    return res.json({ products: parsed.products || {}, categories: parsed.categories || {}, restoredFrom: `${latestDesc.source}` });
                 }
             }
-            
-            // Try Google Drive backup
-            try {
-                console.log('☁️ Trying to restore from Google Drive...');
-                const driveBackup = await getLatestDriveBackup();
-                if (driveBackup) {
-                    console.log('📁 Found Drive backup, restoring from:', driveBackup.name);
-                    await fs.writeFile(filePath, driveBackup.data, 'utf8');
-                    const parsed = JSON.parse(driveBackup.data || '{}');
-                    console.log('✅ Auto-restored from Google Drive backup');
-                    return res.json({ products: parsed.products || {}, categories: parsed.categories || {}, restoredFrom: 'Google Drive: ' + driveBackup.name });
-                }
-            } catch (e) {
-                console.warn('❌ Drive auto-restore failed:', e?.message || e);
-            }
-            // Try Supabase cloud backup
-            try {
-                console.log('☁️ Trying to restore from Supabase cloud...');
-                const list = await listSupabaseBackups();
-                if (list && list.length) {
-                    const latest = list[0];
-                    const raw = await downloadSupabaseBackup(latest.name);
-                    await fs.writeFile(filePath, raw, 'utf8');
-                    const parsed = JSON.parse(raw || '{}');
-                    console.log('✅ Auto-restored from Supabase cloud backup');
-                    return res.json({ products: parsed.products || {}, categories: parsed.categories || {}, restoredFrom: 'Cloud: ' + latest.name });
-                }
-            } catch (e) {
-                console.warn('❌ Cloud auto-restore failed:', e?.message || e);
-            }
-            
             console.log('❌ No backups found for auto-restore');
         }
         res.json({ products: data.products || {}, categories: data.categories || {} });
