@@ -1790,6 +1790,14 @@ body {
     }
 }
 
+/* Extra-small phones: ensure controls are always reachable */
+@media (max-width: 480px) {
+	.admin-container { overflow: hidden; }
+	.admin-panel { height: 100vh; overflow: hidden; }
+	.sidebar { max-height: 55vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+	.main-content { max-height: 45vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+}
+
 /* עיצוב לגובה נמוך */
 @media (max-height: 600px) {
     .login-container {

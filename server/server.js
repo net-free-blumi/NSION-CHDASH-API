@@ -1371,7 +1371,35 @@ app.post('/send-whatsapp', async (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 // Initialize data locations, categories/products and start server
-ensureDataLocations().then(() => initializeCategories()).then(() => importProductsIfEmpty()).then(() => {
+async function bootAutoRestoreIfNeeded() {
+    try {
+        await ensureDataLocations();
+        const autoRestore = process.env.AUTO_RESTORE_ON_EMPTY === 'true';
+        if (!autoRestore) {
+            console.log('Boot auto-restore disabled (AUTO_RESTORE_ON_EMPTY!=true)');
+            return;
+        }
+        const raw = await fs.readFile(DATA_PRODUCTS_FILE, 'utf8').catch(() => null);
+        const data = raw ? JSON.parse(raw || '{}') : { products: {} };
+        const count = data.products ? Object.keys(data.products).length : 0;
+        if (count > 0) {
+            console.log('Boot auto-restore skipped: products exist:', count);
+            return;
+        }
+        console.log('🟡 Boot auto-restore: products are empty, searching latest backup across all sources...');
+        const desc = await findLatestBackupAcrossSources();
+        if (!desc) {
+            console.log('Boot auto-restore: no backups found');
+            return;
+        }
+        const ok = await restoreFromDescriptor(desc);
+        console.log('Boot auto-restore result:', ok ? `restored from ${desc.source}` : 'failed');
+    } catch (e) {
+        console.warn('Boot auto-restore error:', e?.message || e);
+    }
+}
+
+ensureDataLocations().then(() => initializeCategories()).then(() => importProductsIfEmpty()).then(() => bootAutoRestoreIfNeeded()).then(() => {
     app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
         console.log('Server is ready to handle requests');
