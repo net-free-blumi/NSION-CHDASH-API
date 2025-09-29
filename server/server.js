@@ -6,7 +6,6 @@ import { promises as fs } from 'fs';
 import { createReadStream } from 'fs';
 import fetch from 'node-fetch';
 import { google } from 'googleapis';
-import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -84,64 +83,82 @@ function getFriendlyBackupName() {
     return `גיבוי מוצרים מהבאַק ${datePart} - ${timePart}.json`;
 }
 
-// ===== Supabase helpers =====
-function getSupabase() {
+// ===== Supabase helpers via REST (no external SDK) =====
+function getSupabaseEnv() {
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_KEY;
+    const bucket = process.env.SUPABASE_BUCKET || 'backups';
     if (!url || !key) return null;
-    return createClient(url, key, { auth: { persistSession: false } });
+    return { url, key, bucket };
 }
 
 async function uploadToSupabase(fullPath, destName) {
-    const supabase = getSupabase();
-    if (!supabase || process.env.BACKUP_UPLOAD_TO_CLOUD !== 'true') return;
-    const bucket = process.env.SUPABASE_BUCKET || 'backups';
+    if (process.env.BACKUP_UPLOAD_TO_CLOUD !== 'true') return;
+    const env = getSupabaseEnv();
+    if (!env) return;
     const fileBuffer = await fs.readFile(fullPath);
-    const pathKey = destName;
-    const { error } = await supabase.storage.from(bucket).upload(pathKey, fileBuffer, {
-        contentType: 'application/json',
-        upsert: true
+    const endpoint = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/${encodeURIComponent(destName)}`;
+    const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${env.key}`,
+            'apikey': env.key,
+            'x-upsert': 'true',
+            'Content-Type': 'application/json'
+        },
+        body: fileBuffer
     });
-    if (error) throw error;
-    console.log('✅ Uploaded to Supabase:', pathKey);
+    if (!resp.ok) {
+        const t = await resp.text().catch(()=>resp.statusText);
+        throw new Error(`supabase upload failed: ${resp.status} ${t}`);
+    }
+    console.log('✅ Uploaded to Supabase:', destName);
 }
 
 async function listSupabaseBackups() {
-    const supabase = getSupabase();
-    if (!supabase) return [];
-    const bucket = process.env.SUPABASE_BUCKET || 'backups';
-    const { data, error } = await supabase.storage.from(bucket).list('', { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
-    if (error) return [];
+    const env = getSupabaseEnv();
+    if (!env) return [];
+    const endpoint = `${env.url}/storage/v1/object/list/${encodeURIComponent(env.bucket)}`;
+    const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefix: '', limit: 100, sortBy: { column: 'created_at', order: 'desc' } })
+    });
+    if (!resp.ok) return [];
+    const data = await resp.json().catch(()=>[]);
     const results = [];
-    for (const f of (data || []).filter(x => x.name.endsWith('.json'))) {
+    for (const f of (data || []).filter(x => (x.name||'').endsWith('.json'))) {
         let totals = { products: 0, categories: 0 };
         try {
-            const { data: fileData } = await supabase.storage.from(bucket).download(f.name);
-            const raw = await fileData.text();
+            const raw = await downloadSupabaseBackup(f.name);
             const parsed = JSON.parse(raw || '{}');
             totals.products = parsed.products ? Object.keys(parsed.products).length : 0;
             totals.categories = parsed.categories ? Object.keys(parsed.categories).length : 0;
         } catch {}
-        results.push({ type: 'cloud', id: f.id || f.name, name: f.name, size: f.metadata?.size || f.size || 0, modifiedTime: f.updated_at || f.created_at || null, totals });
+        results.push({ type: 'cloud', id: f.name, name: f.name, size: f.metadata?.size || f.size || 0, modifiedTime: f.updated_at || f.created_at || null, totals });
     }
     return results;
 }
 
 async function downloadSupabaseBackup(name) {
-    const supabase = getSupabase();
-    if (!supabase) throw new Error('supabase not configured');
-    const bucket = process.env.SUPABASE_BUCKET || 'backups';
-    const { data, error } = await supabase.storage.from(bucket).download(name);
-    if (error) throw error;
-    return await data.text();
+    const env = getSupabaseEnv();
+    if (!env) throw new Error('supabase not configured');
+    const endpoint = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/${encodeURIComponent(name)}`;
+    const resp = await fetch(endpoint, { headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key } });
+    if (!resp.ok) throw new Error(`download failed: ${resp.status}`);
+    return await resp.text();
 }
 
 async function deleteSupabaseBackup(name) {
-    const supabase = getSupabase();
-    if (!supabase) throw new Error('supabase not configured');
-    const bucket = process.env.SUPABASE_BUCKET || 'backups';
-    const { error } = await supabase.storage.from(bucket).remove([name]);
-    if (error) throw error;
+    const env = getSupabaseEnv();
+    if (!env) throw new Error('supabase not configured');
+    const endpoint = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}`;
+    const resp = await fetch(endpoint, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefixes: [name] })
+    });
+    if (!resp.ok) throw new Error(`delete failed: ${resp.status}`);
 }
 
 async function writeBackupSnapshot(dataObject) {
