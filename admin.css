@@ -830,6 +830,10 @@ body {
     top: 20px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     margin-bottom: 0;
+    /* ensure controls are scrollable when content is taller than viewport */
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 /* ריווח מקצועי בין סיכום/כפתורים/חיפוש */
 .sidebar .stats {
