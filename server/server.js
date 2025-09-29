@@ -391,31 +391,18 @@ const app = express();
 console.log('🚀 Server starting with version 2.0.0');
 console.log('📅 Server start time:', new Date().toISOString());
 
-// Enable CORS with specific settings
-const allowedOrigins = [
-    'http://localhost:3000',
-    'http://127.0.0.1:5500',
-    'http://localhost:5000',
-    'https://venerable-rugelach-127f4b.netlify.app',
-    'https://online-g.netlify.app',
-    'https://nsaion-golsya.netlify.app',
-    'https://nsion-chdash-api-1.onrender.com'
-];
-
-app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control'],
-    exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
-    maxAge: 86400 // 24 hours
-}));
+// Enable CORS (dev-friendly): reflect incoming Origin, allow credentials
+app.use((req, res, next) => {
+    const origin = req.headers.origin || '*';
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Cache-Control');
+    next();
+});
+app.use(cors({ origin: true, credentials: true }));
+app.options('*', cors());
 
 // Parse JSON bodies with increased limit
 app.use(express.json({ limit: '50mb' }));
@@ -918,7 +905,7 @@ app.get('/api/drive-backups', async (req, res) => {
         for (const f of files) {
             let totals = { products: 0, categories: 0 };
             try {
-                const fileResp = await drive.files.get({ fileId: f.id, alt: 'media' }, { responseType: 'stream' });
+                const fileResp = await drive.files.get({ fileId: f.id, alt: 'media', supportsAllDrives: true }, { responseType: 'stream' });
                 const chunks = [];
                 await new Promise((resolve, reject) => {
                     fileResp.data.on('data', d => chunks.push(d));
