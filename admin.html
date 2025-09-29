@@ -480,7 +480,7 @@
             modal.className = 'modal';
             modal.style.display = 'block';
             modal.innerHTML = `
-            <div class="modal-content" style="max-width:900px">
+            <div class="modal-content" style="max-width:900px" onclick="event.stopPropagation()">
               <h3>🗂️ גיבויים זמינים</h3>
               <div id="backupsContainer">טוען...</div>
               <div style="text-align:left; margin-top:10px">
@@ -488,16 +488,23 @@
               </div>
             </div>`;
             document.body.appendChild(modal);
+            // סגירה בלחיצה על הרקע
+            modal.addEventListener('click', function(e){ if(e.target === modal) modal.remove(); });
             loadBackupsList(document.getElementById('backupsContainer'));
         }
 
         async function loadBackupsList(container) {
             try {
                 const base = (window.API_BASE_URL || window.location.origin);
-                const localResp = await fetch(base + '/api/backups');
+                const [localResp, driveResp] = await Promise.all([
+                    fetch(base + '/api/backups'),
+                    fetch(base + '/api/drive-backups')
+                ]);
                 const local = await localResp.json().catch(()=>({backups:[]}));
+                const drive = await driveResp.json().catch(()=>({backups:[]}));
                 const items = [];
                 (local.backups||[]).forEach(b=>items.push({...b}));
+                (drive.backups||[]).forEach(b=>items.push({...b, type:'drive'}));
                 if (!items.length) {
                     container.textContent = 'לא נמצאו גיבויים';
                     return;
@@ -514,8 +521,8 @@
                      <td>${b.mtime? new Date(b.mtime).toLocaleString('he-IL'):''}</td>
                      <td>${b.size? (Math.round(b.size/1024))+' KB':''}</td>
                      <td>
-                       <button class="btn btn-warning" onclick='restoreBySelection(${JSON.stringify({source:b.type, id:b.id||null, filename:b.filename||null}).replace(/"/g,"&quot;")})'>שחזר</button>
-                       <button class="btn btn-danger" onclick='deleteBackup(${JSON.stringify({source:b.type, id:b.id||null, filename:b.filename||null}).replace(/"/g,"&quot;")})' style="margin-right: 5px;">מחק</button>
+                      <button class="btn btn-warning" onclick='confirmRestore(${JSON.stringify({source:b.type, id:b.id||null, filename:b.filename||null}).replace(/"/g,"&quot;")})'>שחזר</button>
+                      <button class="btn btn-danger" onclick='confirmDeleteBackup(${JSON.stringify({source:b.type, id:b.id||null, filename:b.filename||null}).replace(/"/g,"&quot;")})' style="margin-right: 5px;">מחק</button>
                      </td>
                   </tr>`).join('')}
                   </tbody></table>`;
@@ -525,7 +532,6 @@
         }
 
         async function restoreBySelection(sel) {
-            if (!confirm('להחליף את כל המוצרים בנתוני הגיבוי שנבחר?')) return;
             try {
                 const base = (window.API_BASE_URL || window.location.origin);
                 const resp = await fetch(base + '/api/restore', {
@@ -545,7 +551,6 @@
         }
 
         async function deleteBackup(sel) {
-            if (!confirm('למחוק את הגיבוי שנבחר?')) return;
             try {
                 const base = (window.API_BASE_URL || window.location.origin);
                 const resp = await fetch(base + '/api/delete-backup', {
@@ -563,6 +568,43 @@
             } catch (e) {
                 showNotification('❌ שגיאה במחיקה', 'red');
             }
+        }
+
+        // חלון אישור ידידותי
+        function niceConfirm({title='אישור פעולה', message='האם לבצע?', confirmText='אישור', cancelText='ביטול'}) {
+            return new Promise(resolve => {
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.style.display = 'block';
+                modal.innerHTML = `
+                <div class="modal-content" style="max-width:480px" onclick="event.stopPropagation()">
+                  <div class="modal-header">
+                    <h2>${title}</h2>
+                    <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                  </div>
+                  <div class="modal-body"><p>${message}</p></div>
+                  <div class="modal-actions" style="display:flex;gap:10px;justify-content:flex-end;padding: 0 30px 20px;">
+                    <button class="btn btn-secondary" id="nc-cancel">${cancelText}</button>
+                    <button class="btn btn-danger" id="nc-ok">${confirmText}</button>
+                  </div>
+                </div>`;
+                document.body.appendChild(modal);
+                modal.addEventListener('click', e => { if (e.target === modal) { modal.remove(); resolve(false); } });
+                modal.querySelector('#nc-cancel').onclick = () => { modal.remove(); resolve(false); };
+                modal.querySelector('#nc-ok').onclick = () => { modal.remove(); resolve(true); };
+            });
+        }
+
+        async function confirmRestore(sel) {
+            const ok = await niceConfirm({ title: 'שחזור גיבוי', message: 'להחליף את כל המוצרים בגיבוי שנבחר?', confirmText: 'שחזר', cancelText: 'ביטול' });
+            if (!ok) return;
+            return restoreBySelection(sel);
+        }
+
+        async function confirmDeleteBackup(sel) {
+            const ok = await niceConfirm({ title: 'מחיקת גיבוי', message: 'למחוק את הגיבוי שנבחר? לא ניתן לבטל.', confirmText: 'מחק', cancelText: 'ביטול' });
+            if (!ok) return;
+            return deleteBackup(sel);
         }
 
         // פונקציה להצגת הודעות
