@@ -790,6 +790,17 @@
     @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
     #serverWakeupOverlay { display: flex; }
   </style>
+  <style>
+    /* Mobile: restore natural page scrolling and avoid background-attachment issues */
+    @media (max-width: 900px) {
+      html, body { height: auto; min-height: 100vh; overflow: auto; }
+      body {
+        display: block;           /* break flex that may lock viewport */
+        -webkit-overflow-scrolling: touch;
+        background-attachment: scroll; /* fixed background can block scroll on mobile */
+      }
+    }
+  </style>
 <script>
   window.API_BASE_URL='https://nsion-chdash-api-1.onrender.com';
 // --- Wake up server logic (dynamic API base) ---
