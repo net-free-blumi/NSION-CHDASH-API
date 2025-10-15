@@ -1926,6 +1926,15 @@ function ensureDragHandle(li) {
   handle.setAttribute('draggable', 'true');
   handle.addEventListener('dragstart', (e) => onDragStart(e, li));
   handle.addEventListener('dragend', onDragEnd);
+  // שכפול עדין בקליק ימני על הידית (ללא הוספת כפתורים גלויים)
+  if (!handle._dupBound) {
+    handle.addEventListener('contextmenu', (e) => {
+      try { e.preventDefault(); } catch {}
+      tinyConfirm({ title: 'שכפול פריט', message: 'לשכפל פריט זה?', confirmText: 'שכפל', cancelText: 'ביטול' })
+        .then(ok => { if (ok) duplicateListItem(li); });
+    });
+    handle._dupBound = true;
+  }
 }
 
 function attachDropZoneHandlers(listEl) {
@@ -2016,6 +2025,46 @@ function getDragAfterElement(container, y) {
       return closest;
     }
   }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+// שכפול פריט בסיכום — נוצר חדש מיד אחרי המקור, בעדינות
+function duplicateListItem(sourceLi) {
+  if (!sourceLi || sourceLi.tagName !== 'LI') return;
+  const list = sourceLi.closest('ul');
+  if (!list) return;
+  // שכפול מלא של ה-LI כולל כפתורים/תויות
+  const clone = sourceLi.cloneNode(true);
+  // הסרת ידיות גרירה קיימות בקלון כדי לא ליצור כפילויות מאזינים
+  Array.from(clone.querySelectorAll('.dnd-handle')).forEach(h => h.remove());
+  // הוספת ידית חדשה ו-binding תקין
+  ensureDragHandle(clone);
+  list.insertBefore(clone, sourceLi.nextSibling);
+  updateCategoryButtonsVisibility();
+  saveOrderDetails();
+  try { if (typeof showNotification === 'function') showNotification('✅ הפריט שוכפל', 'green', { duration: 1500 }); } catch {}
+}
+
+// מודאל אישור קטן ועדין במרכז המסך
+function tinyConfirm({ title='אישור פעולה', message='האם לבצע?', confirmText='אישור', cancelText='ביטול' } = {}) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.25);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.2);min-width:240px;max-width:90vw;padding:16px 16px;direction:rtl;text-align:center;border:1px solid #e9ecef;';
+    card.innerHTML = `
+      <div style="font-weight:700;color:#333;margin-bottom:8px;">${title}</div>
+      <div style="color:#555;margin-bottom:14px;">${message}</div>
+      <div style="display:flex;gap:8px;justify-content:center;">
+        <button type="button" data-act="cancel" style="padding:8px 14px;border:1px solid #ced4da;background:#fff;color:#495057;border-radius:8px;cursor:pointer;">${cancelText}</button>
+        <button type="button" data-act="ok" style="padding:8px 14px;border:none;background:#28a745;color:#fff;border-radius:8px;cursor:pointer;">${confirmText}</button>
+      </div>`;
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    const cleanup = (result) => { try { document.body.removeChild(overlay); } catch {}; resolve(result); };
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) cleanup(false); });
+    card.querySelector('[data-act="cancel"]').addEventListener('click', () => cleanup(false));
+    card.querySelector('[data-act="ok"]').addEventListener('click', () => cleanup(true));
+  });
 }
 
 // ===== שמירת/טעינת סדר ההזמנה =====
