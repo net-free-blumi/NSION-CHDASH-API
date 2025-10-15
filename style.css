@@ -14,6 +14,36 @@
     animation: fadeIn 0.5s ease-in;
 }
 
+/* Drag & Drop styling for order lists */
+#kitchenProductsList li,
+#sushiList li,
+#bakeryList li,
+#warehouseList li,
+#onlineList li,
+#kitchenList li,
+#amarList li { cursor: default; }
+
+ul.drag-over { outline: 2px dashed #667eea; outline-offset: 2px; }
+li.dragging { opacity: 0.9; background: #eef3ff; }
+
+/* ידית גרירה ייעודית */
+.dnd-handle {
+    margin-inline-start: 8px;
+    padding: 4px 6px;
+    border: 1px solid #2f6fed;
+    border-radius: 6px;
+    background: #2f6fed; /* כחול */
+    color: #fff;
+    cursor: grab;
+    user-select: none;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.dnd-handle:hover { background: #255bd1; border-color: #255bd1; }
+.dnd-handle:active { cursor: grabbing; background: #1e4db4; border-color: #1e4db4; }
+li.dragging .dnd-handle { background: #ffc107; border-color: #ffc107; color: #212529; }
+
+/* אפשר סימון טקסט ברשימות; מניעת סימון רק בידית עצמה */
+
 /* Toast notifications container */
 #notifications-container {
     position: fixed;

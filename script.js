@@ -1876,8 +1876,181 @@ function getKitchenProductsItems() {
 function addToCategoryList(category, productSummary) {
   const categoryList = document.getElementById(category + "List");
   const listItem = document.createElement("li");
-  listItem.textContent = productSummary; // תמיד טקסט ישיר, בלי span
+  // תוכן טקסט כדיפולט בתוך span, כדי שידית הגרירה לא תבלבל את הטקסט
+  const textSpan = document.createElement('span');
+  textSpan.textContent = productSummary;
+  listItem.appendChild(textSpan);
+  // מוסיף ידית גרירה ייעודית
+  ensureDragHandle(listItem);
   categoryList.appendChild(listItem);
+  updateCategoryButtonsVisibility();
+  saveOrderDetails();
+}
+
+// ===== Drag & Drop (סידור ידני ורב-קטגוריות) =====
+let dragState = { sourceListId: null, draggingEl: null };
+
+function setupDragAndDrop() {
+  const lists = ['kitchenProductsList','sushiList','bakeryList','warehouseList','onlineList','kitchenList','amarList'];
+  lists.forEach(id => {
+    const ul = document.getElementById(id);
+    if (!ul) return;
+    attachDropZoneHandlers(ul);
+    // הפיכת פריטים קיימים לגרירים
+    Array.from(ul.children).forEach(li => {
+      ensureDragHandle(li);
+      li.removeAttribute('draggable');
+    });
+  });
+}
+
+function ensureDragHandle(li) {
+  if (!li) return;
+  let handle = li.querySelector('.dnd-handle');
+  if (!handle) {
+    handle = document.createElement('button');
+    handle.type = 'button';
+    handle.className = 'dnd-handle';
+    handle.title = 'גרור לשינוי סדר';
+    handle.textContent = '⇅';
+    // מקם את הידית ליד כפתורי הפעולה אם יש, אחרת בסוף ה-li
+    const buttons = li.querySelectorAll('button');
+    if (buttons && buttons.length > 0) {
+      const lastBtn = buttons[buttons.length - 1];
+      lastBtn.after(handle);
+    } else {
+      li.appendChild(handle);
+    }
+  }
+  // רק הידית היא draggable
+  handle.setAttribute('draggable', 'true');
+  handle.addEventListener('dragstart', (e) => onDragStart(e, li));
+  handle.addEventListener('dragend', onDragEnd);
+}
+
+function attachDropZoneHandlers(listEl) {
+  listEl.addEventListener('dragover', onDragOver);
+  listEl.addEventListener('drop', onDrop);
+  listEl.addEventListener('dragenter', onDragEnter);
+  listEl.addEventListener('dragleave', onDragLeave);
+  // מוסיף observer כדי להוסיף ידיות לגרירה לכל פריט חדש
+  try {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach(m => {
+        m.addedNodes && m.addedNodes.forEach(node => {
+          if (node && node.nodeType === 1 && node.tagName === 'LI') {
+            ensureDragHandle(node);
+            // ודא שאין draggable על ה-li עצמו
+            node.removeAttribute('draggable');
+          }
+        });
+      });
+    });
+    observer.observe(listEl, { childList: true });
+  } catch (e) {}
+}
+
+function onDragStart(e, liEl) {
+  const el = liEl || e.target.closest('li');
+  dragState.draggingEl = el;
+  dragState.sourceListId = el?.closest('ul')?.id || null;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', (el?.textContent || '').trim());
+  try { e.dataTransfer.setDragImage(el, 10, 10); } catch (err) {}
+  requestAnimationFrame(() => {
+    if (el) el.classList.add('dragging');
+  });
+}
+
+function onDragEnd(e) {
+  const el = e.target.closest('li') || e.target;
+  if (el && el.classList) el.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  dragState.draggingEl = null;
+  dragState.sourceListId = null;
+}
+
+function onDragEnter(e) {
+  if (e.currentTarget.tagName === 'UL') {
+    e.currentTarget.classList.add('drag-over');
+  }
+}
+
+function onDragLeave(e) {
+  if (e.currentTarget.tagName === 'UL') {
+    e.currentTarget.classList.remove('drag-over');
+  }
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  const list = e.currentTarget;
+  const dragging = dragState.draggingEl || document.querySelector('.dragging');
+  if (!dragging) return;
+  if (e.dataTransfer) { e.dataTransfer.dropEffect = 'move'; }
+  const afterEl = getDragAfterElement(list, e.clientY);
+  if (afterEl == null) {
+    list.appendChild(dragging);
+  } else {
+    list.insertBefore(dragging, afterEl);
+  }
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  const targetList = e.currentTarget;
+  targetList.classList.remove('drag-over');
+  // עדכון כפתורים ושמירת סדר
+  updateCategoryButtonsVisibility();
+  saveOrderDetails();
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('li:not(.dragging)')];
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+// ===== שמירת/טעינת סדר ההזמנה =====
+function saveOrderDetails() {
+  const lists = ['kitchenProductsList','sushiList','bakeryList','warehouseList','onlineList'];
+  const data = {};
+  lists.forEach(id => {
+    const ul = document.getElementById(id);
+    if (!ul) return;
+    data[id] = Array.from(ul.children).map(li => li.textContent);
+  });
+  try {
+    sessionStorage.setItem('orderSummaryLists', JSON.stringify(data));
+  } catch (e) {}
+}
+
+function loadOrderDetails() {
+  let data = null;
+  try {
+    data = JSON.parse(sessionStorage.getItem('orderSummaryLists') || 'null');
+  } catch (e) { data = null; }
+  if (!data) return;
+  Object.keys(data).forEach(listId => {
+    const ul = document.getElementById(listId);
+    if (!ul) return;
+    ul.innerHTML = '';
+    (data[listId] || []).forEach(text => {
+      const li = document.createElement('li');
+      const span = document.createElement('span');
+      span.textContent = text;
+      li.appendChild(span);
+      ensureDragHandle(li);
+      ul.appendChild(li);
+    });
+  });
   updateCategoryButtonsVisibility();
 }
 
@@ -2056,6 +2229,9 @@ window.addEventListener('DOMContentLoaded', function() {
       observer.observe(target, { childList: true });
     }
   });
+  // אתחול גרירה ושחרור ושחזור סדר שמור
+  setupDragAndDrop();
+  loadOrderDetails();
 });
 // ... existing code ...
 
