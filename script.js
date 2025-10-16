@@ -703,6 +703,12 @@ function newOrder() {
     document.getElementById("kitchenProductsList").innerHTML = "";
     document.getElementById("amarList").innerHTML = "";
     
+    // ניקוי תצוגת קונדיטוריית עמר
+    const amarSummaryDisplay = document.getElementById("amarSummaryDisplay");
+    if (amarSummaryDisplay) {
+        amarSummaryDisplay.innerText = "";
+    }
+    
     // איפוס משתני הזיכרון של הודעות
     lastSentMessage = null;
     isSendingMessage = false;
@@ -1596,6 +1602,7 @@ function openWhatsAppGeneralModal() {
     let message = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${orderDateFormatted}${orderDay ? ' (יום ' + orderDay + ')' : ''}*\n*שעה: ${orderTime}*\n`;
     categories.forEach((category) => {
         const categoryItems = Array.from(document.getElementById(`${category}List`).children)
+            .filter(li => !li.classList.contains('temperature-header')) // רק מוצרים אמיתיים, לא כותרות
             .map((li) => {
                 let text = li.firstElementChild.textContent;
                 text = text.replace(/\(מק\"ט: \d+\)/g, '')
@@ -1603,17 +1610,45 @@ function openWhatsAppGeneralModal() {
                           .replace(/\s{2,}/g, ' ')
                           .replace(/\*([^*]+)\*/g, '$1') // מסיר כוכביות מהמוצרים עצמם
                           .trim();
-                return text;
+                const temperature = li.getAttribute('data-temperature') || '';
+                return { text, temperature };
             })
-            .filter((text) => text.trim() !== '');
+            .filter((item) => item.text.trim() !== '');
+            
         if (categoryItems.length > 0) {
             // רווח שורה לפני כל כותרת קטגוריה
             message += `\n*${getCategoryTitle(category)}:*\n`;
-            // ריווח בין שורות רק במטבח
-            if (category === 'kitchen') {
-                message += categoryItems.map(item => item).join("\n\n") + "\n";
+            
+            // רק לקטגוריית מוצרי מטבח נוסיף הפרדה בין חם וקר
+            if (category === 'kitchenProducts') {
+                // חלוקה למוצרים חמים וקרים
+                const hotItems = categoryItems.filter(item => item.temperature === 'hot');
+                const coldItems = categoryItems.filter(item => item.temperature === 'cold');
+                const defaultItems = categoryItems.filter(item => !item.temperature || item.temperature === '');
+
+                // מוצרים חמים
+                if (hotItems.length > 0) {
+                    message += '*מוצרים חמים:*\n';
+                    message += hotItems.map(item => item.text).join("\n") + "\n";
+                }
+
+                // מוצרים קרים
+                if (coldItems.length > 0) {
+                    message += '*מוצרים קרים:*\n';
+                    message += coldItems.map(item => item.text).join("\n") + "\n";
+                }
+
+                // מוצרים רגילים
+                if (defaultItems.length > 0) {
+                    message += defaultItems.map(item => item.text).join("\n") + "\n";
+                }
             } else {
-                message += categoryItems.join("\n") + "\n";
+                // לקטגוריות אחרות - תצוגה רגילה
+                if (category === 'kitchen') {
+                    message += categoryItems.map(item => item.text).join("\n\n") + "\n";
+                } else {
+                    message += categoryItems.map(item => item.text).join("\n") + "\n";
+                }
             }
         }
     });
@@ -1806,6 +1841,15 @@ function displayOrderInfo() {
     const timeLine = orderTime ? `<strong>לשעה: ${orderTime}</strong>` : '';
     document.getElementById("orderInfo").innerHTML = `<strong>הזמנה מס: ${orderNumber}</strong><br>${dateLine}${timeLine}`;
     document.getElementById("notesSummary").textContent = temperature ? `''${temperature}''` : '';
+    
+    // עדכון תצוגת סיכום ההזמנה (ללא הפרדה חם/קר בדף הראשי)
+    updateOrderSummaryDisplay();
+}
+
+// פונקציה לעדכון תצוגת סיכום ההזמנה (הסיכום הקטן מוסתר)
+function updateOrderSummaryDisplay() {
+    // הסיכום הקטן מוסתר - אין צורך לעדכן אותו
+    return;
 }
 
 
@@ -1862,12 +1906,41 @@ function copyKitchenProductsSummary() {
 }
 
 function getKitchenProductsItems() {
-    return Array.from(document.getElementById("kitchenProductsList").children)
+    const items = Array.from(document.getElementById("kitchenProductsList").children)
+      .filter(li => !li.classList.contains('temperature-header')) // רק מוצרים אמיתיים, לא כותרות
       .map(li => {
         const span = li.querySelector('span');
-        return span ? span.textContent.trim() : li.textContent.trim();
+        const text = span ? span.textContent.trim() : li.textContent.trim();
+        const temperature = li.getAttribute('data-temperature') || '';
+        return { text, temperature };
       })
-      .filter(text => text !== "");
+      .filter(item => item.text !== "");
+
+    // חלוקה למוצרים חמים וקרים
+    const hotItems = items.filter(item => item.temperature === 'hot');
+    const coldItems = items.filter(item => item.temperature === 'cold');
+    const defaultItems = items.filter(item => !item.temperature || item.temperature === '');
+
+    let result = [];
+    
+    // מוצרים חמים
+    if (hotItems.length > 0) {
+        result.push('*מוצרים חמים:*');
+        result.push(...hotItems.map(item => item.text));
+    }
+    
+    // מוצרים קרים
+    if (coldItems.length > 0) {
+        result.push('*מוצרים קרים:*');
+        result.push(...coldItems.map(item => item.text));
+    }
+    
+    // מוצרים רגילים (ללא טמפרטורה)
+    if (defaultItems.length > 0) {
+        result.push(...defaultItems.map(item => item.text));
+    }
+
+    return result;
   }
   
 
@@ -1891,6 +1964,16 @@ function addToCategoryList(category, productSummary, temperature = '') {
   categoryList.appendChild(listItem);
   updateCategoryButtonsVisibility();
   saveOrderDetails();
+  
+  // עדכון תצוגת סיכום ההזמנה
+  if (typeof updateOrderSummaryDisplay === 'function') {
+    updateOrderSummaryDisplay();
+  }
+  
+  // עדכון תצוגת קונדיטוריית עמר
+  if (typeof refreshAmarSummary === 'function') {
+    refreshAmarSummary();
+  }
 }
 
 // ===== Drag & Drop (סידור ידני ורב-קטגוריות) =====
@@ -2284,6 +2367,16 @@ function removeProduct(button, category) {
     document.getElementById(`${category}List`).removeChild(listItem);
     updateCategoryButtonsVisibility();
     saveOrderDetails();
+    
+    // עדכון תצוגת סיכום ההזמנה
+    if (typeof updateOrderSummaryDisplay === 'function') {
+      updateOrderSummaryDisplay();
+    }
+    
+    // עדכון תצוגת קונדיטוריית עמר
+    if (typeof refreshAmarSummary === 'function') {
+      refreshAmarSummary();
+    }
   }
 }
 // ... existing code ...
@@ -2293,13 +2386,31 @@ window.addEventListener('DOMContentLoaded', function() {
   ['kitchenProductsList','sushiList','bakeryList','warehouseList','onlineList'].forEach(listId => {
     const target = document.getElementById(listId);
     if (target) {
-      const observer = new MutationObserver(updateCategoryButtonsVisibility);
+      const observer = new MutationObserver(() => {
+        updateCategoryButtonsVisibility();
+        if (typeof updateOrderSummaryDisplay === 'function') {
+          updateOrderSummaryDisplay();
+        }
+        if (typeof refreshAmarSummary === 'function') {
+          refreshAmarSummary();
+        }
+      });
       observer.observe(target, { childList: true });
     }
   });
   // אתחול גרירה ושחרור ושחזור סדר שמור
   setupDragAndDrop();
   loadOrderDetails();
+  
+  // עדכון תצוגת סיכום ההזמנה בטעינת הדף
+  setTimeout(() => {
+    if (typeof updateOrderSummaryDisplay === 'function') {
+      updateOrderSummaryDisplay();
+    }
+    if (typeof refreshAmarSummary === 'function') {
+      refreshAmarSummary();
+    }
+  }, 100);
 });
 // ... existing code ...
 
@@ -2500,31 +2611,78 @@ function smartSortByTemperature() {
         const categoryList = document.getElementById(category + 'List');
         if (!categoryList || categoryList.children.length === 0) return;
         
-        // המרה לרשימה מסודרת
-        const items = Array.from(categoryList.children);
-        
-        // סידור לפי טמפרטורה: חם קודם, ברירת מחדל באמצע, קר אחרון
-        items.sort((a, b) => {
-            const tempA = a.getAttribute('data-temperature') || '';
-            const tempB = b.getAttribute('data-temperature') || '';
+        // רק לקטגוריית מוצרי מטבח נוסיף הפרדה חם/קר
+        if (category === 'kitchenProducts') {
+            // המרה לרשימה מסודרת - רק מוצרים אמיתיים (לא כותרות)
+            const items = Array.from(categoryList.children).filter(item => 
+                !item.classList.contains('temperature-header')
+            );
             
-            // חם קודם
-            if (tempA === 'hot' && tempB !== 'hot') return -1;
-            if (tempB === 'hot' && tempA !== 'hot') return 1;
+            // חלוקה לפי טמפרטורה
+            const hotItems = items.filter(item => item.getAttribute('data-temperature') === 'hot');
+            const coldItems = items.filter(item => item.getAttribute('data-temperature') === 'cold');
+            const defaultItems = items.filter(item => !item.getAttribute('data-temperature') || item.getAttribute('data-temperature') === '');
             
-            // קר אחרון
-            if (tempA === 'cold' && tempB !== 'cold') return 1;
-            if (tempB === 'cold' && tempA !== 'cold') return -1;
+            // ניקוי הרשימה לחלוטין
+            categoryList.innerHTML = '';
             
-            // ברירת מחדל באמצע - שמירה על סדר יחסי
-            return 0;
-        });
-        
-        // עדכון הרשימה
-        categoryList.innerHTML = '';
-        items.forEach(item => categoryList.appendChild(item));
+            // הוספת מוצרים חמים עם כותרת
+            if (hotItems.length > 0) {
+                const hotHeader = document.createElement('div');
+                hotHeader.className = 'temperature-header hot-header';
+                hotHeader.innerHTML = '<strong>🔥 מוצרים חמים:</strong>';
+                categoryList.appendChild(hotHeader);
+                hotItems.forEach(item => categoryList.appendChild(item));
+            }
+            
+            // הוספת מוצרים קרים עם כותרת
+            if (coldItems.length > 0) {
+                const coldHeader = document.createElement('div');
+                coldHeader.className = 'temperature-header cold-header';
+                coldHeader.innerHTML = '<strong>❄️ מוצרים קרים:</strong>';
+                categoryList.appendChild(coldHeader);
+                coldItems.forEach(item => categoryList.appendChild(item));
+            }
+            
+            // הוספת מוצרים רגילים
+            defaultItems.forEach(item => categoryList.appendChild(item));
+        } else {
+            // לקטגוריות אחרות - סידור רגיל
+            const items = Array.from(categoryList.children);
+            
+            // סידור לפי טמפרטורה: חם קודם, ברירת מחדל באמצע, קר אחרון
+            items.sort((a, b) => {
+                const tempA = a.getAttribute('data-temperature') || '';
+                const tempB = b.getAttribute('data-temperature') || '';
+                
+                // חם קודם
+                if (tempA === 'hot' && tempB !== 'hot') return -1;
+                if (tempB === 'hot' && tempA !== 'hot') return 1;
+                
+                // קר אחרון
+                if (tempA === 'cold' && tempB !== 'cold') return 1;
+                if (tempB === 'cold' && tempA !== 'cold') return -1;
+                
+                // ברירת מחדל באמצע - שמירה על סדר יחסי
+                return 0;
+            });
+            
+            // עדכון הרשימה
+            categoryList.innerHTML = '';
+            items.forEach(item => categoryList.appendChild(item));
+        }
     });
     
     showNotification('✅ המוצרים סודרו לפי טמפרטורה!', 'success');
     saveOrderDetails();
+    
+    // עדכון תצוגת סיכום ההזמנה
+    if (typeof updateOrderSummaryDisplay === 'function') {
+        updateOrderSummaryDisplay();
+    }
+    
+    // עדכון תצוגת קונדיטוריית עמר
+    if (typeof refreshAmarSummary === 'function') {
+        refreshAmarSummary();
+    }
 }

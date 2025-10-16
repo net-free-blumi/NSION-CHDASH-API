@@ -110,3 +110,26 @@ li.dragging .dnd-handle { background: #ffc107; border-color: #ffc107; color: #21
     }
     .notification { min-width: auto; }
 }
+
+/* כותרות טמפרטורה */
+.temperature-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 8px 0;
+    text-align: center;
+    font-size: 1rem;
+}
+
+.hot-header {
+    background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+    border-color: #fc8181;
+    color: #c53030;
+}
+
+.cold-header {
+    background: linear-gradient(135deg, #f0f9ff 0%, #bee3f8 100%);
+    border-color: #63b3ed;
+    color: #2b6cb0;
+}
