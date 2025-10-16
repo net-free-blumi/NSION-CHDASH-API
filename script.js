@@ -1606,7 +1606,7 @@ function openWhatsAppGeneralModal() {
             .map((li) => {
                 let text = li.firstElementChild.textContent;
                 text = text.replace(/\(מק\"ט: \d+\)/g, '')
-                          .replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג|שחור|אדום-סלק|בריוש מלבן))\|/g, ' $1')
+                          .replace(/\|BREAD_TYPE:(ביס [^|]+)\|/g, ' $1')
                           .replace(/\s{2,}/g, ' ')
                           .replace(/\*([^*]+)\*/g, '$1') // מסיר כוכביות מהמוצרים עצמם
                           .trim();
@@ -1628,13 +1628,13 @@ function openWhatsAppGeneralModal() {
 
                 // מוצרים חמים
                 if (hotItems.length > 0) {
-                    message += '*מוצרים חמים:*\n';
+                    message += '*מוצרים חמים: 🔥*\n';
                     message += hotItems.map(item => item.text).join("\n") + "\n";
                 }
 
                 // מוצרים קרים
                 if (coldItems.length > 0) {
-                    message += '*מוצרים קרים:*\n';
+                    message += '*מוצרים קרים: ❄️*\n';
                     message += coldItems.map(item => item.text).join("\n") + "\n";
                 }
 
@@ -1644,9 +1644,9 @@ function openWhatsAppGeneralModal() {
                 }
             } else {
                 // לקטגוריות אחרות - תצוגה רגילה
-                if (category === 'kitchen') {
+            if (category === 'kitchen') {
                     message += categoryItems.map(item => item.text).join("\n\n") + "\n";
-                } else {
+            } else {
                     message += categoryItems.map(item => item.text).join("\n") + "\n";
                 }
             }
@@ -1925,13 +1925,13 @@ function getKitchenProductsItems() {
     
     // מוצרים חמים
     if (hotItems.length > 0) {
-        result.push('*מוצרים חמים:*');
+        result.push('*מוצרים חמים:🔥*');
         result.push(...hotItems.map(item => item.text));
     }
     
     // מוצרים קרים
     if (coldItems.length > 0) {
-        result.push('*מוצרים קרים:*');
+        result.push('*מוצרים קרים:❄️*');
         result.push(...coldItems.map(item => item.text));
     }
     
@@ -1948,6 +1948,8 @@ function getKitchenProductsItems() {
 // ... existing code ...
 function addToCategoryList(category, productSummary, temperature = '') {
   const categoryList = document.getElementById(category + "List");
+  
+  // NOTE: Allow duplicates by design (user requirement). No pre-insert filtering here.
   const listItem = document.createElement("li");
   
   // שמירת מידע הטמפרטורה באטריבוט
@@ -2440,6 +2442,11 @@ function generateAmarSummary() {
     const amarProductCodes = [
       "12626", "12408", "12409", "19102", "12622", "12624", "13473", "410", "415", "19105"
     ];
+
+    // Track seen items to avoid double-printing later
+    const seenCodes = new Set();
+    const seenTexts = new Set();
+
     const allLists = [
       ...document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li"),
       ...amarList.querySelectorAll("li")
@@ -2451,7 +2458,7 @@ function generateAmarSummary() {
       const productCode = codeEl.textContent.match(/מק"ט: (\d+)/)?.[1];
       const itemText = item.getAttribute("data-raw-summary") || item.querySelector("span")?.textContent || "";
   
-      if (amarProductCodes.includes(productCode) || bisProducts.includes(productCode)) {
+      if (amarProductCodes.includes(productCode) || (typeof bisProducts !== 'undefined' && bisProducts.includes(productCode))) {
         hasAmarProducts = true;
       }
   
@@ -2467,7 +2474,7 @@ function generateAmarSummary() {
         match = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'/);
         jabettaTotal += match ? parseInt(match[1]) * parseInt(match[2]) : 0;
       } else if (productCode === "12408") {
-        match = itemText.match(/(\d+)\s*מגש/);
+        match = itemText.match(/(\ד+)\s*מגש/);
         grisiniTotal += match ? parseInt(match[1]) * 13 : 0;
       } else if (productCode === "12622") {
         match = itemText.match(/(\d+)\s*מגש/);
@@ -2484,7 +2491,7 @@ function generateAmarSummary() {
       }
   
       // ביס לפי bread_type
-      if (bisProducts.includes(productCode)) {
+      if (typeof bisProducts !== 'undefined' && bisProducts.includes(productCode)) {
         const qtyMatch = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'/);
         const breadMatch = itemText.match(/\|BREAD_TYPE:(ביס [^|]+)\|/);
         if (qtyMatch && breadMatch) {
@@ -2505,11 +2512,18 @@ function generateAmarSummary() {
     if (finukimTotal) summary += `● ${finukimTotal} בורקס תפו''א משולש מיני\n\n`;
     if (focaccinotTotal) summary += `● ${focaccinotTotal} פוקאצ'ינות קטנות\n\n`;
   
-    // מוצרים ידניים ב־amarList
+    // מוצרים ידניים ב־amarList (נוסיף רק כאלה שלא נספרו קודם)
     amarList.querySelectorAll("li").forEach((item) => {
-      let text = item.querySelector("span")?.textContent || "";
-      text = text.replace(/\|BREAD_TYPE:[^|]+\|/g, "").trim();
-      summary += `● ${text}\n\n`;
+      const codeEl = item.querySelector(".product-code");
+      const textSpan = item.querySelector("span");
+      const text = (textSpan?.textContent || "").replace(/\|BREAD_TYPE:[^|]+\|/g, "").trim();
+      const code = codeEl?.textContent.match(/מק"ט: (\d+)/)?.[1] || null;
+
+      const textKey = text.replace(/\s+/g, ' ').trim();
+      const alreadyCounted = (code && seenCodes.has(code)) || (textKey && seenTexts.has(textKey));
+      if (text && !alreadyCounted) {
+        summary += `● ${text}\n\n`;
+      }
     });
   
     // ביסים לפי סוג
@@ -2561,12 +2575,12 @@ function generateAmarSummary() {
 
 
   function refreshAmarSummary() {
-    const summary = generateAmarSummary();
-    if (!summary) {
-      document.getElementById("amarSummaryDisplay").innerText = "אין סיכום.";
-      return;
+    // Hide small Amar summary under the list; keep only main product display
+    const el = document.getElementById("amarSummaryDisplay");
+    if (el) {
+      el.innerText = '';
+      el.style.display = 'none';
     }
-    document.getElementById("amarSummaryDisplay").innerText = summary;
   }
 
   
@@ -2603,6 +2617,45 @@ function openProductManagement() {
     window.open('admin.html', '_blank');
 }
 
+// פונקציה לניקוי כפילויות ברשימה
+function removeDuplicatesFromList(categoryList) {
+    const items = Array.from(categoryList.children);
+    const seenItems = new Set();
+    const itemsToRemove = [];
+    
+    items.forEach((item, index) => {
+        const span = item.querySelector('span');
+        const codeEl = item.querySelector('.product-code');
+        let itemKey = '';
+        
+        if (codeEl) {
+            // מוצר עם מק"ט - השתמש במק"ט כמפתח
+            const productCode = codeEl.textContent.match(/מק"ט: (\d+)/)?.[1];
+            if (productCode) {
+                itemKey = `code_${productCode}`;
+            }
+        }
+        
+        if (!itemKey && span) {
+            // מוצר ללא מק"ט - השתמש בטקסט כמפתח
+            itemKey = `text_${span.textContent.trim()}`;
+        }
+        
+        if (itemKey) {
+            if (seenItems.has(itemKey)) {
+                itemsToRemove.push(item);
+            } else {
+                seenItems.add(itemKey);
+            }
+        }
+    });
+    
+    // הסר כפילויות
+    itemsToRemove.forEach(item => item.remove());
+    
+    return itemsToRemove.length;
+}
+
 // פונקציית סידור חכם לפי טמפרטורה באתר הראשי
 function smartSortByTemperature() {
     const categories = ['kitchen', 'bakery', 'online', 'warehouse', 'sushi', 'kitchenProducts', 'amar'];
@@ -2610,6 +2663,8 @@ function smartSortByTemperature() {
     categories.forEach(category => {
         const categoryList = document.getElementById(category + 'List');
         if (!categoryList || categoryList.children.length === 0) return;
+        
+        // לא מסירים כפילויות בשום קטגוריה
         
         // רק לקטגוריית מוצרי מטבח נוסיף הפרדה חם/קר
         if (category === 'kitchenProducts') {
@@ -2676,12 +2731,9 @@ function smartSortByTemperature() {
     showNotification('✅ המוצרים סודרו לפי טמפרטורה!', 'success');
     saveOrderDetails();
     
-    // עדכון תצוגת סיכום ההזמנה
     if (typeof updateOrderSummaryDisplay === 'function') {
         updateOrderSummaryDisplay();
     }
-    
-    // עדכון תצוגת קונדיטוריית עמר
     if (typeof refreshAmarSummary === 'function') {
         refreshAmarSummary();
     }

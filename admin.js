@@ -602,7 +602,7 @@ class ProductManager {
             const temperature = formData.get('productTemperature');
             if (temperature && temperature.trim()) {
                 productData.temperature = temperature;
-            } else if (temperature === '') {
+            } else {
                 // אם הטמפרטורה ריקה, נשלח null למחיקה
                 productData.temperature = null;
             }
@@ -666,6 +666,12 @@ class ProductManager {
                 productCode = Date.now().toString();
             }
 
+            // עדכון מקומי של המוצר
+            if (productData.temperature === null) {
+                // מחיקת השדה מהאובייקט המקומי
+                delete productData.temperature;
+            }
+            
             this.products[productCode] = productData;
             // הודעת הצלחה מיידית (אופטימית)
             this.showNotification(`✅ המוצר ${isEdit ? 'עודכן' : 'נוסף'} בהצלחה`, 'success');
@@ -1104,7 +1110,7 @@ class ProductManager {
         let tempText = '';
         
         if (tempSelect.value === 'default') {
-            temperature = '';
+            temperature = null; // שינוי: נשלח null ישירות
             tempText = 'ברירת מחדל (הוסר)';
         } else {
             temperature = tempSelect.value;
@@ -1116,17 +1122,26 @@ class ProductManager {
             for (const code of this.selectedProducts) {
                 if (this.products[code]) {
                     const updatedProduct = { ...this.products[code] };
-                    if (temperature) {
-                        updatedProduct.temperature = temperature;
-                    } else {
-                        // שליחת null כדי לסמן לשרת למחוק את השדה
-                        updatedProduct.temperature = null;
-                    }
+                    updatedProduct.temperature = temperature; // שינוי: נשלח ישירות את הערך
                     updates[code] = updatedProduct;
                 }
             }
             
             await this.saveProductsDelta(updates);
+            
+            // עדכון מקומי של המוצרים לאחר שמירה מוצלחת
+            for (const code of this.selectedProducts) {
+                if (this.products[code]) {
+                    if (temperature === null) {
+                        // מחיקת השדה מהאובייקט המקומי
+                        delete this.products[code].temperature;
+                    } else {
+                        // עדכון השדה באובייקט המקומי
+                        this.products[code].temperature = temperature;
+                    }
+                }
+            }
+            
             this.showNotification(`✅ עודכנו ${this.selectedProducts.size} מוצרים לטמפרטורה: ${tempText}`, 'success');
             this.clearSelection();
             this.updateProductsDisplay();

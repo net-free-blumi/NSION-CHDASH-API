@@ -1569,8 +1569,6 @@ function syncProducts() {
         </div>
       </div>
     </div>
-
-
 <!-- Kitchen Products WhatsApp Modal -->
 <div id="whatsappKitchenProductsModal" class="modal" style="display: none">
   <div class="modal-content wa-modal-content">
@@ -5579,6 +5577,9 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             " $1"
           );
 
+          const listId = `${product.category}List`;
+          const categoryList = document.getElementById(listId);
+          
           const listItem = document.createElement("li");
           listItem.innerHTML = `
             <span>${displaySummary}</span>
@@ -5598,8 +5599,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             listItem.setAttribute('data-temperature', product.temperature);
           }
           
-          const listId = `${product.category}List`;
-          document.getElementById(listId).appendChild(listItem);
+          categoryList.appendChild(listItem);
 
           showNotification("נוסף בהצלחה להזמנה!", "blue");
           saveOrderDetails();
