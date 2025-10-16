@@ -1265,6 +1265,9 @@ function syncProducts() {
           <span class="wa-icon">whatsapp</span>
           שליחת סיכום<br>קונדיטוריית עמר
         </button>
+        <button onclick="smartSortByTemperature()" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+          🔄<br>סידור חכם<br>לפי חם-קר
+        </button>
       </div>
 
 
@@ -5589,6 +5592,12 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         `;
           // שמור את הטקסט הגולמי ב־data-attribute
           listItem.setAttribute("data-raw-summary", rawSummary);
+          
+          // הוספת מידע הטמפרטורה אם קיים
+          if (product.temperature) {
+            listItem.setAttribute('data-temperature', product.temperature);
+          }
+          
           const listId = `${product.category}List`;
           document.getElementById(listId).appendChild(listItem);
 

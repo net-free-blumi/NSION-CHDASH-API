@@ -14,6 +14,9 @@ class ProductManager {
             "sizes": "מוצרי גדלים",
             "quantities": "מוצרי כמות",
         };
+        this.selectedProducts = new Set(); // שמירת מוצרים נבחרים
+        this.filteredProducts = new Set(); // שמירת מוצרים מסוננים
+        this.currentFilters = {}; // שמירת המסננים הנוכחיים
         this.init();
     }
 
@@ -139,15 +142,32 @@ class ProductManager {
 
         container.innerHTML = '';
 
-        Object.entries(this.products).forEach(([code, product]) => {
-            const productCard = this.createProductCard(code, product);
-            container.appendChild(productCard);
+        // קביעת איזה מוצרים להציג - מסוננים או כולם
+        const productsToShow = this.filteredProducts.size > 0 ? 
+            Array.from(this.filteredProducts) : 
+            Object.keys(this.products);
+
+        productsToShow.forEach(code => {
+            const product = this.products[code];
+            if (product) {
+                const productCard = this.createProductCard(code, product);
+                container.appendChild(productCard);
+            }
         });
     }
 
     createProductCard(code, product) {
         const card = document.createElement('div');
         card.className = 'product-card';
+        card.setAttribute('data-product-code', code);
+        
+        // כפתור בחירה מרובה
+        const checkbox = document.createElement('div');
+        checkbox.className = 'product-checkbox';
+        checkbox.onclick = (e) => {
+            e.stopPropagation();
+            this.toggleProductSelection(code, checkbox, card);
+        };
         
         // הצגת שם המוצר - אם אין name, נציג searchName בצבע אפור
         const hasName = product.name || product.Name;
@@ -164,6 +184,13 @@ class ProductManager {
                 <p><strong>קטגוריה:</strong> ${this.categories[product.category] || 'לא מוגדר'}</p>
                 <p><strong>סוג:</strong> ${this.getTypeDisplay(productType)}</p>
         `;
+        
+        // הוספת מידע על טמפרטורת הגשה
+        if (product.temperature) {
+            const tempIcon = product.temperature === 'hot' ? '🔥' : '❄️';
+            const tempText = product.temperature === 'hot' ? 'חם' : 'קר';
+            productInfo += `<p><strong>טמפרטורה:</strong> ${tempText} ${tempIcon}</p>`;
+        }
         
         // הוספת שם חיפוש אם קיים ושונה מהשם הראשי
         if (product.searchName && product.searchName !== productName) {
@@ -221,6 +248,7 @@ class ProductManager {
         `;
         
         card.innerHTML = productInfo;
+        card.appendChild(checkbox);
         return card;
     }
 
@@ -490,6 +518,7 @@ class ProductManager {
         document.getElementById('productCategory').value = product.category || '';
         document.getElementById('searchName').value = product.searchName || '';
         document.getElementById('productType').value = productType;
+        document.getElementById('productTemperature').value = product.temperature || '';
         
         if (productType === 'quantity') {
             document.getElementById('productQuantity').value = product.defaultQuantity || '';
@@ -568,6 +597,15 @@ class ProductManager {
                 type: formData.get('productType'),
                 sizes: []
             };
+            
+            // טיפול בטמפרטורה - אם ריקה, נמחקת
+            const temperature = formData.get('productTemperature');
+            if (temperature && temperature.trim()) {
+                productData.temperature = temperature;
+            } else if (temperature === '') {
+                // אם הטמפרטורה ריקה, נשלח null למחיקה
+                productData.temperature = null;
+            }
             
             if (!productData.category) {
                 this.showNotification('❌ יש למלא קטגוריה', 'error');
@@ -691,8 +729,8 @@ class ProductManager {
         const sizeRow = document.createElement('div');
         sizeRow.className = 'size-row';
         sizeRow.innerHTML = `
-            <input type="text" class="size-input" placeholder="גודל/כמות" required>
-            <input type="number" class="price-input" placeholder="מחיר" step="0.01" required>
+            <input type="text" class="size-input" placeholder="גודל/כמות">
+            <input type="number" class="price-input" placeholder="מחיר" step="0.01">
             <button type="button" class="btn btn-remove" onclick="productManager.removeSize(this)">הסר</button>
         `;
         return sizeRow;
@@ -773,6 +811,407 @@ class ProductManager {
             this.addSizeRow();
         }
     }
+
+    // מערכת בחירה מרובה - הוספת selectedProducts לconstructor הקיים
+
+    toggleProductSelection(code, checkbox, card) {
+        if (this.selectedProducts.has(code)) {
+            this.selectedProducts.delete(code);
+            checkbox.classList.remove('checked');
+            card.classList.remove('selected');
+        } else {
+            this.selectedProducts.add(code);
+            checkbox.classList.add('checked');
+            card.classList.add('selected');
+        }
+        
+        this.updateBulkActionsVisibility();
+    }
+
+    updateBulkActionsVisibility() {
+        const bulkEditButton = document.getElementById('bulkEditButton');
+        const selectedCount = document.getElementById('selectedCount');
+        const selectAllButton = document.querySelector('.btn-select-all');
+        
+        if (bulkEditButton) {
+            bulkEditButton.style.display = this.selectedProducts.size > 0 ? 'block' : 'none';
+        }
+        if (selectedCount) {
+            selectedCount.textContent = this.selectedProducts.size;
+        }
+        if (selectAllButton) {
+            selectAllButton.style.display = Object.keys(this.products).length > 0 ? 'inline-block' : 'none';
+        }
+        
+        // נעילת כפתורי עריכה ומחיקה בודדים כשבחרתי מוצרים
+        this.updateIndividualButtonsLock();
+    }
+
+    updateIndividualButtonsLock() {
+        const hasSelection = this.selectedProducts.size > 0;
+        const editButtons = document.querySelectorAll('.product-actions button');
+        
+        editButtons.forEach(button => {
+            if (hasSelection) {
+                button.disabled = true;
+                button.style.opacity = '0.5';
+                button.style.cursor = 'not-allowed';
+                button.title = 'לא זמין - יש מוצרים נבחרים לעריכה מרובה';
+            } else {
+                button.disabled = false;
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+                button.title = '';
+            }
+        });
+    }
+
+    selectAllProducts() {
+        // בחירת כל המוצרים הנראים (מסוננים או כולם)
+        const productsToSelect = this.filteredProducts.size > 0 ? 
+            Array.from(this.filteredProducts) : 
+            Object.keys(this.products);
+            
+        this.selectedProducts.clear();
+        
+        productsToSelect.forEach(code => {
+            this.selectedProducts.add(code);
+        });
+        
+        // עדכון הממשק
+        document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+            checkbox.classList.add('checked');
+        });
+        document.querySelectorAll('.product-card').forEach(card => {
+            card.classList.add('selected');
+        });
+        
+        this.updateBulkActionsVisibility();
+        this.showNotification(`✅ נבחרו ${productsToSelect.length} מוצרים`, 'success');
+    }
+
+    // מערכת מסננים מתקדמת
+    toggleAdvancedFilters() {
+        const filtersDiv = document.getElementById('advancedFilters');
+        if (filtersDiv) {
+            const isVisible = filtersDiv.style.display !== 'none';
+            filtersDiv.style.display = isVisible ? 'none' : 'block';
+        }
+    }
+
+    applyFilters() {
+        const categoryFilter = document.getElementById('filterCategory')?.value || '';
+        const temperatureFilter = document.getElementById('filterTemperature')?.value || '';
+        const typeFilter = document.getElementById('filterType')?.value || '';
+        const priceFilter = document.getElementById('filterPrice')?.value || '';
+
+        this.currentFilters = {
+            category: categoryFilter,
+            temperature: temperatureFilter,
+            type: typeFilter,
+            price: priceFilter
+        };
+
+        const filteredCodes = [];
+        const allProductCodes = Object.keys(this.products);
+
+        allProductCodes.forEach(code => {
+            const product = this.products[code];
+            if (!product) return;
+
+            // בדיקת קטגוריה
+            if (categoryFilter && product.category !== categoryFilter) return;
+
+            // בדיקת טמפרטורה
+            if (temperatureFilter) {
+                if (temperatureFilter === 'none' && product.temperature) return;
+                if (temperatureFilter !== 'none' && product.temperature !== temperatureFilter) return;
+            }
+
+            // בדיקת סוג מוצר
+            if (typeFilter && product.type !== typeFilter) return;
+
+            // בדיקת מחירים
+            if (priceFilter) {
+                const hasSizes = product.sizes && product.sizes.length > 0;
+                const hasPrices = hasSizes && product.sizes.some(size => size.price > 0);
+                const hasZeroPrices = hasSizes && product.sizes.some(size => size.price === 0);
+
+                switch (priceFilter) {
+                    case 'with_prices':
+                        if (!hasPrices) return;
+                        break;
+                    case 'no_prices':
+                        if (hasPrices) return;
+                        break;
+                    case 'zero_prices':
+                        if (!hasZeroPrices) return;
+                        break;
+                }
+            }
+
+            filteredCodes.push(code);
+        });
+
+        this.filteredProducts.clear();
+        filteredCodes.forEach(code => this.filteredProducts.add(code));
+
+        // עדכון התצוגה
+        this.updateProductsDisplay();
+        
+        // עדכון ספירת התוצאות
+        const resultsSpan = document.getElementById('filterResults');
+        if (resultsSpan) {
+            resultsSpan.textContent = `נמצאו ${filteredCodes.length} מוצרים`;
+        }
+
+        this.showNotification(`🔍 נמצאו ${filteredCodes.length} מוצרים`, 'info');
+    }
+
+    clearFilters() {
+        this.currentFilters = {};
+        this.filteredProducts.clear();
+
+        // איפוס השדות
+        document.getElementById('filterCategory').value = '';
+        document.getElementById('filterTemperature').value = '';
+        document.getElementById('filterType').value = '';
+        document.getElementById('filterPrice').value = '';
+
+        // עדכון התצוגה
+        this.updateProductsDisplay();
+        
+        // עדכון ספירת התוצאות
+        const resultsSpan = document.getElementById('filterResults');
+        if (resultsSpan) {
+            resultsSpan.textContent = '';
+        }
+
+        this.showNotification('🗑️ המסננים נוקו', 'info');
+    }
+
+    selectFilteredProducts() {
+        if (this.filteredProducts.size === 0) {
+            this.showNotification('❌ אין מוצרים מסוננים לבחירה', 'error');
+            return;
+        }
+
+        this.selectedProducts.clear();
+        this.filteredProducts.forEach(code => {
+            this.selectedProducts.add(code);
+        });
+
+        // עדכון הממשק
+        document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+            const card = checkbox.closest('.product-card');
+            const productCode = card?.getAttribute('data-product-code');
+            if (productCode && this.selectedProducts.has(productCode)) {
+                checkbox.classList.add('checked');
+                card.classList.add('selected');
+            } else {
+                checkbox.classList.remove('checked');
+                card.classList.remove('selected');
+            }
+        });
+
+        this.updateBulkActionsVisibility();
+        this.showNotification(`✅ נבחרו ${this.filteredProducts.size} מוצרים מסוננים`, 'success');
+    }
+
+    clearSelection() {
+        this.selectedProducts.clear();
+        document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+            checkbox.classList.remove('checked');
+        });
+        document.querySelectorAll('.product-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        this.updateBulkActionsVisibility();
+        this.showNotification('❌ בוטלה בחירה', 'info');
+    }
+
+    // פתיחת modal עריכה מרובה
+    openBulkEditModal() {
+        if (this.selectedProducts.size === 0) return;
+        
+        const modal = document.getElementById('bulkEditModal');
+        const countElement = document.getElementById('bulkEditSelectedCount');
+        
+        if (modal) {
+            modal.style.display = 'block';
+        }
+        if (countElement) {
+            countElement.textContent = this.selectedProducts.size;
+        }
+    }
+
+    // סגירת modal עריכה מרובה
+    closeBulkEditModal() {
+        const modal = document.getElementById('bulkEditModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        
+        // איפוס השדות
+        const categorySelect = document.getElementById('bulkCategorySelect');
+        const tempSelect = document.getElementById('bulkTemperatureSelect');
+        const sizesInput = document.getElementById('bulkSizesInput');
+        
+        if (categorySelect) categorySelect.value = '';
+        if (tempSelect) tempSelect.value = '';
+        if (sizesInput) sizesInput.value = '';
+    }
+
+    // עריכת קטגוריה
+    async bulkEditCategory() {
+        if (this.selectedProducts.size === 0) return;
+        
+        const categorySelect = document.getElementById('bulkCategorySelect');
+        if (!categorySelect || !categorySelect.value) {
+            this.showNotification('❌ יש לבחור קטגוריה', 'error');
+            return;
+        }
+        
+        try {
+            const updates = {};
+            for (const code of this.selectedProducts) {
+                if (this.products[code]) {
+                    updates[code] = { ...this.products[code], category: categorySelect.value };
+                }
+            }
+            
+            await this.saveProductsDelta(updates);
+            this.showNotification(`✅ עודכנו ${this.selectedProducts.size} מוצרים לקטגוריה: ${this.categories[categorySelect.value]}`, 'success');
+            this.clearSelection();
+            this.updateProductsDisplay();
+            this.closeBulkEditModal();
+        } catch (error) {
+            this.showNotification('❌ שגיאה בעדכון קטגוריות: ' + error.message, 'error');
+        }
+    }
+
+    // עריכת טמפרטורה
+    async bulkEditTemperature() {
+        if (this.selectedProducts.size === 0) return;
+        
+        const tempSelect = document.getElementById('bulkTemperatureSelect');
+        if (!tempSelect || !tempSelect.value) {
+            this.showNotification('❌ יש לבחור טמפרטורה', 'error');
+            return;
+        }
+        
+        let temperature = '';
+        let tempText = '';
+        
+        if (tempSelect.value === 'default') {
+            temperature = '';
+            tempText = 'ברירת מחדל (הוסר)';
+        } else {
+            temperature = tempSelect.value;
+            tempText = tempSelect.value === 'hot' ? 'חם 🔥' : 'קר ❄️';
+        }
+        
+        try {
+            const updates = {};
+            for (const code of this.selectedProducts) {
+                if (this.products[code]) {
+                    const updatedProduct = { ...this.products[code] };
+                    if (temperature) {
+                        updatedProduct.temperature = temperature;
+                    } else {
+                        // שליחת null כדי לסמן לשרת למחוק את השדה
+                        updatedProduct.temperature = null;
+                    }
+                    updates[code] = updatedProduct;
+                }
+            }
+            
+            await this.saveProductsDelta(updates);
+            this.showNotification(`✅ עודכנו ${this.selectedProducts.size} מוצרים לטמפרטורה: ${tempText}`, 'success');
+            this.clearSelection();
+            this.updateProductsDisplay();
+            this.closeBulkEditModal();
+        } catch (error) {
+            this.showNotification('❌ שגיאה בעדכון טמפרטורות: ' + error.message, 'error');
+        }
+    }
+
+    // עריכת גדלים/מחירים
+    async bulkEditSizes() {
+        if (this.selectedProducts.size === 0) return;
+        
+        const sizesInput = document.getElementById('bulkSizesInput');
+        if (!sizesInput) return;
+        
+        const sizesText = sizesInput.value.trim();
+        if (!sizesText) {
+            this.showNotification('❌ יש להזין גדלים ומחירים', 'error');
+            return;
+        }
+        
+        let sizes = [];
+        try {
+            sizes = sizesText.split(',').map(item => {
+                const [size, price] = item.trim().split(':');
+                return {
+                    size: size.trim(),
+                    price: parseFloat(price.trim()) || 0
+                };
+            });
+        } catch (error) {
+            this.showNotification('❌ פורמט שגוי. השתמש בפורמט: גודל:מחיר, גודל:מחיר', 'error');
+            return;
+        }
+        
+        try {
+            const updates = {};
+            for (const code of this.selectedProducts) {
+                if (this.products[code]) {
+                    const updatedProduct = { ...this.products[code] };
+                    updatedProduct.sizes = sizes;
+                    updates[code] = updatedProduct;
+                }
+            }
+            
+            await this.saveProductsDelta(updates);
+            this.showNotification(`✅ עודכנו גדלים ל-${this.selectedProducts.size} מוצרים`, 'success');
+            this.clearSelection();
+            this.updateProductsDisplay();
+            this.closeBulkEditModal();
+        } catch (error) {
+            this.showNotification('❌ שגיאה בעדכון גדלים: ' + error.message, 'error');
+        }
+    }
+
+    async bulkDelete() {
+        if (this.selectedProducts.size === 0) return;
+        
+        const confirmDelete = confirm(`האם אתה בטוח שברצונך למחוק ${this.selectedProducts.size} מוצרים נבחרים?`);
+        if (!confirmDelete) return;
+        
+        try {
+            for (const code of this.selectedProducts) {
+                const resp = await fetch(`${config.getApiBaseUrl()}/api/products/${code}`, { 
+                    method: 'DELETE', 
+                    cache: 'no-store' 
+                });
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    throw new Error(`שגיאה במחיקת מוצר ${code}: ${errText}`);
+                }
+                delete this.products[code];
+            }
+            
+            this.showNotification(`✅ נמחקו ${this.selectedProducts.size} מוצרים בהצלחה`, 'success');
+            this.clearSelection();
+            this.updateProductsDisplay();
+            this.updateStats();
+            this.closeBulkEditModal();
+        } catch (error) {
+            this.showNotification('❌ שגיאה במחיקה: ' + error.message, 'error');
+        }
+    }
+
 }
 
 // Global functions

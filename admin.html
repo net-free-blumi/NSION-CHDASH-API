@@ -109,15 +109,104 @@
                         <button onclick="openBackupsBrowser()" class="btn">🗂️ הצג גיבויים</button>
                     </div>
                     
+                    <!-- כפתור עריכה מרובה -->
+                    <div id="bulkEditButton" style="display: none; margin-top: 20px;">
+                        <button onclick="productManager.openBulkEditModal()" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,123,255,0.3);">
+                            ⚙️ עריכה מרובה (<span id="selectedCount">0</span> מוצרים)
+                        </button>
+                        <button onclick="productManager.clearSelection()" class="btn btn-secondary" style="width: 100%; margin-top: 10px; padding: 10px;">
+                            ❌ בטל בחירה
+                        </button>
+                    </div>
+                    
                 </div>
                 <div class="main-content">
                     <div class="content-header">
                         <h2>📋 רשימת המוצרים</h2>
-                        <div class="search-section" style="margin:0;">
-                            <div class="search-container">
-                                <input type="text" id="search-input" placeholder="חפש לפי שם, קוד או קטגוריה..." class="search-input">
-                                <button onclick="clearSearch()" class="clear-search-btn" title="ניקוי חיפוש">🗑️</button>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="search-section" style="margin:0;">
+                                <div class="search-container">
+                                    <input type="text" id="search-input" placeholder="חפש לפי שם, קוד או קטגוריה..." class="search-input">
+                                    <button onclick="clearSearch()" class="clear-search-btn" title="ניקוי חיפוש">🗑️</button>
+                                </div>
                             </div>
+                            <button onclick="productManager.toggleAdvancedFilters()" class="btn-filters" title="מסננים מתקדמים" style="padding: 6px 10px; font-size: 0.8rem; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; transition: all 0.3s ease;">
+                                🔍 מסננים
+                            </button>
+                            <button onclick="productManager.selectAllProducts()" class="btn-select-all" title="בחירת כל המוצרים" style="display: none; padding: 6px 10px; font-size: 0.8rem; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; opacity: 0.7; transition: all 0.3s ease;">
+                                ☑️ הכל
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- מסננים מתקדמים -->
+                    <div id="advancedFilters" style="display: none; background: #f8f9fa; padding: 20px; margin: 15px 0; border-radius: 12px; border: 2px solid #e9ecef;">
+                        <h3 style="margin: 0 0 15px 0; color: #495057; display: flex; align-items: center;">
+                            🔍 מסננים מתקדמים
+                        </h3>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            <!-- מסנן קטגוריות -->
+                            <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef;">
+                                <label style="font-weight: 600; color: #495057; margin-bottom: 8px; display: block;">📁 קטגוריה</label>
+                                <select id="filterCategory" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                                    <option value="">כל הקטגוריות</option>
+                                    <option value="kitchen">🍳 מוצרי מטבח</option>
+                                    <option value="bakery">🥖 קונדיטורייה</option>
+                                    <option value="fruits">🍎 פירות</option>
+                                    <option value="sushi">🍣 סושי</option>
+                                    <option value="amar">🎂 קונדיטורייה עמר</option>
+                                    <option value="kitchenProducts">🥘 מטבח מוסטפה</option>
+                                    <option value="online">🌐 אונליין</option>
+                                    <option value="warehouse">📦 מחסן</option>
+                                </select>
+                            </div>
+
+                            <!-- מסנן טמפרטורה -->
+                            <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef;">
+                                <label style="font-weight: 600; color: #495057; margin-bottom: 8px; display: block;">🌡️ טמפרטורה</label>
+                                <select id="filterTemperature" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                                    <option value="">כל הטמפרטורות</option>
+                                    <option value="hot">🔥 חם</option>
+                                    <option value="cold">❄️ קר</option>
+                                    <option value="none">🌡️ ברירת מחדל</option>
+                                </select>
+                            </div>
+
+                            <!-- מסנן סוג מוצר -->
+                            <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef;">
+                                <label style="font-weight: 600; color: #495057; margin-bottom: 8px; display: block;">📏 סוג מוצר</label>
+                                <select id="filterType" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                                    <option value="">כל הסוגים</option>
+                                    <option value="size">📏 גודל</option>
+                                    <option value="quantity">🔢 כמות</option>
+                                    <option value="none">❌ ללא כמות/גודל</option>
+                                </select>
+                            </div>
+
+                            <!-- מסנן מחירים -->
+                            <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef;">
+                                <label style="font-weight: 600; color: #495057; margin-bottom: 8px; display: block;">💰 מחירים</label>
+                                <select id="filterPrice" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                                    <option value="">כל המוצרים</option>
+                                    <option value="with_prices">💰 עם מחירים</option>
+                                    <option value="no_prices">🚫 ללא מחירים</option>
+                                    <option value="zero_prices">🆓 מחיר אפס</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                            <button onclick="productManager.applyFilters()" class="btn btn-primary" style="padding: 10px 20px; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);">
+                                🔍 החל מסננים
+                            </button>
+                            <button onclick="productManager.clearFilters()" class="btn btn-secondary" style="padding: 10px 20px;">
+                                🗑️ נקה מסננים
+                            </button>
+                            <button onclick="productManager.selectFilteredProducts()" class="btn btn-success" style="padding: 10px 20px; background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);">
+                                ☑️ בחר הכל (מסונן)
+                            </button>
+                            <span id="filterResults" style="color: #666; font-size: 0.9rem; margin-right: 10px;"></span>
                         </div>
                     </div>
                     <div id="products-container" class="products-grid">
@@ -227,6 +316,17 @@
                 </div>
 
                 <div class="form-row">
+                    <div class="form-group">
+                        <label for="productTemperature">טמפרטורת הגשה</label>
+                        <select id="productTemperature" name="productTemperature">
+                            <option value="">ברירת מחדל</option>
+                            <option value="hot">חם 🔥</option>
+                            <option value="cold">קר ❄️</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
                 <div id="quantity-fields" class="form-group" style="display:none;">
                     <label for="productQuantity">כמות ברירת מחדל</label>
                     <input type="number" id="productQuantity" name="productQuantity" placeholder="למשל: 20" min="1">
@@ -293,6 +393,91 @@
             <div class="modal-actions">
                 <button onclick="productManager.confirmDelete()" class="btn btn-danger">כן, מחק</button>
                 <button onclick="productManager.closeDeleteModal()" class="btn btn-secondary">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal עריכה מרובה -->
+    <div id="bulkEditModal" class="modal" onclick="if(event.target.id === 'bulkEditModal') productManager.closeBulkEditModal()">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h2>⚙️ עריכה מרובה</h2>
+                <span class="close" onclick="productManager.closeBulkEditModal()" style="color: white;">&times;</span>
+            </div>
+
+            <div class="modal-body" style="padding: 30px; background: #f8f9fa;">
+                <div style="text-align: center; margin-bottom: 25px; padding: 15px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 12px; border: 2px solid #2196f3;">
+                    <h3 style="margin: 0; color: #1976d2;">📦 <span id="bulkEditSelectedCount">0</span> מוצרים נבחרים</h3>
+                    <p style="margin: 5px 0 0 0; color: #666;">בחר מה תרצה לערוך:</p>
+                </div>
+
+                <div style="display: grid; gap: 20px;">
+                    <!-- עריכת קטגוריה -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; border: 2px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h4 style="margin: 0 0 15px 0; color: #495057; display: flex; align-items: center;">
+                            📁 שנה קטגוריה
+                        </h4>
+                        <select id="bulkCategorySelect" style="width: 100%; padding: 12px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 1rem; margin-bottom: 10px;">
+                            <option value="">בחר קטגוריה חדשה...</option>
+                            <option value="kitchen">🍳 מוצרי מטבח</option>
+                            <option value="bakery">🥖 קונדיטורייה</option>
+                            <option value="fruits">🍎 פירות</option>
+                            <option value="sushi">🍣 סושי</option>
+                            <option value="amar">🎂 קונדיטורייה עמר</option>
+                            <option value="kitchenProducts">🥘 מטבח מוסטפה</option>
+                            <option value="online">🌐 אונליין</option>
+                            <option value="warehouse">📦 מחסן</option>
+                        </select>
+                        <button onclick="productManager.bulkEditCategory()" class="btn btn-primary" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);">
+                            ✅ החל קטגוריה
+                        </button>
+                    </div>
+
+                    <!-- עריכת טמפרטורה -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; border: 2px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h4 style="margin: 0 0 15px 0; color: #495057; display: flex; align-items: center;">
+                            🌡️ שנה טמפרטורה
+                        </h4>
+                        <select id="bulkTemperatureSelect" style="width: 100%; padding: 12px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 1rem; margin-bottom: 10px;">
+                            <option value="">בחר טמפרטורה...</option>
+                            <option value="hot">🔥 חם</option>
+                            <option value="cold">❄️ קר</option>
+                            <option value="default">🌡️ ברירת מחדל (הסר)</option>
+                        </select>
+                        <button onclick="productManager.bulkEditTemperature()" class="btn btn-info" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+                            ✅ החל טמפרטורה
+                        </button>
+                    </div>
+
+                    <!-- עריכת גדלים/מחירים -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; border: 2px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h4 style="margin: 0 0 15px 0; color: #495057; display: flex; align-items: center;">
+                            💰 שנה גדלים/מחירים
+                        </h4>
+                        <input id="bulkSizesInput" type="text" placeholder="למשל: ליטר:0, גדול:150, בינוני:100" style="width: 100%; padding: 12px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 1rem; margin-bottom: 10px; direction: rtl;" />
+                        <small style="color: #666; display: block; margin-bottom: 10px;">השאר ריק אם לא רוצה לשנות גדלים</small>
+                        <button onclick="productManager.bulkEditSizes()" class="btn btn-warning" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: #212529;">
+                            ✅ החל גדלים/מחירים
+                        </button>
+                    </div>
+
+                    <!-- מחיקה -->
+                    <div style="background: white; padding: 20px; border-radius: 12px; border: 2px solid #dc3545; box-shadow: 0 2px 8px rgba(220,53,69,0.2);">
+                        <h4 style="margin: 0 0 15px 0; color: #dc3545; display: flex; align-items: center;">
+                            🗑️ מחק מוצרים נבחרים
+                        </h4>
+                        <p style="margin: 0 0 15px 0; color: #666;">פעולה זו לא ניתנת לביטול!</p>
+                        <button onclick="productManager.bulkDelete()" class="btn btn-danger" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+                            🗑️ מחק נבחרים
+                        </button>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 25px;">
+                    <button onclick="productManager.closeBulkEditModal()" class="btn btn-secondary" style="padding: 12px 30px; font-size: 1rem;">
+                        ❌ סגור
+                    </button>
+                </div>
             </div>
         </div>
     </div>

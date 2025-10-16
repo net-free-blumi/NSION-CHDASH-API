@@ -695,6 +695,13 @@ app.post('/api/products/save', async (req, res) => {
             // כתיבת דלתא: עדכון רק מה שהגיע בבקשה
             for (const [code, p] of Object.entries(products)) {
                 merged.products[code] = { ...(merged.products[code] || {}), ...p };
+                
+                // מחיקת שדות שמוגדרים כ-null (למחיקה)
+                for (const [key, value] of Object.entries(p)) {
+                    if (value === null) {
+                        delete merged.products[code][key];
+                    }
+                }
             }
         }
         if (categories) {

@@ -1873,9 +1873,15 @@ function getKitchenProductsItems() {
 
 
 // ... existing code ...
-function addToCategoryList(category, productSummary) {
+function addToCategoryList(category, productSummary, temperature = '') {
   const categoryList = document.getElementById(category + "List");
   const listItem = document.createElement("li");
+  
+  // שמירת מידע הטמפרטורה באטריבוט
+  if (temperature) {
+    listItem.setAttribute('data-temperature', temperature);
+  }
+  
   // תוכן טקסט כדיפולט בתוך span, כדי שידית הגרירה לא תבלבל את הטקסט
   const textSpan = document.createElement('span');
   textSpan.textContent = productSummary;
@@ -2074,7 +2080,10 @@ function saveOrderDetails() {
   lists.forEach(id => {
     const ul = document.getElementById(id);
     if (!ul) return;
-    data[id] = Array.from(ul.children).map(li => li.textContent);
+    data[id] = Array.from(ul.children).map(li => ({
+      text: li.textContent,
+      temperature: li.getAttribute('data-temperature') || ''
+    }));
   });
   try {
     sessionStorage.setItem('orderSummaryLists', JSON.stringify(data));
@@ -2091,10 +2100,20 @@ function loadOrderDetails() {
     const ul = document.getElementById(listId);
     if (!ul) return;
     ul.innerHTML = '';
-    (data[listId] || []).forEach(text => {
+    (data[listId] || []).forEach(item => {
       const li = document.createElement('li');
       const span = document.createElement('span');
-      span.textContent = text;
+      
+      // תמיכה בפורמט הישן (טקסט בלבד) והחדש (אובייקט עם טקסט וטמפרטורה)
+      if (typeof item === 'string') {
+        span.textContent = item;
+      } else {
+        span.textContent = item.text;
+        if (item.temperature) {
+          li.setAttribute('data-temperature', item.temperature);
+        }
+      }
+      
       li.appendChild(span);
       ensureDragHandle(li);
       ul.appendChild(li);
@@ -2471,4 +2490,41 @@ function generateAmarSummary() {
 function openProductManagement() {
     // פתיחת הבאק בדף חדש
     window.open('admin.html', '_blank');
+}
+
+// פונקציית סידור חכם לפי טמפרטורה באתר הראשי
+function smartSortByTemperature() {
+    const categories = ['kitchen', 'bakery', 'online', 'warehouse', 'sushi', 'kitchenProducts', 'amar'];
+    
+    categories.forEach(category => {
+        const categoryList = document.getElementById(category + 'List');
+        if (!categoryList || categoryList.children.length === 0) return;
+        
+        // המרה לרשימה מסודרת
+        const items = Array.from(categoryList.children);
+        
+        // סידור לפי טמפרטורה: חם קודם, ברירת מחדל באמצע, קר אחרון
+        items.sort((a, b) => {
+            const tempA = a.getAttribute('data-temperature') || '';
+            const tempB = b.getAttribute('data-temperature') || '';
+            
+            // חם קודם
+            if (tempA === 'hot' && tempB !== 'hot') return -1;
+            if (tempB === 'hot' && tempA !== 'hot') return 1;
+            
+            // קר אחרון
+            if (tempA === 'cold' && tempB !== 'cold') return 1;
+            if (tempB === 'cold' && tempA !== 'cold') return -1;
+            
+            // ברירת מחדל באמצע - שמירה על סדר יחסי
+            return 0;
+        });
+        
+        // עדכון הרשימה
+        categoryList.innerHTML = '';
+        items.forEach(item => categoryList.appendChild(item));
+    });
+    
+    showNotification('✅ המוצרים סודרו לפי טמפרטורה!', 'success');
+    saveOrderDetails();
 }
