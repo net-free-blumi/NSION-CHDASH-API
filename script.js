@@ -1628,13 +1628,13 @@ function openWhatsAppGeneralModal() {
 
                 // מוצרים חמים
                 if (hotItems.length > 0) {
-                    message += '*מוצרים חמים: 🔥*\n';
+                    message += '*מטבח חם: 🔥*\n';
                     message += hotItems.map(item => item.text).join("\n") + "\n";
                 }
 
                 // מוצרים קרים
                 if (coldItems.length > 0) {
-                    message += '*מוצרים קרים: ❄️*\n';
+                    message += '*מטבח קר: ❄️*\n';
                     message += coldItems.map(item => item.text).join("\n") + "\n";
                 }
 
@@ -1925,13 +1925,13 @@ function getKitchenProductsItems() {
     
     // מוצרים חמים
     if (hotItems.length > 0) {
-        result.push('*מוצרים חמים:🔥*');
+        result.push('*מטבח חם:🔥*');
         result.push(...hotItems.map(item => item.text));
     }
     
     // מוצרים קרים
     if (coldItems.length > 0) {
-        result.push('*מוצרים קרים:❄️*');
+        result.push('*מטבח קר:❄️*');
         result.push(...coldItems.map(item => item.text));
     }
     
@@ -2685,7 +2685,7 @@ function smartSortByTemperature() {
             if (hotItems.length > 0) {
                 const hotHeader = document.createElement('div');
                 hotHeader.className = 'temperature-header hot-header';
-                hotHeader.innerHTML = '<strong>🔥 מוצרים חמים:</strong>';
+                hotHeader.innerHTML = '<strong>🔥 מטבח חם:</strong>';
                 categoryList.appendChild(hotHeader);
                 hotItems.forEach(item => categoryList.appendChild(item));
             }
@@ -2694,7 +2694,7 @@ function smartSortByTemperature() {
             if (coldItems.length > 0) {
                 const coldHeader = document.createElement('div');
                 coldHeader.className = 'temperature-header cold-header';
-                coldHeader.innerHTML = '<strong>❄️ מוצרים קרים:</strong>';
+                coldHeader.innerHTML = '<strong>❄️ מטבח קר:</strong>';
                 categoryList.appendChild(coldHeader);
                 coldItems.forEach(item => categoryList.appendChild(item));
             }
