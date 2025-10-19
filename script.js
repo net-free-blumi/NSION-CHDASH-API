@@ -1964,6 +1964,15 @@ function addToCategoryList(category, productSummary, temperature = '') {
   // מוסיף ידית גרירה ייעודית
   ensureDragHandle(listItem);
   categoryList.appendChild(listItem);
+  
+  // סידור אוטומטי לפי טמפרטורה רק לקטגוריית מוצרי מטבח
+  if (category === 'kitchenProducts') {
+    // המתן קצת כדי שהפריט יתווסף ל-DOM
+    setTimeout(() => {
+      sortKitchenProductsByTemperature();
+    }, 100);
+  }
+  
   updateCategoryButtonsVisibility();
   saveOrderDetails();
   
@@ -1975,6 +1984,11 @@ function addToCategoryList(category, productSummary, temperature = '') {
   // עדכון תצוגת קונדיטוריית עמר
   if (typeof refreshAmarSummary === 'function') {
     refreshAmarSummary();
+  }
+  
+  // עדכון תצוגת מוצרי מטבח בסיכום
+  if (category === 'kitchenProducts' && typeof updateKitchenProductsSummary === 'function') {
+    updateKitchenProductsSummary();
   }
 }
 
@@ -2013,10 +2027,81 @@ function ensureDragHandle(li) {
       li.appendChild(handle);
     }
   }
-  // רק הידית היא draggable
+  
+  // תמיכה במובייל - לחיצה ארוכה ואז גרירה
+  let touchStartTime = 0;
+  let touchStartY = 0;
+  let isLongPress = false;
+  let longPressTimer = null;
+  
+  // אירועי מגע למובייל
+  handle.addEventListener('touchstart', (e) => {
+    touchStartTime = Date.now();
+    touchStartY = e.touches[0].clientY;
+    isLongPress = false;
+    
+    // טיימר ללחיצה ארוכה
+    longPressTimer = setTimeout(() => {
+      isLongPress = true;
+      handle.style.backgroundColor = '#ffc107';
+      handle.style.color = '#212529';
+      handle.textContent = 'גרור';
+      
+      // הוספת אפקט ויזואלי
+      li.style.transform = 'scale(1.05)';
+      li.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+      li.style.zIndex = '1000';
+    }, 500);
+  });
+  
+  handle.addEventListener('touchmove', (e) => {
+    if (isLongPress) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const deltaY = touch.clientY - touchStartY;
+      
+      // הזזת הפריט עם האצבע
+      li.style.transform = `translateY(${deltaY}px) scale(1.05)`;
+      
+      // מציאת מיקום הנפילה
+      const afterElement = getDragAfterElement(li.parentNode, touch.clientY);
+      if (afterElement == null) {
+        li.parentNode.appendChild(li);
+      } else {
+        li.parentNode.insertBefore(li, afterElement);
+      }
+    }
+  });
+  
+  handle.addEventListener('touchend', (e) => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+    
+    if (isLongPress) {
+      e.preventDefault();
+      // שחזור עיצוב
+      li.style.transform = '';
+      li.style.boxShadow = '';
+      li.style.zIndex = '';
+      handle.style.backgroundColor = '';
+      handle.style.color = '';
+      handle.textContent = '⇅';
+      
+      // שמירת הסדר החדש
+      saveOrderDetails();
+      showNotification('✅ הסדר עודכן', 'green', { duration: 1500 });
+    }
+    
+    isLongPress = false;
+  });
+  
+  // רק הידית היא draggable (למחשב)
   handle.setAttribute('draggable', 'true');
   handle.addEventListener('dragstart', (e) => onDragStart(e, li));
   handle.addEventListener('dragend', onDragEnd);
+  
   // שכפול עדין בקליק ימני על הידית (ללא הוספת כפתורים גלויים)
   if (!handle._dupBound) {
     handle.addEventListener('contextmenu', (e) => {
@@ -2133,6 +2218,16 @@ function duplicateListItem(sourceLi) {
   updateCategoryButtonsVisibility();
   saveOrderDetails();
   try { if (typeof showNotification === 'function') showNotification('✅ הפריט שוכפל', 'green', { duration: 1500 }); } catch {}
+  // פתח מיד עריכה עבור השכפול החדש כדי לאפשר שינוי כמות/תוכן
+  try {
+    const editBtn = clone.querySelector('.edit-btn');
+    if (editBtn) {
+      setTimeout(() => {
+        try { openEditPopup(editBtn, (list.id||'').replace('List','')); } catch {}
+      }, 0);
+    }
+  } catch {}
+  return clone;
 }
 
 // מודאל אישור קטן ועדין במרכז המסך
@@ -2522,7 +2617,7 @@ function generateAmarSummary() {
       const textKey = text.replace(/\s+/g, ' ').trim();
       const alreadyCounted = (code && seenCodes.has(code)) || (textKey && seenTexts.has(textKey));
       if (text && !alreadyCounted) {
-        summary += `● ${text}\n\n`;
+      summary += `● ${text}\n\n`;
       }
     });
   
@@ -2731,6 +2826,7 @@ function smartSortByTemperature() {
     showNotification('✅ המוצרים סודרו לפי טמפרטורה!', 'success');
     saveOrderDetails();
     
+    // עדכון תצוגת הסיכום הראשי
     if (typeof updateOrderSummaryDisplay === 'function') {
         updateOrderSummaryDisplay();
     }
@@ -2738,3 +2834,74 @@ function smartSortByTemperature() {
         refreshAmarSummary();
     }
 }
+
+// פונקציה לסידור אוטומטי של מוצרי מטבח לפי טמפרטורה
+function sortKitchenProductsByTemperature() {
+    const categoryList = document.getElementById('kitchenProductsList');
+    if (!categoryList || categoryList.children.length === 0) return;
+    
+    // המרה לרשימה מסודרת - רק מוצרים אמיתיים (לא כותרות)
+    const items = Array.from(categoryList.children).filter(item => 
+        !item.classList.contains('temperature-header')
+    );
+    
+    // חלוקה לפי טמפרטורה
+    const hotItems = items.filter(item => item.getAttribute('data-temperature') === 'hot');
+    const coldItems = items.filter(item => item.getAttribute('data-temperature') === 'cold');
+    const defaultItems = items.filter(item => !item.getAttribute('data-temperature') || item.getAttribute('data-temperature') === '');
+    
+    // ניקוי הרשימה לחלוטין
+    categoryList.innerHTML = '';
+    
+    // הוספת מוצרים חמים עם כותרת
+    if (hotItems.length > 0) {
+        const hotHeader = document.createElement('div');
+        hotHeader.className = 'temperature-header hot-header';
+        hotHeader.innerHTML = '<strong>🔥 מטבח חם:</strong>';
+        categoryList.appendChild(hotHeader);
+        hotItems.forEach(item => {
+            // הוספת ידית גרירה מחדש
+            ensureDragHandle(item);
+            categoryList.appendChild(item);
+        });
+    }
+    
+    // הוספת מוצרים קרים עם כותרת
+    if (coldItems.length > 0) {
+        const coldHeader = document.createElement('div');
+        coldHeader.className = 'temperature-header cold-header';
+        coldHeader.innerHTML = '<strong>❄️ מטבח קר:</strong>';
+        categoryList.appendChild(coldHeader);
+        coldItems.forEach(item => {
+            // הוספת ידית גרירה מחדש
+            ensureDragHandle(item);
+            categoryList.appendChild(item);
+        });
+    }
+    
+    // הוספת מוצרים רגילים
+    defaultItems.forEach(item => {
+        // הוספת ידית גרירה מחדש
+        ensureDragHandle(item);
+        categoryList.appendChild(item);
+    });
+    
+    // עדכון תצוגת הסיכום הראשי
+    if (typeof updateOrderSummaryDisplay === 'function') {
+        updateOrderSummaryDisplay();
+    }
+}
+
+// פונקציה לעדכון תצוגת מוצרי מטבח בסיכום
+function updateKitchenProductsSummary() {
+    const kitchenProductsList = document.getElementById('kitchenProductsList');
+    if (!kitchenProductsList) return;
+    
+    // סידור אוטומטי לפי טמפרטורה
+    sortKitchenProductsByTemperature();
+}
+
+
+
+
+

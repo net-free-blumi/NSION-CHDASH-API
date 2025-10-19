@@ -1832,6 +1832,64 @@ body {
     }
 }
 
+/* תמונה מסתובבת - חץ קפיצה לתפריט */
+.fixed-button {
+    position: fixed;
+    left: 20px;
+    bottom: 20px;
+    margin: 0 auto;
+    perspective: 1000px;
+    transform: translate(0, 0) rotateY(0deg);
+    animation: spin 10s infinite linear;
+    z-index: 95;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.fixed-button:hover {
+    opacity: 1 !important;
+    transform: translate(0, 0) scale(1.1);
+    transition: all 0.3s ease;
+}
+
+@keyframes spin {
+    0% {
+        transform: translate(0, 0) rotateY(0deg);
+    }
+
+    50% {
+        transform: translate(0, 0) rotateY(180deg);
+    }
+
+    100% {
+        transform: translate(0, 0) rotateY(360deg);
+    }
+}
+
+@media (max-width: 400px) {
+    .fixed-button {
+        left: 15px;
+        bottom: 15px;
+        height: 80px;
+        width: 80px;
+    }
+}
+
+#mistovev {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+}
+
+#mistovev:hover {
+    transform: scale(1.1);
+    transition: 0.3s ease;
+}
+/* עד כאן חץ מסתובב */
+
 /* Extra-small phones: ensure controls are always reachable */
 @media (max-width: 480px) {
 	.admin-container { overflow: hidden; }

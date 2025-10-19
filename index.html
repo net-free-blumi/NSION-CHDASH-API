@@ -1295,6 +1295,24 @@ function syncProducts() {
       </div>
     </div>
 
+    <script>
+      // שמירה עם Enter בתוך חלון העריכה
+      (function(){
+        try {
+          const txt = document.getElementById('editItemText');
+          if (txt && !txt._enterBound) {
+            txt.addEventListener('keydown', function(e){
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey || !e.shiftKey)) {
+                e.preventDefault();
+                try { saveEdit(); } catch {}
+              }
+            });
+            txt._enterBound = true;
+          }
+        } catch {}
+      })();
+    </script>
+
     <!-- WhatsApp Modal -->
     <div id="whatsappModal" class="modal" style="display: none">
       <div class="modal-content wa-modal-content">

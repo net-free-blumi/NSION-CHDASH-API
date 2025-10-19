@@ -243,13 +243,136 @@ class ProductManager {
             </div>
             <div class="product-actions">
                 <button onclick="productManager.editProduct('${code}')" class="btn btn-primary">✏️ עריכה</button>
+                <button onclick="productManager.duplicateProduct('${code}')" class="btn btn-secondary">📄 שכפל</button>
                 <button onclick="productManager.deleteProductConfirm('${code}')" class="btn btn-danger">🗑️ מחיקה</button>
             </div>
         `;
         
         card.innerHTML = productInfo;
         card.appendChild(checkbox);
+        
+        // הוספת מאזין לבחירה על כל הכרטיס (לא רק על הריבוע)
+        // אבל רק אם כבר יש מוצרים נבחרים
+        card.addEventListener('click', (e) => {
+            // אם לחצו על כפתור או checkbox, לא לבחור את הכרטיס
+            if (e.target.tagName === 'BUTTON' || e.target.classList.contains('product-checkbox')) {
+                return;
+            }
+            
+            // רק אם יש כבר מוצרים נבחרים, אפשר לבחור על הכרטיס
+            const selectedProducts = document.querySelectorAll('.product-card.selected');
+            if (selectedProducts.length > 0) {
+                this.toggleProductSelection(code, checkbox, card);
+            }
+        });
+        
         return card;
+    }
+
+    // שכפול מוצר: פותח את חלון הוספה כשהשדות ממולאים מהמוצר המקורי, אך ללא קוד
+    duplicateProduct(code) {
+        const product = this.products[code];
+        if (!product) {
+            this.showNotification('❌ מוצר לא נמצא לשכפול', 'error');
+            return;
+        }
+
+        // פותחים את המודאל במצב הוספה
+        const form = document.getElementById('productForm');
+        if (!form) return;
+
+        document.getElementById('editMode').value = 'false';
+        // קוד מוצר ריק כדי שיווצר חדש או יוזן ידנית
+        const codeInput = document.getElementById('productCode');
+        codeInput.value = '';
+        codeInput.removeAttribute('disabled');
+
+        // מילוי שדות מהמוצר המקורי
+        document.getElementById('productName').value = product.name || product.Name || '';
+        document.getElementById('productCategory').value = product.category || '';
+        document.getElementById('searchName').value = product.searchName || '';
+        document.getElementById('productType').value = product.type || 'none';
+        document.getElementById('productTemperature').value = product.temperature || '';
+
+        // שדות כמות/יחידה/גדלים
+        if (product.type === 'quantity') {
+            document.getElementById('productQuantity').value = product.defaultQuantity || '';
+            const unitSelect = document.getElementById('unitType');
+            if (unitSelect) {
+                if (product.unit) {
+                    if (unitSelect.querySelector(`option[value="${product.unit}"]`)) {
+                        unitSelect.value = product.unit;
+                    } else {
+                        const opt = document.createElement('option');
+                        opt.value = product.unit;
+                        opt.textContent = product.unit;
+                        unitSelect.appendChild(opt);
+                        unitSelect.value = product.unit;
+                    }
+                } else {
+                    unitSelect.value = '';
+                }
+            }
+
+            // כמויות מוגדרות מראש לטקסט
+            const predefinedQuantitiesStr = (product.predefinedQuantities || []).join(', ');
+            document.getElementById('predefinedQuantities').value = predefinedQuantitiesStr;
+        } else if (product.type === 'size') {
+            const defaultSizeSelect = document.getElementById('defaultSize');
+            if (defaultSizeSelect) {
+                if (product.defaultSize) {
+                    if (defaultSizeSelect.querySelector(`option[value="${product.defaultSize}"]`)) {
+                        defaultSizeSelect.value = product.defaultSize;
+                    } else {
+                        const opt = document.createElement('option');
+                        opt.value = product.defaultSize;
+                        opt.textContent = product.defaultSize;
+                        defaultSizeSelect.appendChild(opt);
+                        defaultSizeSelect.value = product.defaultSize;
+                    }
+                } else {
+                    defaultSizeSelect.value = '';
+                }
+            }
+        } else {
+            document.getElementById('productQuantity').value = product.quantity || '';
+            const unitSelect = document.getElementById('unitType');
+            if (unitSelect) {
+                if (product.unit) {
+                    if (unitSelect.querySelector(`option[value="${product.unit}"]`)) {
+                        unitSelect.value = product.unit;
+                    } else {
+                        const opt = document.createElement('option');
+                        opt.value = product.unit;
+                        opt.textContent = product.unit;
+                        unitSelect.appendChild(opt);
+                        unitSelect.value = product.unit;
+                    }
+                } else {
+                    unitSelect.value = '';
+                }
+            }
+        }
+
+        // גדלים/מחירים
+        this.resetSizeInputs();
+        if (product.sizes && Array.isArray(product.sizes) && product.sizes.length > 0) {
+            this.loadProductSizes(product.sizes);
+            const sizesSection = document.getElementById('sizes-section');
+            if (sizesSection) sizesSection.style.display = 'block';
+        }
+
+        // עדכון תצוגת שדות לפי סוג
+        this.toggleQuantityFields();
+
+        // כותרת מתאימה
+        const modalTitle = document.getElementById('modal-title');
+        if (modalTitle) {
+            modalTitle.textContent = 'שכפול מוצר';
+        }
+
+        // הצגת המודאל
+        document.getElementById('productModal').style.display = 'block';
     }
 
     getTypeDisplay(type) {
@@ -684,6 +807,9 @@ class ProductManager {
             // ניקוי תיבת החיפוש אחרי שמירה
             this.clearSearch();
             this.closeProductModal();
+            
+            // קפיצה לראש הדף אחרי עריכה
+            window.scrollTo({ top: 0, behavior: 'smooth' });
 
         } catch (error) {
             console.error('שגיאה בשמירת מוצר:', error);
@@ -1385,3 +1511,39 @@ async function restoreFromBackup() {
         alert('שגיאה בשחזור מהגיבוי');
     }
 }
+
+// חץ מסתובב שקוף - מופיע רק כשגוללים למטה
+window.addEventListener("scroll", () => {
+    const scrollY = window.scrollY;
+    const button = document.getElementById("scrollToTopBtn");
+    
+    if (button) {
+        // מופיע רק אחרי גלילה של 300px
+        if (scrollY > 300) {
+            button.style.display = "block";
+            // שקיפות מתגברת ככל שגוללים יותר
+            const opacity = Math.min(scrollY / 1000, 1);
+            button.querySelector('.fixed-button').style.opacity = opacity;
+        } else {
+            button.style.display = "none";
+        }
+    }
+});
+
+// קפיצה חלקה לראש הדף
+document.addEventListener('DOMContentLoaded', function() {
+    const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+    if (scrollToTopBtn) {
+        scrollToTopBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    }
+});
+
+
+
+
