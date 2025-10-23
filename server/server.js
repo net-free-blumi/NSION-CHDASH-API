@@ -1438,7 +1438,8 @@ app.get('/api/orders/history', async (req, res) => {
         // Get cloud orders
         let cloudOrders = [];
         try {
-            cloudOrders = await getOrdersFromCloud();
+            const cloudData = await getOrdersFromCloud();
+            cloudOrders = cloudData.orders || [];
         } catch (e) {
             console.warn('Failed to get cloud orders:', e?.message || e);
         }
