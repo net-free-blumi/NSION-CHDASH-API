@@ -1143,6 +1143,341 @@ app.post('/api/delete-backup', async (req, res) => {
     }
 });
 
+// ===== ORDERS MANAGEMENT SYSTEM =====
+
+// Orders data structure
+let ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
+let ORDERS_BACKUPS_DIR = path.join(DATA_DIR, 'orders-backups');
+
+// Initialize orders data
+async function ensureOrdersData() {
+    try {
+        await fs.mkdir(ORDERS_BACKUPS_DIR, { recursive: true });
+        const ordersExists = await fs.access(ORDERS_FILE).then(() => true).catch(() => false);
+        if (!ordersExists) {
+            await fs.writeFile(ORDERS_FILE, JSON.stringify({ orders: {}, currentOrder: null }, null, 2), 'utf8');
+            console.log('Orders data initialized');
+        }
+    } catch (e) {
+        console.error('Failed to initialize orders data:', e);
+    }
+}
+
+// Save order to cloud (Supabase)
+async function saveOrderToCloud(orderData) {
+    if (process.env.BACKUP_UPLOAD_TO_CLOUD !== 'true') return;
+    const env = getSupabaseEnv();
+    if (!env) return;
+    
+    const orderId = orderData.id || `order-${Date.now()}`;
+    const filename = `orders/${orderId}.json`;
+    
+    const fileBuffer = Buffer.from(JSON.stringify(orderData, null, 2), 'utf8');
+    const endpoint = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/${encodeURIComponent(filename)}`;
+    
+    const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${env.key}`,
+            'apikey': env.key,
+            'x-upsert': 'true',
+            'Content-Type': 'application/json'
+        },
+        body: fileBuffer
+    });
+    
+    if (!resp.ok) {
+        const t = await resp.text().catch(() => resp.statusText);
+        throw new Error(`supabase upload failed: ${resp.status} ${t}`);
+    }
+    
+    console.log('✅ Order saved to cloud:', orderId);
+}
+
+// Get orders from cloud
+async function getOrdersFromCloud() {
+    const env = getSupabaseEnv();
+    if (!env) return [];
+    
+    const endpoint = `${env.url}/storage/v1/object/list/${encodeURIComponent(env.bucket)}`;
+    const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefix: 'orders/', limit: 100, sortBy: { column: 'created_at', order: 'desc' } })
+    });
+    
+    if (!resp.ok) return [];
+    const data = await resp.json().catch(() => []);
+    
+    const results = [];
+    for (const f of (data || []).filter(x => (x.name || '').endsWith('.json'))) {
+        try {
+            const orderEndpoint = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/${encodeURIComponent(f.name)}`;
+            const orderResp = await fetch(orderEndpoint, { headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key } });
+            if (orderResp.ok) {
+                const orderData = await orderResp.json();
+                results.push({
+                    id: f.name.replace('orders/', '').replace('.json', ''),
+                    name: orderData.customerName || 'הזמנה ללא שם',
+                    date: orderData.createdAt || f.created_at,
+                    total: orderData.total || 0,
+                    items: orderData.items ? orderData.items.length : 0,
+                    status: orderData.status || 'completed',
+                    data: orderData
+                });
+            }
+        } catch (e) {
+            console.warn('Failed to load order:', f.name, e);
+        }
+    }
+    
+    return results;
+}
+
+// Download specific order from cloud
+async function downloadOrderFromCloud(orderId) {
+    const env = getSupabaseEnv();
+    if (!env) throw new Error('supabase not configured');
+    
+    const filename = `orders/${orderId}.json`;
+    const endpoint = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/${encodeURIComponent(filename)}`;
+    const resp = await fetch(endpoint, { headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key } });
+    
+    if (!resp.ok) throw new Error(`download failed: ${resp.status}`);
+    return await resp.json();
+}
+
+// Create new order
+app.post('/api/orders/create', async (req, res) => {
+    try {
+        await ensureOrdersData();
+        const { customerName, items, total, notes } = req.body;
+        
+        const orderId = `order-${Date.now()}`;
+        const orderData = {
+            id: orderId,
+            customerName: customerName || 'הזמנה ללא שם',
+            items: items || [],
+            total: total || 0,
+            notes: notes || '',
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        // Save locally
+        const raw = await fs.readFile(ORDERS_FILE, 'utf8').catch(() => '{"orders":{},"currentOrder":null}');
+        const data = JSON.parse(raw || '{}');
+        data.orders[orderId] = orderData;
+        data.currentOrder = orderId;
+        await fs.writeFile(ORDERS_FILE, JSON.stringify(data, null, 2), 'utf8');
+        
+        // Save to cloud
+        try {
+            await saveOrderToCloud(orderData);
+        } catch (e) {
+            console.warn('Cloud save failed:', e?.message || e);
+        }
+        
+        res.json({ success: true, orderId, order: orderData });
+    } catch (error) {
+        console.error('Error creating order:', error);
+        res.status(500).json({ error: 'שגיאה ביצירת הזמנה' });
+    }
+});
+
+// Update current order
+app.post('/api/orders/update', async (req, res) => {
+    try {
+        await ensureOrdersData();
+        const { items, total, notes, customerName } = req.body;
+        
+        const raw = await fs.readFile(ORDERS_FILE, 'utf8').catch(() => '{"orders":{},"currentOrder":null}');
+        const data = JSON.parse(raw || '{}');
+        
+        if (!data.currentOrder || !data.orders[data.currentOrder]) {
+            return res.status(404).json({ error: 'אין הזמנה פעילה' });
+        }
+        
+        const order = data.orders[data.currentOrder];
+        order.items = items || order.items;
+        order.total = total !== undefined ? total : order.total;
+        order.notes = notes !== undefined ? notes : order.notes;
+        order.customerName = customerName || order.customerName;
+        order.updatedAt = new Date().toISOString();
+        
+        await fs.writeFile(ORDERS_FILE, JSON.stringify(data, null, 2), 'utf8');
+        
+        // Update in cloud
+        try {
+            await saveOrderToCloud(order);
+        } catch (e) {
+            console.warn('Cloud update failed:', e?.message || e);
+        }
+        
+        res.json({ success: true, order });
+    } catch (error) {
+        console.error('Error updating order:', error);
+        res.status(500).json({ error: 'שגיאה בעדכון ההזמנה' });
+    }
+});
+
+// Complete current order
+app.post('/api/orders/complete', async (req, res) => {
+    try {
+        await ensureOrdersData();
+        const raw = await fs.readFile(ORDERS_FILE, 'utf8').catch(() => '{"orders":{},"currentOrder":null}');
+        const data = JSON.parse(raw || '{}');
+        
+        if (!data.currentOrder || !data.orders[data.currentOrder]) {
+            return res.status(404).json({ error: 'אין הזמנה פעילה' });
+        }
+        
+        const order = data.orders[data.currentOrder];
+        order.status = 'completed';
+        order.completedAt = new Date().toISOString();
+        order.updatedAt = new Date().toISOString();
+        
+        // Save final version to cloud
+        try {
+            await saveOrderToCloud(order);
+        } catch (e) {
+            console.warn('Cloud save failed:', e?.message || e);
+        }
+        
+        // Clear current order
+        data.currentOrder = null;
+        await fs.writeFile(ORDERS_FILE, JSON.stringify(data, null, 2), 'utf8');
+        
+        res.json({ success: true, order });
+    } catch (error) {
+        console.error('Error completing order:', error);
+        res.status(500).json({ error: 'שגיאה בהשלמת ההזמנה' });
+    }
+});
+
+// Get current order
+app.get('/api/orders/current', async (req, res) => {
+    try {
+        await ensureOrdersData();
+        const raw = await fs.readFile(ORDERS_FILE, 'utf8').catch(() => '{"orders":{},"currentOrder":null}');
+        const data = JSON.parse(raw || '{}');
+        
+        if (!data.currentOrder || !data.orders[data.currentOrder]) {
+            return res.json({ success: true, order: null });
+        }
+        
+        res.json({ success: true, order: data.orders[data.currentOrder] });
+    } catch (error) {
+        console.error('Error getting current order:', error);
+        res.status(500).json({ error: 'שגיאה בקבלת ההזמנה הפעילה' });
+    }
+});
+
+// Get orders history
+app.get('/api/orders/history', async (req, res) => {
+    try {
+        await ensureOrdersData();
+        
+        // Get local orders
+        const raw = await fs.readFile(ORDERS_FILE, 'utf8').catch(() => '{"orders":{},"currentOrder":null}');
+        const data = JSON.parse(raw || '{}');
+        const localOrders = Object.values(data.orders).filter(order => order.status === 'completed');
+        
+        // Get cloud orders
+        let cloudOrders = [];
+        try {
+            cloudOrders = await getOrdersFromCloud();
+        } catch (e) {
+            console.warn('Failed to get cloud orders:', e?.message || e);
+        }
+        
+        // Combine and deduplicate
+        const allOrders = [...localOrders, ...cloudOrders];
+        const uniqueOrders = allOrders.reduce((acc, order) => {
+            if (!acc.find(o => o.id === order.id)) {
+                acc.push(order);
+            }
+            return acc;
+        }, []);
+        
+        // Sort by date
+        uniqueOrders.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
+        
+        res.json({ success: true, orders: uniqueOrders });
+    } catch (error) {
+        console.error('Error getting orders history:', error);
+        res.status(500).json({ error: 'שגיאה בקבלת היסטוריית ההזמנות' });
+    }
+});
+
+// Restore order (load into current order)
+app.post('/api/orders/restore', async (req, res) => {
+    try {
+        await ensureOrdersData();
+        const { orderId } = req.body;
+        
+        if (!orderId) {
+            return res.status(400).json({ error: 'מזהה הזמנה חסר' });
+        }
+        
+        let orderData;
+        
+        // Try to get from local first
+        const raw = await fs.readFile(ORDERS_FILE, 'utf8').catch(() => '{"orders":{},"currentOrder":null}');
+        const data = JSON.parse(raw || '{}');
+        
+        if (data.orders[orderId]) {
+            orderData = data.orders[orderId];
+        } else {
+            // Try to get from cloud
+            try {
+                orderData = await downloadOrderFromCloud(orderId);
+            } catch (e) {
+                return res.status(404).json({ error: 'הזמנה לא נמצאה' });
+            }
+        }
+        
+        // Create new order based on restored data
+        const newOrderId = `order-${Date.now()}`;
+        const newOrder = {
+            ...orderData,
+            id: newOrderId,
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            restoredFrom: orderId
+        };
+        
+        // Save as current order
+        data.orders[newOrderId] = newOrder;
+        data.currentOrder = newOrderId;
+        await fs.writeFile(ORDERS_FILE, JSON.stringify(data, null, 2), 'utf8');
+        
+        res.json({ success: true, order: newOrder });
+    } catch (error) {
+        console.error('Error restoring order:', error);
+        res.status(500).json({ error: 'שגיאה בשחזור ההזמנה' });
+    }
+});
+
+// Clear current order
+app.post('/api/orders/clear', async (req, res) => {
+    try {
+        await ensureOrdersData();
+        const raw = await fs.readFile(ORDERS_FILE, 'utf8').catch(() => '{"orders":{},"currentOrder":null}');
+        const data = JSON.parse(raw || '{}');
+        
+        data.currentOrder = null;
+        await fs.writeFile(ORDERS_FILE, JSON.stringify(data, null, 2), 'utf8');
+        
+        res.json({ success: true, message: 'ההזמנה הפעילה נוקתה' });
+    } catch (error) {
+        console.error('Error clearing order:', error);
+        res.status(500).json({ error: 'שגיאה בניקוי ההזמנה' });
+    }
+});
+
 // WhatsApp message sending endpoint
 app.post('/send-whatsapp', async (req, res) => {
     console.log('Received WhatsApp request:', req.body);
@@ -1233,7 +1568,7 @@ async function bootAutoRestoreIfNeeded() {
     }
 }
 
-ensureDataLocations().then(() => initializeCategories()).then(() => importProductsIfEmpty()).then(() => bootAutoRestoreIfNeeded()).then(() => {
+ensureDataLocations().then(() => initializeCategories()).then(() => importProductsIfEmpty()).then(() => ensureOrdersData()).then(() => bootAutoRestoreIfNeeded()).then(() => {
     app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
         console.log('Server is ready to handle requests');
