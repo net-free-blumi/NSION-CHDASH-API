@@ -6583,11 +6583,14 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
         async loadOrdersHistory() {
           try {
-            const response = await fetch(`${this.apiBaseUrl}/api/orders`);
+            const response = await fetch(`${this.apiBaseUrl}/api/orders/history`);
             if (response.ok) {
               const data = await response.json();
               this.orders = data.orders || [];
               this.updateOrdersDisplay();
+            } else {
+              console.error('שגיאה בטעינת הזמנות:', response.status, response.statusText);
+              this.showNotification('שגיאה בטעינת הזמנות מהשרת', 'error');
             }
           } catch (error) {
             console.error('שגיאה בטעינת הזמנות:', error);
@@ -6747,24 +6750,17 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         try {
           // שחזור פרטי ההזמנה
           if (order.customerName) {
-            document.getElementById('customerName').value = order.customerName;
-          }
-          if (order.orderNumber) {
-            document.getElementById('orderNumber').value = order.orderNumber;
-          }
-          if (order.orderDate) {
-            document.getElementById('orderDate').value = order.orderDate;
-          }
-          if (order.orderTime) {
-            document.getElementById('orderTime').value = order.orderTime;
+            const customerNameField = document.getElementById('customerName');
+            if (customerNameField) customerNameField.value = order.customerName;
           }
 
           // שחזור פריטי ההזמנה
           if (order.items) {
             // ניקוי הרשימות הקיימות
-            const categories = ['kitchenProductsList', 'fruitsList', 'bakeryList', 'warehouseList', 'sushiList', 'amarList'];
-            categories.forEach(categoryId => {
-              const list = document.getElementById(categoryId);
+            const categories = ['kitchenProducts', 'fruits', 'bakery', 'warehouse', 'sushi', 'amar'];
+            categories.forEach(category => {
+              const listId = category + 'List';
+              const list = document.getElementById(listId);
               if (list) list.innerHTML = '';
             });
 
@@ -6785,8 +6781,12 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           }
 
           // עדכון התצוגה
-          updateOrderSummaryDisplay();
-          displayOrderInfo();
+          if (typeof updateOrderSummaryDisplay === 'function') {
+            updateOrderSummaryDisplay();
+          }
+          if (typeof displayOrderInfo === 'function') {
+            displayOrderInfo();
+          }
 
           if (orderManager) {
             orderManager.showNotification('ההזמנה שוחזרה בהצלחה!', 'success');

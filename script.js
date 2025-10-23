@@ -2745,9 +2745,6 @@ async function saveCurrentOrderToCloud() {
     try {
         const orderData = {
             customerName: document.getElementById('customerName')?.value || '',
-            orderNumber: document.getElementById('orderNumber')?.value || '',
-            orderDate: document.getElementById('orderDate')?.value || '',
-            orderTime: document.getElementById('orderTime')?.value || '',
             items: {
                 kitchenProducts: Array.from(document.getElementById('kitchenProductsList')?.children || []).map(li => li.innerHTML),
                 fruits: Array.from(document.getElementById('fruitsList')?.children || []).map(li => li.innerHTML),
@@ -2756,12 +2753,11 @@ async function saveCurrentOrderToCloud() {
                 sushi: Array.from(document.getElementById('sushiList')?.children || []).map(li => li.innerHTML),
                 amar: Array.from(document.getElementById('amarList')?.children || []).map(li => li.innerHTML)
             },
-            status: 'active',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            total: calculateOrderTotal(), // נצטרך להוסיף פונקציה זו
+            notes: document.getElementById('orderNotes')?.value || ''
         };
 
-        const response = await fetch(`${window.API_BASE_URL || window.location.origin}/api/orders`, {
+        const response = await fetch(`${window.API_BASE_URL || window.location.origin}/api/orders/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -2772,12 +2768,29 @@ async function saveCurrentOrderToCloud() {
         if (response.ok) {
             showNotification('ההזמנה נשמרה בענן בהצלחה!', 'green');
         } else {
-            throw new Error('שגיאה בשמירת ההזמנה');
+            const errorText = await response.text();
+            throw new Error(`שגיאה בשמירת ההזמנה: ${errorText}`);
         }
     } catch (error) {
         console.error('שגיאה בשמירת ההזמנה:', error);
         showNotification('שגיאה בשמירת ההזמנה בענן', 'red');
     }
+}
+
+// פונקציה לחישוב סה"כ ההזמנה
+function calculateOrderTotal() {
+    // נחזיר מספר פריטים פשוט כרגע
+    const categories = ['kitchenProductsList', 'fruitsList', 'bakeryList', 'warehouseList', 'sushiList', 'amarList'];
+    let totalItems = 0;
+    
+    categories.forEach(categoryId => {
+        const list = document.getElementById(categoryId);
+        if (list) {
+            totalItems += list.children.length;
+        }
+    });
+    
+    return totalItems;
 }
 
 // פונקציה לניקוי כפילויות ברשימה

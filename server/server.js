@@ -1411,6 +1411,51 @@ app.get('/api/orders/history', async (req, res) => {
     }
 });
 
+// Get all orders (for compatibility with frontend)
+app.get('/api/orders', async (req, res) => {
+    try {
+        await ensureOrdersData();
+        
+        // Get local orders
+        const raw = await fs.readFile(ORDERS_FILE, 'utf8').catch(() => '{"orders":{},"currentOrder":null}');
+        const data = JSON.parse(raw || '{}');
+        const localOrders = Object.values(data.orders || {});
+        
+        // Get cloud orders
+        let cloudOrders = [];
+        try {
+            const cloudData = await getOrdersFromCloud();
+            cloudOrders = cloudData.orders || [];
+        } catch (e) {
+            console.log('Could not fetch cloud orders:', e.message);
+        }
+        
+        // Combine and deduplicate orders
+        const allOrders = [...localOrders, ...cloudOrders];
+        const uniqueOrders = allOrders.reduce((acc, order) => {
+            const existing = acc.find(o => o.id === order.id);
+            if (!existing) {
+                acc.push(order);
+            } else {
+                // Keep the more recent one
+                if (new Date(order.updatedAt || order.createdAt) > new Date(existing.updatedAt || existing.createdAt)) {
+                    const index = acc.indexOf(existing);
+                    acc[index] = order;
+                }
+            }
+            return acc;
+        }, []);
+        
+        // Sort by date
+        uniqueOrders.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
+        
+        res.json({ success: true, orders: uniqueOrders });
+    } catch (error) {
+        console.error('Error getting orders:', error);
+        res.status(500).json({ error: 'שגיאה בקבלת ההזמנות' });
+    }
+});
+
 // Restore order (load into current order)
 app.post('/api/orders/restore', async (req, res) => {
     try {
