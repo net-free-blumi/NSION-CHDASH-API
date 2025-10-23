@@ -1249,8 +1249,12 @@ async function getOrdersFromCloud() {
         body: JSON.stringify({ prefix: 'orders/', limit: 100, sortBy: { column: 'created_at', order: 'desc' } })
     });
     
-    if (!resp.ok) return [];
+    if (!resp.ok) {
+        console.warn('Failed to list cloud orders:', resp.status, resp.statusText);
+        return { orders: [] };
+    }
     const data = await resp.json().catch(() => []);
+    console.log('📋 Cloud orders list response:', data?.length || 0, 'files found');
     
     const results = [];
     for (const f of (data || []).filter(x => (x.name || '').endsWith('.json'))) {
@@ -1264,17 +1268,21 @@ async function getOrdersFromCloud() {
                     name: orderData.customerName || 'הזמנה ללא שם',
                     date: orderData.createdAt || f.created_at,
                     total: orderData.total || 0,
-                    items: orderData.items ? orderData.items.length : 0,
+                    items: orderData.items ? Object.keys(orderData.items).reduce((total, category) => {
+                        return total + (Array.isArray(orderData.items[category]) ? orderData.items[category].length : 0);
+                    }, 0) : 0,
                     status: orderData.status || 'completed',
                     data: orderData
                 });
+                console.log('✅ Loaded order from cloud:', f.name, 'status:', orderData.status);
             }
         } catch (e) {
             console.warn('Failed to load order:', f.name, e);
         }
     }
     
-    return results;
+    console.log('📋 Total cloud orders loaded:', results.length);
+    return { orders: results };
 }
 
 // Download specific order from cloud
@@ -1425,7 +1433,7 @@ app.get('/api/orders/history', async (req, res) => {
         // Get local orders
         const raw = await fs.readFile(ORDERS_FILE, 'utf8').catch(() => '{"orders":{},"currentOrder":null}');
         const data = JSON.parse(raw || '{}');
-        const localOrders = Object.values(data.orders).filter(order => order.status === 'completed');
+        const localOrders = Object.values(data.orders);
         
         // Get cloud orders
         let cloudOrders = [];
