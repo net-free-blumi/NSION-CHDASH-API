@@ -11,30 +11,21 @@ const __dirname = path.dirname(__filename);
 
 const ROOT_PRODUCTS_FILE = path.join(__dirname, '..', 'products.json');
 const ROOT_ORDERS_FILE = path.join(__dirname, '..', 'orders.json');
-let DATA_DIR = process.env.DATA_DIR || '/data';
+let DATA_DIR = process.env.DATA_DIR || __dirname;
 let DATA_PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 let BACKUPS_DIR = path.join(DATA_DIR, 'backups');
 let ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 
 async function ensureDataLocations() {
     try {
-        // Try primary data dir
-        await fs.mkdir(DATA_DIR, { recursive: true });
-        await fs.mkdir(BACKUPS_DIR, { recursive: true });
+        // Always use local directory for Render compatibility
+        DATA_DIR = __dirname;
+        DATA_PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+        BACKUPS_DIR = path.join(DATA_DIR, 'backups');
         ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
-        // Verify write access; if not, fallback to local server directory
-        try {
-            const probePath = path.join(DATA_DIR, '.write-probe');
-            await fs.writeFile(probePath, 'ok', 'utf8');
-            await fs.unlink(probePath).catch(() => {});
-        } catch {
-            console.warn('DATA_DIR not writable, falling back to local server directory');
-            DATA_DIR = __dirname;
-            DATA_PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
-            BACKUPS_DIR = path.join(DATA_DIR, 'backups');
-            ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
-            await fs.mkdir(BACKUPS_DIR, { recursive: true });
-        }
+        
+        // Create directories if they don't exist
+        await fs.mkdir(BACKUPS_DIR, { recursive: true });
         // If data file does not exist but root products file exists with data, migrate once
         const dataExists = await fs.access(DATA_PRODUCTS_FILE).then(() => true).catch(() => false);
         if (!dataExists) {
@@ -1163,12 +1154,16 @@ app.post('/api/delete-backup', async (req, res) => {
 // ===== ORDERS MANAGEMENT SYSTEM =====
 
 // Orders data structure
-let ORDERS_BACKUPS_DIR = path.join(DATA_DIR, 'orders-backups');
+let ORDERS_BACKUPS_DIR = null; // Will be set in ensureDataLocations
 
 // Initialize orders data
 async function ensureOrdersData() {
     try {
         await ensureDataLocations(); // Make sure data locations are set
+        
+        // Set ORDERS_BACKUPS_DIR after ensureDataLocations
+        ORDERS_BACKUPS_DIR = path.join(DATA_DIR, 'orders-backups');
+        
         await fs.mkdir(ORDERS_BACKUPS_DIR, { recursive: true });
         const ordersExists = await fs.access(ORDERS_FILE).then(() => true).catch(() => false);
         if (!ordersExists) {
