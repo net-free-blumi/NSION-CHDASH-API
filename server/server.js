@@ -10,15 +10,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const ROOT_PRODUCTS_FILE = path.join(__dirname, '..', 'products.json');
+const ROOT_ORDERS_FILE = path.join(__dirname, '..', 'orders.json');
 let DATA_DIR = process.env.DATA_DIR || '/data';
 let DATA_PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 let BACKUPS_DIR = path.join(DATA_DIR, 'backups');
+let ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 
 async function ensureDataLocations() {
     try {
         // Try primary data dir
         await fs.mkdir(DATA_DIR, { recursive: true });
         await fs.mkdir(BACKUPS_DIR, { recursive: true });
+        ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
         // Verify write access; if not, fallback to local server directory
         try {
             const probePath = path.join(DATA_DIR, '.write-probe');
@@ -29,6 +32,7 @@ async function ensureDataLocations() {
             DATA_DIR = __dirname;
             DATA_PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
             BACKUPS_DIR = path.join(DATA_DIR, 'backups');
+            ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
             await fs.mkdir(BACKUPS_DIR, { recursive: true });
         }
         // If data file does not exist but root products file exists with data, migrate once
@@ -51,6 +55,7 @@ async function ensureDataLocations() {
             }
         }
         console.log('Data locations ensured. Using:', DATA_PRODUCTS_FILE);
+        console.log('☁️ Cloud storage enabled:', process.env.BACKUP_UPLOAD_TO_CLOUD === 'true' ? 'YES' : 'NO');
     } catch (e) {
         console.error('Failed ensuring data locations:', e);
         // Emergency fallback to local directory
@@ -708,6 +713,16 @@ app.post('/api/products/save', async (req, res) => {
             merged.categories = { ...merged.categories, ...categories };
         }
         await fs.writeFile(filePath, JSON.stringify(merged, null, 2), 'utf8');
+        
+        // שמירה אוטומטית לענן אחרי כל שמירת מוצרים
+        try {
+            await uploadProductsToCloud(merged);
+            console.log('✅ Products automatically saved to cloud');
+        } catch (cloudError) {
+            console.warn('⚠️ Failed to save products to cloud:', cloudError.message);
+            // לא נכשל את הבקשה אם השמירה לענן נכשלת
+        }
+        
         // Auto backups on save are disabled per product requirements
 
         res.json({
@@ -734,7 +749,8 @@ app.get('/api/products', async (req, res) => {
         // Auto-restore if products are empty and auto-restore is enabled
         const autoRestore = process.env.AUTO_RESTORE_ON_EMPTY === 'true';
         const productsCount = data.products ? Object.keys(data.products).length : 0;
-        if (autoRestore && productsCount === 0) {
+        
+        if (productsCount === 0) {
             console.log('🔄 Products count is 0, attempting auto-restore from cloud...');
             try {
                 const list = await listSupabaseBackups();
@@ -743,6 +759,7 @@ app.get('/api/products', async (req, res) => {
                     const rawCloud = await downloadSupabaseBackup(latest.name);
                     await fs.writeFile(filePath, rawCloud, 'utf8');
                     const parsed = JSON.parse(rawCloud || '{}');
+                    console.log('✅ Products restored from cloud backup:', latest.name);
                     return res.json({ products: parsed.products || {}, categories: parsed.categories || {}, restoredFrom: 'cloud' });
                 }
             } catch (e) {
@@ -1146,12 +1163,12 @@ app.post('/api/delete-backup', async (req, res) => {
 // ===== ORDERS MANAGEMENT SYSTEM =====
 
 // Orders data structure
-let ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 let ORDERS_BACKUPS_DIR = path.join(DATA_DIR, 'orders-backups');
 
 // Initialize orders data
 async function ensureOrdersData() {
     try {
+        await ensureDataLocations(); // Make sure data locations are set
         await fs.mkdir(ORDERS_BACKUPS_DIR, { recursive: true });
         const ordersExists = await fs.access(ORDERS_FILE).then(() => true).catch(() => false);
         if (!ordersExists) {
@@ -1160,6 +1177,37 @@ async function ensureOrdersData() {
         }
     } catch (e) {
         console.error('Failed to initialize orders data:', e);
+    }
+}
+
+// Upload products to cloud (Supabase)
+async function uploadProductsToCloud(productsData) {
+    if (process.env.BACKUP_UPLOAD_TO_CLOUD !== 'true') return;
+    const env = getSupabaseEnv();
+    if (!env) return;
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `products-${timestamp}.json`;
+    
+    try {
+        const endpoint = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/${encodeURIComponent(filename)}`;
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${env.key}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(productsData)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Supabase upload failed: ${response.status} ${response.statusText}`);
+        }
+        
+        console.log(`✅ Products uploaded to cloud: ${filename}`);
+    } catch (error) {
+        console.error('❌ Failed to upload products to cloud:', error);
+        throw error;
     }
 }
 
@@ -1421,7 +1469,22 @@ app.get('/api/orders', async (req, res) => {
         const data = JSON.parse(raw || '{}');
         const localOrders = Object.values(data.orders || {});
         
-        // Get cloud orders
+        // If no local orders, try to load from cloud
+        if (localOrders.length === 0) {
+            console.log('🔄 No local orders found, attempting to load from cloud...');
+            try {
+                const cloudData = await getOrdersFromCloud();
+                const cloudOrders = cloudData.orders || [];
+                if (cloudOrders.length > 0) {
+                    console.log(`✅ Loaded ${cloudOrders.length} orders from cloud`);
+                    return res.json({ success: true, orders: cloudOrders, count: cloudOrders.length, source: 'cloud' });
+                }
+            } catch (e) {
+                console.warn('Failed to load orders from cloud:', e?.message || e);
+            }
+        }
+        
+        // Get cloud orders for additional data
         let cloudOrders = [];
         try {
             const cloudData = await getOrdersFromCloud();
