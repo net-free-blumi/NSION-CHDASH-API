@@ -1240,7 +1240,7 @@ async function saveOrderToCloud(orderData) {
 // Get orders from cloud
 async function getOrdersFromCloud() {
     const env = getSupabaseEnv();
-    if (!env) return [];
+    if (!env) return { orders: [] };
     
     const endpoint = `${env.url}/storage/v1/object/list/${encodeURIComponent(env.bucket)}`;
     const resp = await fetch(endpoint, {
@@ -1260,7 +1260,10 @@ async function getOrdersFromCloud() {
     for (const f of (data || []).filter(x => (x.name || '').endsWith('.json'))) {
         try {
             console.log('🔍 Processing file:', f.name);
-            const orderEndpoint = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/${encodeURIComponent(f.name)}`;
+            // Ensure the filename includes the orders/ prefix
+            const fullPath = f.name.startsWith('orders/') ? f.name : `orders/${f.name}`;
+            const orderEndpoint = `${env.url}/storage/v1/object/public/${encodeURIComponent(env.bucket)}/${fullPath}`;
+            console.log('🔗 Order endpoint:', orderEndpoint);
             const orderResp = await fetch(orderEndpoint, { headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key } });
             console.log('📥 Order response status:', orderResp.status);
             if (orderResp.ok) {
