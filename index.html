@@ -896,6 +896,28 @@ document.addEventListener('DOMContentLoaded', () => {
         >
           🛍️ ניהול מוצרים
         </button>
+        
+        <button 
+          id="orders-management-btn"
+          onclick="openOrdersManagement()" 
+          style="
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(40,167,69,0.3);
+            transition: all 0.3s ease;
+            margin: 10px;
+          "
+          onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(40,167,69,0.4)'"
+          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(40,167,69,0.3)'"
+        >
+          📋 ניהול הזמנות
+        </button>
 
       </div>
 
@@ -1267,6 +1289,9 @@ function syncProducts() {
         </button>
         <button onclick="smartSortByTemperature()" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
           🔄<br>סידור חכם<br>לפי חם-קר
+        </button>
+        <button onclick="saveCurrentOrderToCloud()" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);">
+          ☁️<br>שמור הזמנה<br>בענן
         </button>
       </div>
 
@@ -6487,6 +6512,298 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         if (saved) {
           masked.value = saved;
           hidden.value = saved;
+        }
+      });
+    </script>
+
+    <!-- Orders Management Modal -->
+    <div id="ordersManagementModal" class="modal" style="display: none">
+      <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+        <span class="close" onclick="closeOrdersModal()">&times;</span>
+        <h2>📋 ניהול הזמנות</h2>
+        
+        <!-- סטטיסטיקות -->
+        <div class="orders-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white;">
+          <div class="stat-item" style="text-align: center;">
+            <div class="stat-number" id="totalOrdersStat" style="font-size: 2rem; font-weight: bold;">0</div>
+            <div class="stat-label" style="font-size: 0.9rem; opacity: 0.9;">סה"כ הזמנות</div>
+          </div>
+          <div class="stat-item" style="text-align: center;">
+            <div class="stat-number" id="activeOrdersStat" style="font-size: 2rem; font-weight: bold;">0</div>
+            <div class="stat-label" style="font-size: 0.9rem; opacity: 0.9;">הזמנות פעילות</div>
+          </div>
+          <div class="stat-item" style="text-align: center;">
+            <div class="stat-number" id="completedTodayStat" style="font-size: 2rem; font-weight: bold;">0</div>
+            <div class="stat-label" style="font-size: 0.9rem; opacity: 0.9;">הושלמו היום</div>
+          </div>
+        </div>
+
+        <!-- כפתורי פעולה -->
+        <div class="orders-actions" style="display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap;">
+          <button onclick="refreshOrdersList()" class="btn" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);">
+            🔄 רענן רשימה
+          </button>
+          <button onclick="createNewOrderFromModal()" class="btn" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);">
+            ➕ הזמנה חדשה
+          </button>
+        </div>
+
+        <!-- רשימת הזמנות -->
+        <div class="orders-list-container">
+          <h3>📜 היסטוריית הזמנות</h3>
+          <div id="ordersList" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
+            <div style="text-align: center; padding: 20px; color: #666;">
+              טוען הזמנות...
+            </div>
+          </div>
+        </div>
+
+        <!-- הודעות -->
+        <div id="ordersNotification" style="margin-top: 15px;"></div>
+      </div>
+    </div>
+
+    <!-- Orders Management Script -->
+    <script>
+      // הגדרת הפונקציה הגלובלית מיד בתחילת הסקריפט
+      window.openOrdersModal = null;
+      
+      // Order Manager Class
+      class OrderManager {
+        constructor() {
+          this.orders = [];
+          this.currentOrder = null;
+          this.apiBaseUrl = window.API_BASE_URL || window.location.origin;
+        }
+
+        async init() {
+          await this.loadOrdersHistory();
+          this.updateStats();
+        }
+
+        async loadOrdersHistory() {
+          try {
+            const response = await fetch(`${this.apiBaseUrl}/api/orders`);
+            if (response.ok) {
+              const data = await response.json();
+              this.orders = data.orders || [];
+              this.updateOrdersDisplay();
+            }
+          } catch (error) {
+            console.error('שגיאה בטעינת הזמנות:', error);
+            this.showNotification('שגיאה בטעינת הזמנות', 'error');
+          }
+        }
+
+        updateOrdersDisplay() {
+          const ordersList = document.getElementById('ordersList');
+          if (!ordersList) return;
+
+          if (this.orders.length === 0) {
+            ordersList.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">אין הזמנות זמינות</div>';
+            return;
+          }
+
+          // מיון לפי תאריך (החדש ביותר ראשון)
+          const sortedOrders = [...this.orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+          ordersList.innerHTML = sortedOrders.map(order => `
+            <div class="order-item" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 10px; background: white;">
+              <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                <div>
+                  <h4 style="margin: 0; color: #333;">הזמנה #${order.orderNumber || order.id}</h4>
+                  <p style="margin: 5px 0; color: #666; font-size: 0.9rem;">
+                    ${new Date(order.createdAt).toLocaleString('he-IL')}
+                  </p>
+                  <span class="order-status" style="padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; 
+                    background: ${order.status === 'completed' ? '#d4edda' : '#fff3cd'}; 
+                    color: ${order.status === 'completed' ? '#155724' : '#856404'};">
+                    ${order.status === 'completed' ? 'הושלמה' : 'פעילה'}
+                  </span>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                  <button onclick="viewOrderDetails('${order.id}')" class="btn" style="padding: 5px 10px; font-size: 0.8rem; background: #17a2b8;">
+                    👁️ צפה
+                  </button>
+                  <button onclick="restoreOrderToMain('${order.id}')" class="btn" style="padding: 5px 10px; font-size: 0.8rem; background: #28a745;">
+                    🔄 שחזר
+                  </button>
+                </div>
+              </div>
+              <div style="color: #666; font-size: 0.9rem;">
+                לקוח: ${order.customerName || 'לא צוין'} | 
+                סה"כ פריטים: ${this.countOrderItems(order)}
+              </div>
+            </div>
+          `).join('');
+        }
+
+        countOrderItems(order) {
+          if (!order.items) return 0;
+          return Object.values(order.items).reduce((total, category) => {
+            return total + (Array.isArray(category) ? category.length : 0);
+          }, 0);
+        }
+
+        updateStats() {
+          const totalOrders = this.orders.length;
+          const activeOrders = this.orders.filter(order => order.status !== 'completed').length;
+          const today = new Date().toDateString();
+          const completedToday = this.orders.filter(order => 
+            order.status === 'completed' && 
+            new Date(order.updatedAt || order.createdAt).toDateString() === today
+          ).length;
+
+          document.getElementById('totalOrdersStat').textContent = totalOrders;
+          document.getElementById('activeOrdersStat').textContent = activeOrders;
+          document.getElementById('completedTodayStat').textContent = completedToday;
+        }
+
+        showNotification(message, type = 'info') {
+          const notification = document.getElementById('ordersNotification');
+          if (!notification) return;
+
+          notification.innerHTML = `
+            <div style="padding: 10px 15px; border-radius: 6px; margin-bottom: 10px;
+              background: ${type === 'error' ? '#f8d7da' : type === 'success' ? '#d4edda' : '#d1ecf1'};
+              color: ${type === 'error' ? '#721c24' : type === 'success' ? '#155724' : '#0c5460'};
+              border: 1px solid ${type === 'error' ? '#f5c6cb' : type === 'success' ? '#c3e6cb' : '#bee5eb'};">
+              ${message}
+            </div>
+          `;
+
+          setTimeout(() => {
+            notification.innerHTML = '';
+          }, 3000);
+        }
+      }
+
+      // פונקציות גלובליות
+      let orderManager = null;
+
+      function openOrdersModal() {
+        console.log('openOrdersModal נקרא');
+        const modal = document.getElementById('ordersManagementModal');
+        console.log('המודל נמצא?', !!modal);
+        
+        if (modal) {
+          console.log('פותח את המודל');
+          modal.style.display = 'block';
+          if (!orderManager) {
+            console.log('יוצר OrderManager חדש');
+            orderManager = new OrderManager();
+            orderManager.init();
+          } else {
+            console.log('טוען היסטוריית הזמנות');
+            orderManager.loadOrdersHistory();
+          }
+        } else {
+          console.error('המודל ordersManagementModal לא נמצא');
+        }
+      }
+
+      // הגדרת הפונקציה הגלובלית
+      window.openOrdersModal = openOrdersModal;
+
+      function closeOrdersModal() {
+        const modal = document.getElementById('ordersManagementModal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
+      }
+
+      function refreshOrdersList() {
+        if (orderManager) {
+          orderManager.loadOrdersHistory();
+        }
+      }
+
+      function createNewOrderFromModal() {
+        closeOrdersModal();
+        newOrder();
+      }
+
+      function viewOrderDetails(orderId) {
+        if (orderManager) {
+          const order = orderManager.orders.find(o => o.id === orderId);
+          if (order) {
+            alert(`פרטי הזמנה #${order.orderNumber || order.id}\n\nלקוח: ${order.customerName || 'לא צוין'}\nתאריך: ${new Date(order.createdAt).toLocaleString('he-IL')}\nסטטוס: ${order.status === 'completed' ? 'הושלמה' : 'פעילה'}\n\nסה"כ פריטים: ${orderManager.countOrderItems(order)}`);
+          }
+        }
+      }
+
+      function restoreOrderToMain(orderId) {
+        if (orderManager) {
+          const order = orderManager.orders.find(o => o.id === orderId);
+          if (order && confirm(`האם אתה בטוח שברצונך לשחזר את הזמנה #${order.orderNumber || order.id}?`)) {
+            // שחזור ההזמנה לדף הראשי
+            restoreOrderToMainPage(order);
+            closeOrdersModal();
+          }
+        }
+      }
+
+      function restoreOrderToMainPage(order) {
+        try {
+          // שחזור פרטי ההזמנה
+          if (order.customerName) {
+            document.getElementById('customerName').value = order.customerName;
+          }
+          if (order.orderNumber) {
+            document.getElementById('orderNumber').value = order.orderNumber;
+          }
+          if (order.orderDate) {
+            document.getElementById('orderDate').value = order.orderDate;
+          }
+          if (order.orderTime) {
+            document.getElementById('orderTime').value = order.orderTime;
+          }
+
+          // שחזור פריטי ההזמנה
+          if (order.items) {
+            // ניקוי הרשימות הקיימות
+            const categories = ['kitchenProductsList', 'fruitsList', 'bakeryList', 'warehouseList', 'sushiList', 'amarList'];
+            categories.forEach(categoryId => {
+              const list = document.getElementById(categoryId);
+              if (list) list.innerHTML = '';
+            });
+
+            // הוספת הפריטים חזרה
+            Object.entries(order.items).forEach(([category, items]) => {
+              if (Array.isArray(items)) {
+                const listId = category + 'List';
+                const list = document.getElementById(listId);
+                if (list) {
+                  items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.innerHTML = item;
+                    list.appendChild(li);
+                  });
+                }
+              }
+            });
+          }
+
+          // עדכון התצוגה
+          updateOrderSummaryDisplay();
+          displayOrderInfo();
+
+          if (orderManager) {
+            orderManager.showNotification('ההזמנה שוחזרה בהצלחה!', 'success');
+          }
+        } catch (error) {
+          console.error('שגיאה בשחזור ההזמנה:', error);
+          if (orderManager) {
+            orderManager.showNotification('שגיאה בשחזור ההזמנה', 'error');
+          }
+        }
+      }
+
+      // סגירת המודל בלחיצה על הרקע
+      window.addEventListener('click', function(event) {
+        const modal = document.getElementById('ordersManagementModal');
+        if (event.target === modal) {
+          closeOrdersModal();
         }
       });
     </script>

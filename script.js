@@ -2712,6 +2712,74 @@ function openProductManagement() {
     window.open('admin.html', '_blank');
 }
 
+// פונקציה לפתיחת מערכת ניהול ההזמנות
+function openOrdersManagement() {
+    console.log('openOrdersManagement נקרא');
+    
+    // בדיקה ישירה של המודל
+    const modal = document.getElementById('ordersManagementModal');
+    console.log('המודל נמצא?', !!modal);
+    
+    if (modal) {
+        console.log('פותח את המודל ישירות');
+        modal.style.display = 'block';
+        
+        // טעינת הזמנות אם המודל נפתח
+        if (window.orderManager) {
+            window.orderManager.loadOrdersHistory();
+        } else {
+            // יצירת OrderManager אם לא קיים
+            if (typeof OrderManager !== 'undefined') {
+                window.orderManager = new OrderManager();
+                window.orderManager.init();
+            }
+        }
+    } else {
+        console.error('המודל ordersManagementModal לא נמצא');
+        alert('שגיאה: המודל לא נמצא. בדוק שהקוד נטען נכון.');
+    }
+}
+
+// פונקציה לשמירת הזמנה נוכחית בענן
+async function saveCurrentOrderToCloud() {
+    try {
+        const orderData = {
+            customerName: document.getElementById('customerName')?.value || '',
+            orderNumber: document.getElementById('orderNumber')?.value || '',
+            orderDate: document.getElementById('orderDate')?.value || '',
+            orderTime: document.getElementById('orderTime')?.value || '',
+            items: {
+                kitchenProducts: Array.from(document.getElementById('kitchenProductsList')?.children || []).map(li => li.innerHTML),
+                fruits: Array.from(document.getElementById('fruitsList')?.children || []).map(li => li.innerHTML),
+                bakery: Array.from(document.getElementById('bakeryList')?.children || []).map(li => li.innerHTML),
+                warehouse: Array.from(document.getElementById('warehouseList')?.children || []).map(li => li.innerHTML),
+                sushi: Array.from(document.getElementById('sushiList')?.children || []).map(li => li.innerHTML),
+                amar: Array.from(document.getElementById('amarList')?.children || []).map(li => li.innerHTML)
+            },
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        const response = await fetch(`${window.API_BASE_URL || window.location.origin}/api/orders`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+
+        if (response.ok) {
+            showNotification('ההזמנה נשמרה בענן בהצלחה!', 'green');
+        } else {
+            throw new Error('שגיאה בשמירת ההזמנה');
+        }
+    } catch (error) {
+        console.error('שגיאה בשמירת ההזמנה:', error);
+        showNotification('שגיאה בשמירת ההזמנה בענן', 'red');
+    }
+}
+
 // פונקציה לניקוי כפילויות ברשימה
 function removeDuplicatesFromList(categoryList) {
     const items = Array.from(categoryList.children);
