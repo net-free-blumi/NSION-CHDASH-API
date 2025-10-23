@@ -6730,7 +6730,8 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         if (orderManager) {
           const order = orderManager.orders.find(o => o.id === orderId);
           if (order) {
-            alert(`פרטי הזמנה #${order.orderNumber || order.id}\n\nלקוח: ${order.customerName || 'לא צוין'}\nתאריך: ${new Date(order.createdAt).toLocaleString('he-IL')}\nסטטוס: ${order.status === 'completed' ? 'הושלמה' : 'פעילה'}\n\nסה"כ פריטים: ${orderManager.countOrderItems(order)}`);
+            const orderData = order.data || order;
+            alert(`פרטי הזמנה #${orderData.orderNumber || order.id}\n\nלקוח: ${orderData.customerName || 'לא צוין'}\nתאריך: ${new Date(orderData.createdAt).toLocaleString('he-IL')}\nסטטוס: ${orderData.status === 'completed' ? 'הושלמה' : 'פעילה'}\n\nסה"כ פריטים: ${orderManager.countOrderItems(orderData)}`);
           }
         }
       }
@@ -6738,10 +6739,13 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
       function restoreOrderToMain(orderId) {
         if (orderManager) {
           const order = orderManager.orders.find(o => o.id === orderId);
-          if (order && confirm(`האם אתה בטוח שברצונך לשחזר את הזמנה #${order.orderNumber || order.id}?`)) {
-            // שחזור ההזמנה לדף הראשי
-            restoreOrderToMainPage(order);
-            closeOrdersModal();
+          if (order) {
+            const orderData = order.data || order;
+            if (confirm(`האם אתה בטוח שברצונך לשחזר את הזמנה #${orderData.orderNumber || order.id}?`)) {
+              // שחזור ההזמנה לדף הראשי
+              restoreOrderToMainPage(orderData);
+              closeOrdersModal();
+            }
           }
         }
       }

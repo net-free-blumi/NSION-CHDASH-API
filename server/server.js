@@ -1259,10 +1259,13 @@ async function getOrdersFromCloud() {
     const results = [];
     for (const f of (data || []).filter(x => (x.name || '').endsWith('.json'))) {
         try {
+            console.log('🔍 Processing file:', f.name);
             const orderEndpoint = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/${encodeURIComponent(f.name)}`;
             const orderResp = await fetch(orderEndpoint, { headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key } });
+            console.log('📥 Order response status:', orderResp.status);
             if (orderResp.ok) {
                 const orderData = await orderResp.json();
+                console.log('📋 Order data:', JSON.stringify(orderData, null, 2));
                 results.push({
                     id: f.name.replace('orders/', '').replace('.json', ''),
                     name: orderData.customerName || 'הזמנה ללא שם',
@@ -1275,9 +1278,11 @@ async function getOrdersFromCloud() {
                     data: orderData
                 });
                 console.log('✅ Loaded order from cloud:', f.name, 'status:', orderData.status);
+            } else {
+                console.warn('❌ Failed to load order file:', f.name, 'status:', orderResp.status);
             }
         } catch (e) {
-            console.warn('Failed to load order:', f.name, e);
+            console.warn('❌ Failed to load order:', f.name, e);
         }
     }
     
