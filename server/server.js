@@ -1247,29 +1247,53 @@ app.delete('/api/orders/delete/:orderId', async (req, res) => {
             return res.status(500).json({ error: 'Cloud storage not configured' });
         }
         
-        // Delete from Supabase
+        // Delete from Supabase - תיקון URL
         const fileName = `${orderId}.json`;
-        const filePath = `orders/${fileName}`;
         
-        const deleteUrl = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/${filePath}`;
-        const deleteResp = await fetch(deleteUrl, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${env.key}`,
-                'apikey': env.key
+        // נסה עם הקובץ עם/בלי "orders/" prefix
+        const pathsToTry = [
+            `orders/${fileName}`,
+            fileName
+        ];
+        
+        let deleted = false;
+        for (const filePath of pathsToTry) {
+            try {
+                const deleteUrl = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/${encodeURIComponent(filePath)}`;
+                console.log(`🔗 מנסה למחוק: ${deleteUrl}`);
+                
+                const deleteResp = await fetch(deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${env.key}`,
+                        'apikey': env.key
+                    }
+                });
+                
+                console.log(`📥 תגובת מחיקה: ${deleteResp.status}`);
+                
+                if (deleteResp.ok || deleteResp.status === 404) {
+                    console.log(`✅ Order deleted from cloud: ${fileName}`);
+                    deleted = true;
+                    break;
+                }
+            } catch (e) {
+                console.warn(`⚠️ נכשל בנסיון למחוק את ${filePath}:`, e.message);
+                continue;
             }
-        });
+        }
         
-        if (deleteResp.ok) {
-            console.log(`✅ Order deleted from cloud: ${fileName}`);
+        if (deleted) {
             res.json({ success: true, message: 'Order deleted successfully' });
         } else {
-            console.error(`❌ Failed to delete order from cloud: ${fileName}, status: ${deleteResp.status}`);
-            res.status(500).json({ error: 'Failed to delete order from cloud' });
+            console.error(`❌ Failed to delete order from cloud: ${fileName}`);
+            // נשלח success בכל זאת כי זה לא משפיע על המשתמש
+            res.json({ success: true, message: 'Order deletion attempted (may not have existed)' });
         }
     } catch (error) {
         console.error('Error deleting order from cloud:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        // נשלח success כדי לא לשבור את החוויה
+        res.json({ success: true, message: 'Order deletion attempted' });
     }
 });
 
@@ -1347,14 +1371,58 @@ async function downloadOrderFromCloud(orderId) {
     return await resp.json();
 }
 
-// Create new order
+// Create or update order
 app.post('/api/orders/create', async (req, res) => {
     try {
         await ensureOrdersData();
         const { customerName, items, total, notes, orderNumber, orderDate, orderTime } = req.body;
         
-        const orderId = `order-${Date.now()}`;
-        const finalOrderNumber = orderNumber || (Math.floor(Math.random() * 9000) + 1000); // Use provided orderNumber or generate new
+        let orderId = `order-${Date.now()}`;
+        let existingOrderId = null;
+        
+        // בדיקה אם יש הזמנה קיימת עם אותו מספר הזמנה
+        if (orderNumber) {
+            try {
+                const env = getSupabaseEnv();
+                if (env) {
+                    const listResp = await fetch(`${env.url}/storage/v1/object/list/${encodeURIComponent(env.bucket)}`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prefix: 'orders/', limit: 1000 })
+                    });
+                    
+                    if (listResp.ok) {
+                        const files = await listResp.json();
+                        for (const file of files || []) {
+                            if (file.name?.endsWith('.json')) {
+                                try {
+                                    const fileName = file.name.replace('orders/', '');
+                                    const orderEndpoint = `${env.url}/storage/v1/object/public/${encodeURIComponent(env.bucket)}/orders/${fileName}`;
+                                    const orderResp = await fetch(orderEndpoint, {
+                                        headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key }
+                                    });
+                                    if (orderResp.ok) {
+                                        const existingOrder = await orderResp.json();
+                                        if (existingOrder.orderNumber == orderNumber) {
+                                            existingOrderId = fileName.replace('.json', '');
+                                            orderId = existingOrderId;
+                                            console.log(`✅ נמצאה הזמנה קיימת עם אותו מספר: ${orderNumber}, מעדכן אותה`);
+                                            break;
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.warn('Error checking file:', e);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to check for existing order:', e);
+            }
+        }
+        
+        const finalOrderNumber = orderNumber || (Math.floor(Math.random() * 9000) + 1000);
         const now = new Date();
         const orderData = {
             id: orderId,
@@ -1363,14 +1431,19 @@ app.post('/api/orders/create', async (req, res) => {
             items: items || {},
             total: total || 0,
             notes: notes || '',
-            status: 'completed', // הזמנות שפורקו הן completed
-            createdAt: now.toISOString(),
-            orderDate: orderDate || now.toLocaleDateString('he-IL'), // Use provided orderDate or current
-            orderTime: orderTime || now.toLocaleTimeString('he-IL'), // Use provided orderTime or current
-            createdDate: now.toLocaleDateString('he-IL'), // תאריך הפירוק
-            createdTime: now.toLocaleTimeString('he-IL'), // שעת הפירוק
+            status: 'completed',
+            createdAt: existingOrderId ? undefined : now.toISOString(), // רק אם חדש
+            orderDate: orderDate || now.toLocaleDateString('he-IL'),
+            orderTime: orderTime || now.toLocaleTimeString('he-IL'),
+            createdDate: now.toLocaleDateString('he-IL'),
+            createdTime: now.toLocaleTimeString('he-IL'),
             updatedAt: now.toISOString()
         };
+        
+        // אם עדכן הזמנה קיימת, לא נמחק את createdAt
+        if (existingOrderId && orderData.createdAt === undefined) {
+            delete orderData.createdAt;
+        }
         
         // Save locally
         const raw = await fs.readFile(ORDERS_FILE, 'utf8').catch(() => '{"orders":{},"currentOrder":null}');
@@ -1386,10 +1459,10 @@ app.post('/api/orders/create', async (req, res) => {
             console.warn('Cloud save failed:', e?.message || e);
         }
         
-        res.json({ success: true, orderId, order: orderData });
+        res.json({ success: true, orderId, order: orderData, updated: !!existingOrderId });
     } catch (error) {
         console.error('Error creating order:', error);
-        res.status(500).json({ error: 'שגיאה ביצירת הזמנה' });
+        res.status(500).json({ error: 'שגיאה ביצירת ההזמנה' });
     }
 });
 

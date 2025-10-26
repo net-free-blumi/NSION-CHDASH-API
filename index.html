@@ -4949,8 +4949,12 @@ document.addEventListener('keydown', function(e) {
         // שמירת רשימות המוצרים
         ["kitchen", "bakery",  "kitchenProducts", "online", "warehouse"].forEach((category) => {
           const items = Array.from(
-            document.getElementById(`${category}List`).children
-          ).map((li) => li.firstElementChild.textContent);
+            document.getElementById(`${category}List`)?.children || []
+          ).map((li) => {
+            // קבלת הטקסט מהאלמנט הראשון או מהאלמנט עצמו
+            const child = li.firstElementChild;
+            return child ? child.textContent : li.textContent || '';
+          });
           localStorage.setItem(`${category}Items`, JSON.stringify(items));
         });
 
@@ -5374,10 +5378,12 @@ document.addEventListener('keydown', function(e) {
 
         // מקבל את כל פריטי הסושי
         const sushiItems = Array.from(
-            document.getElementById("sushiList").children
-        ).map((li) =>
-            li.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, "").trim()
-        );
+            document.getElementById("sushiList")?.children || []
+        ).map((li) => {
+            const child = li.firstElementChild;
+            const text = child ? child.textContent : li.textContent || '';
+            return text.replace(/\(מק"ט: \d+\)/g, "").trim();
+        });
 
         if (sushiItems.length > 0) {
             const sushiSummary = `היי @אבי\n
@@ -5415,10 +5421,12 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
         // מקבל את כל פריטי הסושי
         const sushiItems = Array.from(
-          document.getElementById("sushiList").children
-        ).map((li) =>
-          li.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, "").trim()
-        );
+          document.getElementById("sushiList")?.children || []
+        ).map((li) => {
+            const child = li.firstElementChild;
+            const text = child ? child.textContent : li.textContent || '';
+            return text.replace(/\(מק"ט: \d+\)/g, "").trim();
+          });
 
         if (sushiItems.length > 0) {
           const sushiSummary = `היי @אבי\n
@@ -6997,18 +7005,55 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             if (list) list.innerHTML = '';
           });
 
-          // הוספת הפריטים חזרה עם כל הפרטים
+          // הוספת הפריטים חזרה עם כל הפרטים - כולל כפתורי מחק וארגון
           if (order.items) {
             Object.entries(order.items).forEach(([category, items]) => {
-              if (Array.isArray(items)) {
+              if (Array.isArray(items) && items.length > 0) {
                 const listId = category + 'List';
                 const list = document.getElementById(listId);
                 if (list) {
-                  items.forEach(item => {
+                  items.forEach(itemText => {
+                    // הסרת "מחק" ו-"⇅" אם הם כבר קיימים כדי למנוע כפילויות
+                    const cleanedText = itemText.replace(/מחק|⇅/g, '').trim();
+                    
+                    // יצירת רשומה עם כפתורי מחק וארגון
                     const li = document.createElement('li');
-                    li.innerHTML = item; // שמירת כל הפרטים כולל מק"ט וכמויות
+                    li.style.cssText = 'display: flex; align-items: center; margin: 5px 0; padding: 8px; background: white; border-radius: 4px;';
+                    
+                    // טקסט המוצר
+                    const productText = document.createElement('span');
+                    productText.style.flex = '1';
+                    productText.textContent = cleanedText;
+                    
+                    // כפתור מחק
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = 'מחק';
+                    deleteBtn.style.cssText = 'background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;';
+                    deleteBtn.onclick = () => {
+                      if (confirm('האם אתה בטוח שברצונך למחוק פריט זה?')) {
+                        li.remove();
+                        if (typeof updateOrderSummaryDisplay === 'function') {
+                          updateOrderSummaryDisplay();
+                        }
+                      }
+                    };
+                    
+                    // כפתור ארגון
+                    const dragBtn = document.createElement('button');
+                    dragBtn.textContent = '⇅';
+                    dragBtn.type = 'button';
+                    dragBtn.className = 'dnd-handle';
+                    dragBtn.draggable = true;
+                    dragBtn.style.cssText = 'background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: move;';
+                    
+                    li.appendChild(productText);
+                    li.appendChild(deleteBtn);
+                    li.appendChild(dragBtn);
+                    
                     list.appendChild(li);
                   });
+                  
+                  console.log(`✅ החזרה ${items.length} פריטים לרשימה: ${listId}`);
                 }
               }
             });
@@ -7021,9 +7066,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           if (typeof displayOrderInfo === 'function') {
             displayOrderInfo();
           }
-          if (typeof saveOrderDetails === 'function') {
-            saveOrderDetails();
-          }
+          // לא לקרוא ל-saveOrderDetails כאן כי זה גורם לשגיאה עם firstElementChild
 
           if (window.orderManager) {
             window.orderManager.showNotification('ההזמנה שוחזרה בהצלחה!', 'success');

@@ -2763,29 +2763,8 @@ async function saveCurrentOrderToCloud() {
         // הצגת אינדיקטור טעינה
         showSaveLoadingIndicator();
         
-        // בדיקה מהירה מקומית אם יש הזמנה קיימת עם אותו מספר הזמנה
-        const orderNumberField = document.getElementById('orderNumber');
-        if (orderNumberField && orderNumberField.value) {
-            const existingOrderNumber = orderNumberField.value;
-            console.log('🔍 בודק אם מספר הזמנה קיים מקומית:', existingOrderNumber);
-            
-            // בדיקה מקומית מהירה
-            const savedOrderNumbers = JSON.parse(localStorage.getItem('savedOrderNumbers') || '[]');
-            if (savedOrderNumbers.includes(existingOrderNumber)) {
-                const confirmUpdate = confirm(
-                    `הזמנה מספר ${existingOrderNumber} כבר קיימת בענן!\n\n` +
-                    `האם אתה בטוח שברצונך לעדכן את ההזמנה הקיימת?\n\n` +
-                    `לחץ "אישור" לעדכון ההזמנה הקיימת\n` +
-                    `לחץ "ביטול" לשמירה כמספר הזמנה חדש`
-                );
-                
-                if (!confirmUpdate) {
-                    // אם המשתמש לא רוצה לעדכן, נמחק את מספר ההזמנה כדי שייווצר חדש
-                    orderNumberField.value = '';
-                    console.log('🔄 מספר הזמנה נמחק, ייווצר מספר חדש');
-                }
-            }
-        }
+        // שמירה תמיד מעדכנת - אין מניעת שמירה כפולה
+        console.log('💾 המערכת שומרת/מעדכנת את ההזמנה בענן');
         
         const orderData = {
             customerName: 'הזמנה ללא שם',
