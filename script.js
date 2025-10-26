@@ -2758,19 +2758,84 @@ function openOrdersManagement() {
 // פונקציה לשמירת הזמנה נוכחית בענן
 async function saveCurrentOrderToCloud() {
     try {
+        console.log('💾 saveCurrentOrderToCloud נקרא');
+        
+        // בדיקה אם יש הזמנה קיימת עם אותו מספר הזמנה
+        const orderNumberField = document.getElementById('orderNumber');
+        if (orderNumberField && orderNumberField.value) {
+            const existingOrderNumber = orderNumberField.value;
+            console.log('🔍 בודק אם מספר הזמנה קיים:', existingOrderNumber);
+            
+            // בדיקה אם ההזמנה כבר קיימת
+            const response = await fetch(`${window.API_BASE_URL || window.location.origin}/api/orders/history`);
+            if (response.ok) {
+                const data = await response.json();
+                const existingOrder = data.orders?.find(order => 
+                    order.orderNumber == existingOrderNumber || 
+                    order.data?.orderNumber == existingOrderNumber
+                );
+                
+                if (existingOrder) {
+                    const confirmUpdate = confirm(
+                        `הזמנה מספר ${existingOrderNumber} כבר קיימת בענן!\n\n` +
+                        `האם אתה בטוח שברצונך לעדכן את ההזמנה הקיימת?\n\n` +
+                        `לחץ "אישור" לעדכון ההזמנה הקיימת\n` +
+                        `לחץ "ביטול" לשמירה כמספר הזמנה חדש`
+                    );
+                    
+                    if (!confirmUpdate) {
+                        // אם המשתמש לא רוצה לעדכן, נמחק את מספר ההזמנה כדי שייווצר חדש
+                        orderNumberField.value = '';
+                        console.log('🔄 מספר הזמנה נמחק, ייווצר מספר חדש');
+                    }
+                }
+            }
+        }
+        
         const orderData = {
-            customerName: document.getElementById('customerName')?.value || '',
+            customerName: document.getElementById('customerName')?.value || 'הזמנה ללא שם',
+            orderNumber: document.getElementById('orderNumber')?.value || '',
+            orderDate: document.getElementById('orderDate')?.value || '',
+            orderTime: document.getElementById('orderTime')?.value || '',
             items: {
-                kitchenProducts: Array.from(document.getElementById('kitchenProductsList')?.children || []).map(li => li.innerHTML),
-                fruits: Array.from(document.getElementById('fruitsList')?.children || []).map(li => li.innerHTML),
-                bakery: Array.from(document.getElementById('bakeryList')?.children || []).map(li => li.innerHTML),
-                warehouse: Array.from(document.getElementById('warehouseList')?.children || []).map(li => li.innerHTML),
-                sushi: Array.from(document.getElementById('sushiList')?.children || []).map(li => li.innerHTML),
-                amar: Array.from(document.getElementById('amarList')?.children || []).map(li => li.innerHTML)
+                kitchenProducts: Array.from(document.getElementById('kitchenProductsList')?.children || []).map(li => {
+                    const text = li.textContent || li.innerText || '';
+                    return text.replace(/מחק|⇅/g, '').trim();
+                }).filter(item => item.length > 0),
+                fruits: Array.from(document.getElementById('fruitsList')?.children || []).map(li => {
+                    const text = li.textContent || li.innerText || '';
+                    return text.replace(/מחק|⇅/g, '').trim();
+                }).filter(item => item.length > 0),
+                bakery: Array.from(document.getElementById('bakeryList')?.children || []).map(li => {
+                    const text = li.textContent || li.innerText || '';
+                    return text.replace(/מחק|⇅/g, '').trim();
+                }).filter(item => item.length > 0),
+                warehouse: Array.from(document.getElementById('warehouseList')?.children || []).map(li => {
+                    const text = li.textContent || li.innerText || '';
+                    return text.replace(/מחק|⇅/g, '').trim();
+                }).filter(item => item.length > 0),
+                sushi: Array.from(document.getElementById('sushiList')?.children || []).map(li => {
+                    const text = li.textContent || li.innerText || '';
+                    return text.replace(/מחק|⇅/g, '').trim();
+                }).filter(item => item.length > 0),
+                amar: Array.from(document.getElementById('amarList')?.children || []).map(li => {
+                    const text = li.textContent || li.innerText || '';
+                    return text.replace(/מחק|⇅/g, '').trim();
+                }).filter(item => item.length > 0)
             },
-            total: calculateOrderTotal(), // נצטרך להוסיף פונקציה זו
+            total: calculateOrderTotal(),
             notes: document.getElementById('orderNotes')?.value || ''
         };
+
+        // בדיקה אם יש פריטים לשמירה
+        const totalItems = Object.values(orderData.items).reduce((sum, items) => sum + items.length, 0);
+        if (totalItems === 0) {
+            showNotification('אין פריטים לשמירה!', 'error');
+            return;
+        }
+
+        console.log('📦 פריטים שנאספו:', orderData.items);
+        console.log('📊 סה"כ פריטים:', totalItems);
 
         const response = await fetch(`${window.API_BASE_URL || window.location.origin}/api/orders/create`, {
             method: 'POST',
@@ -2781,14 +2846,17 @@ async function saveCurrentOrderToCloud() {
         });
 
         if (response.ok) {
+            const result = await response.json();
+            console.log('✅ הזמנה נשמרה בהצלחה:', result);
             showNotification('ההזמנה נשמרה בענן בהצלחה!', 'green');
         } else {
             const errorText = await response.text();
+            console.error('❌ שגיאה בשמירת ההזמנה:', response.status, errorText);
             throw new Error(`שגיאה בשמירת ההזמנה: ${errorText}`);
         }
     } catch (error) {
-        console.error('שגיאה בשמירת ההזמנה:', error);
-        showNotification('שגיאה בשמירת ההזמנה בענן', 'red');
+        console.error('❌ שגיאה בשמירת ההזמנה:', error);
+        showNotification('שגיאה בשמירת ההזמנה בענן: ' + error.message, 'red');
     }
 }
 

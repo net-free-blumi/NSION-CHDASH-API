@@ -603,8 +603,15 @@
         text-align: center;
         width: auto;
       }
+      .date-time-label4 {
+        display: flex; /* השתמש ב-flexbox */
+        flex-direction: column; /* תווית מעל התיבה */
+        align-items: center;
+        text-align: center;
+        width: auto;
+      }
       @media (max-width: 600px) {
-        .date-time-label3 {
+        .date-time-label3, .date-time-label4 {
           width: 100px;
         }
       }
@@ -1051,6 +1058,10 @@ function syncProducts() {
           <input type="hidden" id="orderTime" />
           <input type="text" id="orderTimeMasked" class="date-time-input" list="timeOptions" inputmode="numeric" placeholder="HH:MM" maxlength="5" autocomplete="off" pattern="^(?:[01]\\d|2[0-3]):[0-5]\\d$" title="הכנס שעה בפורמט 24 שעות, למשל 15:30" />
           <datalist id="timeOptions"></datalist>
+        </div>
+        <div class="date-time-label4">
+          <label for="customerName">שם לקוח:</label>
+          <input type="text" id="customerName" class="date-time-input" placeholder="הזן שם לקוח" />
         </div>
 
 
@@ -4932,6 +4943,9 @@ document.addEventListener('keydown', function(e) {
         document
           .getElementById("orderNumber")
           .addEventListener("change", saveOrderDetails);
+        document
+          .getElementById("customerName")
+          .addEventListener("input", saveOrderDetails);
         displayOrderInfo();
       });
 
@@ -4940,10 +4954,12 @@ document.addEventListener('keydown', function(e) {
         const orderNumber = document.getElementById("orderNumber").value;
         const orderDate = document.getElementById("orderDate").value;
         const orderTime = document.getElementById("orderTime").value;
+        const customerName = document.getElementById("customerName").value;
         const temperature = document.getElementById("temperature").value; // שמירת מצב חם/קר
         localStorage.setItem("orderNumber", orderNumber);
         localStorage.setItem("orderDate", orderDate);
         localStorage.setItem("orderTime", orderTime);
+        localStorage.setItem("customerName", customerName);
         localStorage.setItem("temperature", temperature); // שמירת בחירה של חם/קר
 
         // שמירת רשימות המוצרים
@@ -4996,6 +5012,7 @@ document.addEventListener('keydown', function(e) {
         const orderNumber = localStorage.getItem("orderNumber") || "";
         const orderDate = localStorage.getItem("orderDate") || "";
         const orderTime = localStorage.getItem("orderTime") || "";
+        const customerName = localStorage.getItem("customerName") || "";
         const temperature = localStorage.getItem("temperature") || ""; // הצגת חם/קר
         const hasDate = Boolean(orderDate);
         const formattedDate = hasDate ? formatDateToDDMMYYYY(orderDate) : "";
@@ -5003,10 +5020,12 @@ document.addEventListener('keydown', function(e) {
 
         const dateLine = hasDate ? `<strong>לתאריך: ${formattedDate}${dayName? ' (יום ' + dayName + ')' : ''}</strong><br>` : "";
         const timeLine = orderTime ? `<strong>לשעה: ${orderTime}</strong>` : "";
+        const customerLine = customerName ? `<strong>לקוח: ${customerName}</strong>` : "";
         document.getElementById("orderInfo").innerHTML = `
           <span class="line"><strong>הזמנה מס: ${orderNumber}</strong></span>
           ${dateLine ? `<span class=\"line\">${dateLine.replace('<br>','')}</span>` : ''}
           ${timeLine ? `<span class=\"line\">${timeLine}</span>` : ''}
+          ${customerLine ? `<span class=\"line\">${customerLine}</span>` : ''}
         `;
 
         document.getElementById("notesSummary").textContent = temperature ? `''${temperature}''` : "";
@@ -6774,7 +6793,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           if (order) {
             const orderData = order.data || order;
             console.log('📋 orderData:', orderData);
-            if (confirm(`האם אתה בטוח שברצונך לשחזר את הזמנה #${orderData.orderNumber || order.id}?`)) {
+            if (confirm(`האם אתה בטוח שברצונך לשחזר את הזמנה #${orderData.orderNumber || order.id}?\n\nהזמנה זו תחזור לדף הראשי ותחליף את ההזמנה הנוכחית.`)) {
               console.log('✅ המשתמש אישר, משחזר הזמנה...');
               // שחזור ההזמנה לדף הראשי
               restoreOrderToMainPage(orderData);
@@ -6803,7 +6822,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
               if (order) {
                 const orderData = order.data || order;
                 console.log('📋 orderData:', orderData);
-                if (confirm(`האם אתה בטוח שברצונך למחוק את הזמנה #${orderData.orderNumber || order.id}?`)) {
+                if (confirm(`האם אתה בטוח שברצונך למחוק את הזמנה #${orderData.orderNumber || order.id}?\n\nפעולה זו לא ניתנת לביטול! ההזמנה תימחק לצמיתות מהענן.`)) {
                   console.log('✅ המשתמש אישר, מוחק הזמנה...');
                   // מחיקת ההזמנה מהענן
                   fetch(`${window.API_BASE_URL || window.location.origin}/api/orders/delete/${orderId}`, {
@@ -6838,10 +6857,71 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
           function restoreOrderToMainPage(order) {
         try {
+          console.log('🔄 restoreOrderToMainPage נקרא עם הזמנה:', order);
+          
           // שחזור פרטי ההזמנה
           if (order.customerName) {
             const customerNameField = document.getElementById('customerName');
             if (customerNameField) customerNameField.value = order.customerName;
+          }
+          
+          // שחזור מספר הזמנה
+          if (order.orderNumber) {
+            const orderNumberField = document.getElementById('orderNumber');
+            if (orderNumberField) {
+              orderNumberField.value = order.orderNumber;
+            } else {
+              // אם אין שדה מספר הזמנה, נוסיף אותו
+              const customerNameField = document.getElementById('customerName');
+              if (customerNameField) {
+                const orderNumberInput = document.createElement('input');
+                orderNumberInput.type = 'text';
+                orderNumberInput.id = 'orderNumber';
+                orderNumberInput.value = order.orderNumber;
+                orderNumberInput.placeholder = 'מספר הזמנה';
+                orderNumberInput.style.cssText = 'margin: 10px 0; padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;';
+                customerNameField.parentNode.insertBefore(orderNumberInput, customerNameField.nextSibling);
+              }
+            }
+          }
+          
+          // שחזור תאריך ושעת ההזמנה
+          if (order.orderDate || order.createdDate) {
+            const orderDateField = document.getElementById('orderDate');
+            if (orderDateField) {
+              orderDateField.value = order.orderDate || order.createdDate;
+            } else {
+              // אם אין שדה תאריך, נוסיף אותו
+              const customerNameField = document.getElementById('customerName');
+              if (customerNameField) {
+                const orderDateInput = document.createElement('input');
+                orderDateInput.type = 'text';
+                orderDateInput.id = 'orderDate';
+                orderDateInput.value = order.orderDate || order.createdDate;
+                orderDateInput.placeholder = 'תאריך הזמנה';
+                orderDateInput.style.cssText = 'margin: 10px 0; padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;';
+                customerNameField.parentNode.insertBefore(orderDateInput, customerNameField.nextSibling);
+              }
+            }
+          }
+          
+          if (order.orderTime || order.createdTime) {
+            const orderTimeField = document.getElementById('orderTime');
+            if (orderTimeField) {
+              orderTimeField.value = order.orderTime || order.createdTime;
+            } else {
+              // אם אין שדה שעה, נוסיף אותו
+              const orderDateField = document.getElementById('orderDate');
+              if (orderDateField) {
+                const orderTimeInput = document.createElement('input');
+                orderTimeInput.type = 'text';
+                orderTimeInput.id = 'orderTime';
+                orderTimeInput.value = order.orderTime || order.createdTime;
+                orderTimeInput.placeholder = 'שעת הזמנה';
+                orderTimeInput.style.cssText = 'margin: 10px 0; padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;';
+                orderDateField.parentNode.insertBefore(orderTimeInput, orderDateField.nextSibling);
+              }
+            }
           }
 
           // שחזור פריטי ההזמנה
@@ -6878,13 +6958,13 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             displayOrderInfo();
           }
 
-          if (orderManager) {
-            orderManager.showNotification('ההזמנה שוחזרה בהצלחה!', 'success');
+          if (window.orderManager) {
+            window.orderManager.showNotification('ההזמנה שוחזרה בהצלחה!', 'success');
           }
         } catch (error) {
           console.error('שגיאה בשחזור ההזמנה:', error);
-          if (orderManager) {
-            orderManager.showNotification('שגיאה בשחזור ההזמנה', 'error');
+          if (window.orderManager) {
+            window.orderManager.showNotification('שגיאה בשחזור ההזמנה', 'error');
           }
         }
       }
