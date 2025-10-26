@@ -1301,7 +1301,12 @@ app.delete('/api/orders/delete/:orderId', async (req, res) => {
                     const orderEndpoint = `${env.url}/storage/v1/object/public/${encodeURIComponent(env.bucket)}/orders/${fileName}`;
                     console.log('🔗 Order endpoint:', orderEndpoint);
                     
-                    const orderResp = await fetch(orderEndpoint);
+                    const orderResp = await fetch(orderEndpoint, {
+                        headers: {
+                            'Authorization': `Bearer ${env.key}`,
+                            'apikey': env.key
+                        }
+                    });
                     console.log('📥 Order response status:', orderResp.status);
                     if (orderResp.ok) {
                         const orderData = await orderResp.json();
@@ -1309,8 +1314,8 @@ app.delete('/api/orders/delete/:orderId', async (req, res) => {
                         results.push({
                             id: fileName.replace('.json', ''),
                             orderNumber: orderData.orderNumber || fileName.replace('.json', ''),
-                            date: orderData.createdDate || new Date(orderData.createdAt).toLocaleDateString('he-IL'),
-                            time: orderData.createdTime || new Date(orderData.createdAt).toLocaleTimeString('he-IL'),
+                            date: orderData.orderDate || orderData.createdDate || new Date(orderData.createdAt).toLocaleDateString('he-IL'),
+                            time: orderData.orderTime || orderData.createdTime || new Date(orderData.createdAt).toLocaleTimeString('he-IL'),
                             total: orderData.total || 0,
                             items: orderData.items || {},
                             status: orderData.status || 'completed',
@@ -1360,8 +1365,10 @@ app.post('/api/orders/create', async (req, res) => {
             notes: notes || '',
             status: 'completed', // הזמנות שפורקו הן completed
             createdAt: now.toISOString(),
-            createdDate: now.toLocaleDateString('he-IL'),
-            createdTime: now.toLocaleTimeString('he-IL'),
+            orderDate: now.toLocaleDateString('he-IL'), // תאריך ההזמנה
+            orderTime: now.toLocaleTimeString('he-IL'), // שעת ההזמנה
+            createdDate: now.toLocaleDateString('he-IL'), // תאריך הפירוק
+            createdTime: now.toLocaleTimeString('he-IL'), // שעת הפירוק
             updatedAt: now.toISOString()
         };
         
