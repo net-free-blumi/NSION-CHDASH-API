@@ -2773,37 +2773,28 @@ async function saveCurrentOrderToCloud() {
             orderTime: document.getElementById('orderTime')?.value || '',
             items: {
                 kitchen: Array.from(document.getElementById('kitchenList')?.children || []).map(li => {
-                  const cloned = li.cloneNode(true);
-                  // שמירת גם את ה-attributes כולל data-raw-summary
-                  return cloned.outerHTML;
+                  return li.innerHTML;
                 }),
                 kitchenProducts: Array.from(document.getElementById('kitchenProductsList')?.children || []).map(li => {
-                  const cloned = li.cloneNode(true);
-                  return cloned.outerHTML;
+                  return li.innerHTML;
                 }),
                 fruits: Array.from(document.getElementById('fruitsList')?.children || []).map(li => {
-                  const cloned = li.cloneNode(true);
-                  return cloned.outerHTML;
+                  return li.innerHTML;
                 }),
                 bakery: Array.from(document.getElementById('bakeryList')?.children || []).map(li => {
-                  const cloned = li.cloneNode(true);
-                  return cloned.outerHTML;
+                  return li.innerHTML;
                 }),
                 warehouse: Array.from(document.getElementById('warehouseList')?.children || []).map(li => {
-                  const cloned = li.cloneNode(true);
-                  return cloned.outerHTML;
+                  return li.innerHTML;
                 }),
                 sushi: Array.from(document.getElementById('sushiList')?.children || []).map(li => {
-                  const cloned = li.cloneNode(true);
-                  return cloned.outerHTML;
+                  return li.innerHTML;
                 }),
                 amar: Array.from(document.getElementById('amarList')?.children || []).map(li => {
-                  const cloned = li.cloneNode(true);
-                  return cloned.outerHTML;
+                  return li.innerHTML;
                 }),
                 online: Array.from(document.getElementById('onlineList')?.children || []).map(li => {
-                  const cloned = li.cloneNode(true);
-                  return cloned.outerHTML;
+                  return li.innerHTML;
                 })
             },
             total: calculateOrderTotal(),

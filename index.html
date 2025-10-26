@@ -7150,33 +7150,23 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
                 const list = document.getElementById(listId);
                 if (list) {
                   items.forEach(itemHTML => {
-                    // יצירת אלמנט עם ה-HTML המלא (כולל כפתורים וכל הפרטים)
+                    // יצירת אלמנט עם ה-HTML הפנימי בלבד
                     const li = document.createElement('li');
                     li.innerHTML = itemHTML;
                     
-                    // שחזור data-raw-summary אם הוא קיים ב-HTML (לביסים בקונדיטוריית עמר)
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = itemHTML;
-                    const tempLi = tempDiv.querySelector('li');
-                    if (tempLi && tempLi.getAttribute('data-raw-summary')) {
-                      li.setAttribute('data-raw-summary', tempLi.getAttribute('data-raw-summary'));
-                    }
+                    // הוספת classes בסיסיים
+                    li.classList.add('order-item-displayed');
                     
-                    // הפעלה מחדש של כל האירועים - לא ליצור כפתורים חדשים
-                    // פשוט לתקן את ה-onclick handlers הקיימים
-                    const deleteBtn = li.querySelector('.delete-btn, button[onclick*="remove"]');
-                    if (deleteBtn) {
-                      // שחזור המאזין המקורי
-                      const originalOnclick = deleteBtn.getAttribute('onclick');
-                      if (originalOnclick) {
-                        deleteBtn.setAttribute('onclick', originalOnclick);
+                    // חיפוש ושחזור data-raw-summary מאלמנט קיים
+                    try {
+                      const tempDiv = document.createElement('div');
+                      tempDiv.innerHTML = `<li>${itemHTML}</li>`;
+                      const tempLi = tempDiv.querySelector('li');
+                      if (tempLi && tempLi.hasAttribute('data-raw-summary')) {
+                        li.setAttribute('data-raw-summary', tempLi.getAttribute('data-raw-summary'));
                       }
-                    }
-                    
-                    const handleBtn = li.querySelector('.dnd-handle');
-                    if (handleBtn) {
-                      handleBtn.draggable = true;
-                      handleBtn.className = 'dnd-handle';
+                    } catch (e) {
+                      console.warn('שגיאה בשחזור data-raw-summary:', e);
                     }
                     
                     list.appendChild(li);
