@@ -19,13 +19,13 @@ let ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 async function ensureDataLocations() {
     try {
         // Always use local directory for Render compatibility
-        DATA_DIR = __dirname;
-        DATA_PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
-        BACKUPS_DIR = path.join(DATA_DIR, 'backups');
+            DATA_DIR = __dirname;
+            DATA_PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+            BACKUPS_DIR = path.join(DATA_DIR, 'backups');
         ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
         
         // Create directories if they don't exist
-        await fs.mkdir(BACKUPS_DIR, { recursive: true });
+            await fs.mkdir(BACKUPS_DIR, { recursive: true });
         // If data file does not exist but root products file exists with data, migrate once
         const dataExists = await fs.access(DATA_PRODUCTS_FILE).then(() => true).catch(() => false);
         if (!dataExists) {
@@ -1237,61 +1237,97 @@ async function saveOrderToCloud(orderData) {
     console.log('✅ Order saved to cloud:', orderId);
 }
 
-// Get orders from cloud
-async function getOrdersFromCloud() {
-    const env = getSupabaseEnv();
-    if (!env) return { orders: [] };
-    
-    const endpoint = `${env.url}/storage/v1/object/list/${encodeURIComponent(env.bucket)}`;
-    const resp = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prefix: 'orders/', limit: 100, sortBy: { column: 'created_at', order: 'desc' } })
-    });
-    
-    if (!resp.ok) {
-        console.warn('Failed to list cloud orders:', resp.status, resp.statusText);
-        return { orders: [] };
-    }
-    const data = await resp.json().catch(() => []);
-    console.log('📋 Cloud orders list response:', data?.length || 0, 'files found');
-    
-    const results = [];
-    for (const f of (data || []).filter(x => (x.name || '').endsWith('.json'))) {
-        try {
-            console.log('🔍 Processing file:', f.name);
-            // Ensure the filename includes the orders/ prefix
-            const fullPath = f.name.startsWith('orders/') ? f.name : `orders/${f.name}`;
-            const orderEndpoint = `${env.url}/storage/v1/object/public/${encodeURIComponent(env.bucket)}/${fullPath}`;
-            console.log('🔗 Order endpoint:', orderEndpoint);
-            const orderResp = await fetch(orderEndpoint, { headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key } });
-            console.log('📥 Order response status:', orderResp.status);
-            if (orderResp.ok) {
-                const orderData = await orderResp.json();
-                console.log('📋 Order data:', JSON.stringify(orderData, null, 2));
-                results.push({
-                    id: f.name.replace('orders/', '').replace('.json', ''),
-                    name: orderData.customerName || 'הזמנה ללא שם',
-                    date: orderData.createdAt || f.created_at,
-                    total: orderData.total || 0,
-                    items: orderData.items ? Object.keys(orderData.items).reduce((total, category) => {
-                        return total + (Array.isArray(orderData.items[category]) ? orderData.items[category].length : 0);
-                    }, 0) : 0,
-                    status: orderData.status || 'completed',
-                    data: orderData
-                });
-                console.log('✅ Loaded order from cloud:', f.name, 'status:', orderData.status);
-            } else {
-                console.warn('❌ Failed to load order file:', f.name, 'status:', orderResp.status);
-            }
-        } catch (e) {
-            console.warn('❌ Failed to load order:', f.name, e);
+// Delete order from cloud
+app.delete('/api/orders/delete/:orderId', async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const env = getSupabaseEnv();
+        
+        if (!env) {
+            return res.status(500).json({ error: 'Cloud storage not configured' });
         }
+        
+        // Delete from Supabase
+        const fileName = `${orderId}.json`;
+        const filePath = `orders/${fileName}`;
+        
+        const deleteUrl = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/${filePath}`;
+        const deleteResp = await fetch(deleteUrl, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${env.key}`,
+                'apikey': env.key
+            }
+        });
+        
+        if (deleteResp.ok) {
+            console.log(`✅ Order deleted from cloud: ${fileName}`);
+            res.json({ success: true, message: 'Order deleted successfully' });
+        } else {
+            console.error(`❌ Failed to delete order from cloud: ${fileName}, status: ${deleteResp.status}`);
+            res.status(500).json({ error: 'Failed to delete order from cloud' });
+        }
+    } catch (error) {
+        console.error('Error deleting order from cloud:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
-    
-    console.log('📋 Total cloud orders loaded:', results.length);
-    return { orders: results };
-}
+});
+
+        // Get orders from cloud
+        async function getOrdersFromCloud() {
+            const env = getSupabaseEnv();
+            if (!env) return { orders: [] };
+            
+            const endpoint = `${env.url}/storage/v1/object/list/${encodeURIComponent(env.bucket)}`;
+            const resp = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${env.key}`, 'apikey': env.key, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prefix: 'orders/', limit: 100, sortBy: { column: 'created_at', order: 'desc' } })
+            });
+            
+            if (!resp.ok) {
+                console.warn('Failed to list cloud orders:', resp.status, resp.statusText);
+                return { orders: [] };
+            }
+            const data = await resp.json().catch(() => []);
+            console.log('📋 Cloud orders list response:', data?.length || 0, 'files found');
+            
+            const results = [];
+            for (const f of (data || []).filter(x => (x.name || '').endsWith('.json'))) {
+                try {
+                    console.log('🔍 Processing file:', f.name);
+                    // Use the correct path format for Supabase
+                    const fileName = f.name.replace('orders/', '');
+                    const orderEndpoint = `${env.url}/storage/v1/object/public/${encodeURIComponent(env.bucket)}/orders/${fileName}`;
+                    console.log('🔗 Order endpoint:', orderEndpoint);
+                    
+                    const orderResp = await fetch(orderEndpoint);
+                    console.log('📥 Order response status:', orderResp.status);
+                    if (orderResp.ok) {
+                        const orderData = await orderResp.json();
+                        console.log('📋 Order data loaded successfully');
+                        results.push({
+                            id: fileName.replace('.json', ''),
+                            orderNumber: orderData.orderNumber || fileName.replace('.json', ''),
+                            date: orderData.createdDate || new Date(orderData.createdAt).toLocaleDateString('he-IL'),
+                            time: orderData.createdTime || new Date(orderData.createdAt).toLocaleTimeString('he-IL'),
+                            total: orderData.total || 0,
+                            items: orderData.items || {},
+                            status: orderData.status || 'completed',
+                            data: orderData
+                        });
+                        console.log('✅ Loaded order from cloud:', fileName);
+                    } else {
+                        console.warn('❌ Failed to load order file:', fileName, 'status:', orderResp.status);
+                    }
+                } catch (e) {
+                    console.warn('❌ Failed to load order:', f.name, e);
+                }
+            }
+            
+            console.log('📋 Total cloud orders loaded:', results.length);
+            return { orders: results };
+        }
 
 // Download specific order from cloud
 async function downloadOrderFromCloud(orderId) {

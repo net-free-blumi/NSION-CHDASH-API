@@ -6596,15 +6596,10 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             <div class="order-item" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 10px; background: white;">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                   <div>
-                    <h4 style="margin: 0; color: #333;">הזמנה #${order.orderNumber || order.id}</h4>
+                    <h4 style="margin: 0; color: #333; font-size: 1.2rem;">הזמנה #${order.orderNumber || order.id}</h4>
                     <p style="margin: 5px 0; color: #666; font-size: 0.9rem;">
-                      ${order.createdDate || new Date(order.createdAt).toLocaleDateString('he-IL')} - ${order.createdTime || new Date(order.createdAt).toLocaleTimeString('he-IL')}
+                      ${order.date || order.createdDate || new Date(order.createdAt).toLocaleDateString('he-IL')} - ${order.time || order.createdTime || new Date(order.createdAt).toLocaleTimeString('he-IL')}
                     </p>
-                    <span class="order-status" style="padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; 
-                      background: #d4edda; 
-                      color: #155724;">
-                      פורקה
-                    </span>
                   </div>
                 <div style="display: flex; gap: 5px;">
                   <button onclick="viewOrderDetails('${order.id}')" class="btn" style="padding: 5px 10px; font-size: 0.8rem; background: #17a2b8;">
@@ -6613,11 +6608,10 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
                   <button onclick="restoreOrderToMain('${order.id}')" class="btn" style="padding: 5px 10px; font-size: 0.8rem; background: #28a745;">
                     🔄 שחזר
                   </button>
+                  <button onclick="deleteOrderFromCloud('${order.id}')" class="btn" style="padding: 5px 10px; font-size: 0.8rem; background: #dc3545;">
+                    🗑️ מחק
+                  </button>
                 </div>
-              </div>
-              <div style="color: #666; font-size: 0.9rem;">
-                לקוח: ${order.customerName || 'לא צוין'} | 
-                סה"כ פריטים: ${this.countOrderItems(order)}
               </div>
             </div>
           `).join('');
@@ -6713,7 +6707,32 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           const order = orderManager.orders.find(o => o.id === orderId);
           if (order) {
             const orderData = order.data || order;
-            alert(`פרטי הזמנה #${orderData.orderNumber || order.id}\n\nלקוח: ${orderData.customerName || 'לא צוין'}\nתאריך: ${new Date(orderData.createdAt).toLocaleString('he-IL')}\nסטטוס: ${orderData.status === 'completed' ? 'הושלמה' : 'פעילה'}\n\nסה"כ פריטים: ${orderManager.countOrderItems(orderData)}`);
+            let details = `פרטי הזמנה #${orderData.orderNumber || order.id}\n\n`;
+            details += `תאריך: ${orderData.createdDate || new Date(orderData.createdAt).toLocaleDateString('he-IL')}\n`;
+            details += `שעה: ${orderData.createdTime || new Date(orderData.createdAt).toLocaleTimeString('he-IL')}\n\n`;
+            
+            // הצגת פריטים לפי קטגוריות
+            if (orderData.items) {
+              Object.entries(orderData.items).forEach(([category, items]) => {
+                if (Array.isArray(items) && items.length > 0) {
+                  const categoryNames = {
+                    kitchenProducts: 'מוצרי מטבח',
+                    fruits: 'פירות',
+                    bakery: 'קונדיטורייה',
+                    warehouse: 'מחסן',
+                    sushi: 'סושי',
+                    amar: 'קונדיטורייה עמר'
+                  };
+                  details += `${categoryNames[category] || category}:\n`;
+                  items.forEach(item => {
+                    details += `• ${item}\n`;
+                  });
+                  details += '\n';
+                }
+              });
+            }
+            
+            alert(details);
           }
         }
       }
@@ -6732,7 +6751,35 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         }
       }
 
-      function restoreOrderToMainPage(order) {
+          function deleteOrderFromCloud(orderId) {
+            if (orderManager) {
+              const order = orderManager.orders.find(o => o.id === orderId);
+              if (order) {
+                const orderData = order.data || order;
+                if (confirm(`האם אתה בטוח שברצונך למחוק את הזמנה #${orderData.orderNumber || order.id}?`)) {
+                  // מחיקת ההזמנה מהענן
+                  fetch(`${window.API_BASE_URL || window.location.origin}/api/orders/delete/${orderId}`, {
+                    method: 'DELETE'
+                  })
+                  .then(response => {
+                    if (response.ok) {
+                      orderManager.showNotification('ההזמנה נמחקה בהצלחה!', 'success');
+                      // רענון רשימת ההזמנות
+                      orderManager.loadOrdersHistory();
+                    } else {
+                      throw new Error('שגיאה במחיקת ההזמנה');
+                    }
+                  })
+                  .catch(error => {
+                    console.error('שגיאה במחיקת ההזמנה:', error);
+                    orderManager.showNotification('שגיאה במחיקת ההזמנה', 'error');
+                  });
+                }
+              }
+            }
+          }
+
+          function restoreOrderToMainPage(order) {
         try {
           // שחזור פרטי ההזמנה
           if (order.customerName) {
