@@ -1313,15 +1313,20 @@ app.post('/api/orders/create', async (req, res) => {
         const { customerName, items, total, notes } = req.body;
         
         const orderId = `order-${Date.now()}`;
+        const orderNumber = Math.floor(Math.random() * 9000) + 1000; // מספר הזמנה 4 ספרות
+        const now = new Date();
         const orderData = {
             id: orderId,
+            orderNumber: orderNumber,
             customerName: customerName || 'הזמנה ללא שם',
-            items: items || [],
+            items: items || {},
             total: total || 0,
             notes: notes || '',
-            status: 'active',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            status: 'completed', // הזמנות שפורקו הן completed
+            createdAt: now.toISOString(),
+            createdDate: now.toLocaleDateString('he-IL'),
+            createdTime: now.toLocaleTimeString('he-IL'),
+            updatedAt: now.toISOString()
         };
         
         // Save locally

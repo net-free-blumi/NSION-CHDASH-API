@@ -135,6 +135,13 @@ function updateAuthUI() {
                     productManagementBtn.style.display = 'inline-block';
                     productManagementBtn.style.animation = 'fadeIn 0.5s ease-in';
                 }
+                
+                // הצגת כפתור היסטוריית הזמנות רק למנהל המערכת
+                const ordersManagementBtn = document.getElementById('orders-management-btn');
+                if (ordersManagementBtn) {
+                    ordersManagementBtn.style.display = 'inline-block';
+                    ordersManagementBtn.style.animation = 'fadeIn 0.5s ease-in';
+                }
             }
         } else {
             userSection.style.display = 'none';
@@ -144,6 +151,10 @@ function updateAuthUI() {
             
             // הסתרת כפתור ניהול מוצרים למשתמשים לא מורשים
             if (productManagementBtn) productManagementBtn.style.display = 'none';
+            
+            // הסתרת כפתור היסטוריית הזמנות למשתמשים לא מורשים
+            const ordersManagementBtn = document.getElementById('orders-management-btn');
+            if (ordersManagementBtn) ordersManagementBtn.style.display = 'none';
         }
     } else {
         loginSection.style.display = 'block';
@@ -153,6 +164,10 @@ function updateAuthUI() {
         
         // הסתרת כפתור ניהול מוצרים כשהמשתמש לא מחובר
         if (productManagementBtn) productManagementBtn.style.display = 'none';
+        
+        // הסתרת כפתור היסטוריית הזמנות כשהמשתמש לא מחובר
+        const ordersManagementBtn = document.getElementById('orders-management-btn');
+        if (ordersManagementBtn) ordersManagementBtn.style.display = 'none';
     }
 }
 
