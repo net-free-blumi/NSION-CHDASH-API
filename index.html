@@ -7150,26 +7150,15 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
                 const list = document.getElementById(listId);
                 if (list) {
                   items.forEach(itemHTML => {
-                    // יצירת אלמנט עם ה-HTML הפנימי בלבד
-                    const li = document.createElement('li');
-                    li.innerHTML = itemHTML;
+                    // שחזור full HTML עם כל ה-attributes
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = itemHTML;
                     
-                    // הוספת classes בסיסיים
-                    li.classList.add('order-item-displayed');
-                    
-                    // חיפוש ושחזור data-raw-summary מאלמנט קיים
-                    try {
-                      const tempDiv = document.createElement('div');
-                      tempDiv.innerHTML = `<li>${itemHTML}</li>`;
-                      const tempLi = tempDiv.querySelector('li');
-                      if (tempLi && tempLi.hasAttribute('data-raw-summary')) {
-                        li.setAttribute('data-raw-summary', tempLi.getAttribute('data-raw-summary'));
-                      }
-                    } catch (e) {
-                      console.warn('שגיאה בשחזור data-raw-summary:', e);
+                    while (tempDiv.firstChild) {
+                      const li = tempDiv.firstChild;
+                      list.appendChild(li);
+                      console.log('✅ שחזר פריט עם data-raw-summary:', li.getAttribute('data-raw-summary'));
                     }
-                    
-                    list.appendChild(li);
                   });
                   
                   console.log(`✅ החזרה ${items.length} פריטים לרשימה: ${listId}`);
