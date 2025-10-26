@@ -2282,6 +2282,15 @@ function saveOrderDetails() {
   });
   try {
     sessionStorage.setItem('orderSummaryLists', JSON.stringify(data));
+    
+    // שמירת פרטי הזמנה ל-localStorage
+    const orderNumber = document.getElementById('orderNumber')?.value || '';
+    const orderDate = document.getElementById('orderDate')?.value || '';
+    const orderTime = document.getElementById('orderTime')?.value || '';
+    
+    localStorage.setItem('orderNumber', orderNumber);
+    localStorage.setItem('orderDate', orderDate);
+    localStorage.setItem('orderTime', orderTime);
   } catch (e) {}
 }
 
@@ -2568,13 +2577,13 @@ function generateAmarSummary() {
       const productCode = codeEl.textContent.match(/מק"ט: (\d+)/)?.[1];
       const itemText = item.getAttribute("data-raw-summary") || item.querySelector("span")?.textContent || "";
   
-      if (amarProductCodes.includes(productCode) || (typeof bisProducts !== 'undefined' && bisProducts.includes(productCode))) {
+      if (amarProductCodes.includes(String(productCode)) || (typeof bisProducts !== 'undefined' && bisProducts.includes(String(productCode)))) {
         hasAmarProducts = true;
       }
   
       // כמויות לפי מק"ט
       let match;
-      if (corassonCodes.includes(productCode)) {
+      if (corassonCodes.includes(String(productCode))) {
         match = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'?/) || itemText.match(/(\d+)\s*מגש/);
         corassonTotal += match ? parseInt(match[1]) * (match[2] ? parseInt(match[2]) : 15) : 0;
       } else if (productCode === "12409") {
@@ -2601,7 +2610,7 @@ function generateAmarSummary() {
       }
   
       // ביס לפי bread_type
-      if (typeof bisProducts !== 'undefined' && bisProducts.includes(productCode)) {
+      if (typeof bisProducts !== 'undefined' && bisProducts.includes(String(productCode))) {
         const qtyMatch = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'/);
         const breadMatch = itemText.match(/\|BREAD_TYPE:(ביס [^|]+)\|/);
         if (qtyMatch && breadMatch) {
