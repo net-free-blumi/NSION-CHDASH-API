@@ -6681,13 +6681,13 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         if (modal) {
           console.log('פותח את המודל');
           modal.style.display = 'block';
-          if (!orderManager) {
+          if (!window.orderManager) {
             console.log('יוצר OrderManager חדש');
-            orderManager = new OrderManager();
-            orderManager.init();
+            window.orderManager = new OrderManager();
+            window.orderManager.init();
           } else {
             console.log('טוען היסטוריית הזמנות');
-            orderManager.loadOrdersHistory();
+            window.orderManager.loadOrdersHistory();
           }
         } else {
           console.error('המודל ordersManagementModal לא נמצא');
@@ -6717,16 +6717,18 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
           function viewOrderDetails(orderId) {
             console.log('🔍 viewOrderDetails נקרא עם orderId:', orderId);
-            if (orderManager) {
+            const manager = window.orderManager || orderManager;
+            console.log('📋 orderManager:', manager);
+            if (manager) {
               console.log('📋 orderManager קיים, מחפש הזמנה...');
-              const order = orderManager.orders.find(o => o.id === orderId);
+              const order = manager.orders.find(o => o.id === orderId);
               console.log('🔍 הזמנה שנמצאה:', order);
               if (order) {
                 const orderData = order.data || order;
                 console.log('📋 orderData:', orderData);
                 let details = `פרטי הזמנה #${orderData.orderNumber || order.id}\n\n`;
-                details += `תאריך: ${orderData.createdDate || new Date(orderData.createdAt).toLocaleDateString('he-IL')}\n`;
-                details += `שעה: ${orderData.createdTime || new Date(orderData.createdAt).toLocaleTimeString('he-IL')}\n\n`;
+                details += `תאריך: ${orderData.orderDate || orderData.createdDate || new Date(orderData.createdAt).toLocaleDateString('he-IL')}\n`;
+                details += `שעה: ${orderData.orderTime || orderData.createdTime || new Date(orderData.createdAt).toLocaleTimeString('he-IL')}\n\n`;
                 
                 // הצגת פריטים לפי קטגוריות
                 if (orderData.items) {
@@ -6763,9 +6765,11 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
       function restoreOrderToMain(orderId) {
         console.log('🔄 restoreOrderToMain נקרא עם orderId:', orderId);
-        if (orderManager) {
+        const manager = window.orderManager || orderManager;
+        console.log('📋 orderManager:', manager);
+        if (manager) {
           console.log('📋 orderManager קיים, מחפש הזמנה...');
-          const order = orderManager.orders.find(o => o.id === orderId);
+          const order = manager.orders.find(o => o.id === orderId);
           console.log('🔍 הזמנה שנמצאה:', order);
           if (order) {
             const orderData = order.data || order;
@@ -6790,9 +6794,11 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
           function deleteOrderFromCloud(orderId) {
             console.log('🗑️ deleteOrderFromCloud נקרא עם orderId:', orderId);
-            if (orderManager) {
+            const manager = window.orderManager || orderManager;
+            console.log('📋 orderManager:', manager);
+            if (manager) {
               console.log('📋 orderManager קיים, מחפש הזמנה...');
-              const order = orderManager.orders.find(o => o.id === orderId);
+              const order = manager.orders.find(o => o.id === orderId);
               console.log('🔍 הזמנה שנמצאה:', order);
               if (order) {
                 const orderData = order.data || order;
@@ -6806,16 +6812,16 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
                   .then(response => {
                     console.log('📥 תגובת מחיקה:', response.status);
                     if (response.ok) {
-                      orderManager.showNotification('ההזמנה נמחקה בהצלחה!', 'success');
+                      manager.showNotification('ההזמנה נמחקה בהצלחה!', 'success');
                       // רענון רשימת ההזמנות
-                      orderManager.loadOrdersHistory();
+                      manager.loadOrdersHistory();
                     } else {
                       throw new Error('שגיאה במחיקת ההזמנה');
                     }
                   })
                   .catch(error => {
                     console.error('❌ שגיאה במחיקת ההזמנה:', error);
-                    orderManager.showNotification('שגיאה במחיקת ההזמנה', 'error');
+                    manager.showNotification('שגיאה במחיקת ההזמנה', 'error');
                   });
                 } else {
                   console.log('❌ המשתמש ביטל את המחיקה');
