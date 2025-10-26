@@ -6670,17 +6670,24 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         }
 
         updateStats() {
-          const totalOrders = this.orders.length;
-          const activeOrders = this.orders.filter(order => order.status !== 'completed').length;
-          const today = new Date().toDateString();
-          const completedToday = this.orders.filter(order => 
-            order.status === 'completed' && 
-            new Date(order.updatedAt || order.createdAt).toDateString() === today
-          ).length;
+          // רק אם הסטטיסטיקות קיימות במסך
+          const totalOrdersStat = document.getElementById('totalOrdersStat');
+          const activeOrdersStat = document.getElementById('activeOrdersStat');
+          const completedTodayStat = document.getElementById('completedTodayStat');
+          
+          if (totalOrdersStat && activeOrdersStat && completedTodayStat) {
+            const totalOrders = this.orders.length;
+            const activeOrders = this.orders.filter(order => order.status !== 'completed').length;
+            const today = new Date().toDateString();
+            const completedToday = this.orders.filter(order => 
+              order.status === 'completed' && 
+              new Date(order.updatedAt || order.createdAt).toDateString() === today
+            ).length;
 
-          document.getElementById('totalOrdersStat').textContent = totalOrders;
-          document.getElementById('activeOrdersStat').textContent = activeOrders;
-          document.getElementById('completedTodayStat').textContent = completedToday;
+            totalOrdersStat.textContent = totalOrders;
+            activeOrdersStat.textContent = activeOrders;
+            completedTodayStat.textContent = completedToday;
+          }
         }
 
         showNotification(message, type = 'info') {
@@ -6997,19 +7004,25 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             console.log('🕐 שעת הזמנה שוחזרה:', order.orderTime);
           }
 
-          // ניקוי כל הרשימות הקיימות
-          const categories = ['kitchenProducts', 'fruits', 'bakery', 'warehouse', 'sushi', 'amar'];
+          // ניקוי כל הרשימות הקיימות - כל הקטגוריות
+          const categories = ['kitchen', 'kitchenProducts', 'fruits', 'bakery', 'warehouse', 'sushi', 'amar', 'online'];
           categories.forEach(category => {
-            const listId = category + 'List';
+            const listId = category === 'kitchenProducts' ? 'kitchenProductsList' : 
+                           category === 'online' ? 'onlineList' :
+                           category + 'List';
             const list = document.getElementById(listId);
             if (list) list.innerHTML = '';
+            console.log(`🧹 ניקוי רשימה: ${listId}, נמצא:`, !!list);
           });
 
           // הוספת הפריטים חזרה עם כל הפרטים - HTML מלא
           if (order.items) {
             Object.entries(order.items).forEach(([category, items]) => {
               if (Array.isArray(items) && items.length > 0) {
-                const listId = category + 'List';
+                // מיפוי שם הקטגוריה לשם הרשימה
+                const listId = category === 'kitchenProducts' ? 'kitchenProductsList' : 
+                               category === 'online' ? 'onlineList' :
+                               category + 'List';
                 const list = document.getElementById(listId);
                 if (list) {
                   items.forEach(itemHTML => {

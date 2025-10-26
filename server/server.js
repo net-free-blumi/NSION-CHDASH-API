@@ -1320,19 +1320,37 @@ app.delete('/api/orders/delete/:orderId', async (req, res) => {
             for (const f of (data || []).filter(x => (x.name || '').endsWith('.json'))) {
                 try {
                     console.log('🔍 Processing file:', f.name);
-                    // Use the correct path format for Supabase
+                    // הכנת שם הקובץ
                     const fileName = f.name.replace('orders/', '');
-                    const orderEndpoint = `${env.url}/storage/v1/object/public/${encodeURIComponent(env.bucket)}/orders/${fileName}`;
-                    console.log('🔗 Order endpoint:', orderEndpoint);
                     
-                    const orderResp = await fetch(orderEndpoint, {
-                        headers: {
-                            'Authorization': `Bearer ${env.key}`,
-                            'apikey': env.key
+                    // נסיון עם שני נתיבים אפשריים
+                    const endpointsToTry = [
+                        `${env.url}/storage/v1/object/public/${encodeURIComponent(env.bucket)}/orders/${fileName}`,
+                        `${env.url}/storage/v1/object/public/${encodeURIComponent(env.bucket)}/${f.name}`,
+                        `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/orders/${fileName}`
+                    ];
+                    
+                    let orderResp = null;
+                    for (const orderEndpoint of endpointsToTry) {
+                        try {
+                            console.log('🔗 Trying endpoint:', orderEndpoint);
+                            orderResp = await fetch(orderEndpoint, {
+                                headers: {
+                                    'Authorization': `Bearer ${env.key}`,
+                                    'apikey': env.key
+                                }
+                            });
+                            console.log('📥 Order response status:', orderResp.status);
+                            if (orderResp.ok) {
+                                break;
+                            }
+                        } catch (e) {
+                            console.warn('⚠️ Failed to fetch from:', orderEndpoint, e.message);
+                            continue;
                         }
-                    });
-                    console.log('📥 Order response status:', orderResp.status);
-                    if (orderResp.ok) {
+                    }
+                    
+                    if (orderResp && orderResp.ok) {
                         const orderData = await orderResp.json();
                         console.log('📋 Order data loaded successfully');
                         results.push({
@@ -1347,7 +1365,7 @@ app.delete('/api/orders/delete/:orderId', async (req, res) => {
                         });
                         console.log('✅ Loaded order from cloud:', fileName);
                     } else {
-                        console.warn('❌ Failed to load order file:', fileName, 'status:', orderResp.status);
+                        console.warn('❌ Failed to load order file:', fileName, 'status:', orderResp?.status);
                     }
                 } catch (e) {
                     console.warn('❌ Failed to load order:', f.name, e);

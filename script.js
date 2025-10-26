@@ -2772,12 +2772,14 @@ async function saveCurrentOrderToCloud() {
             orderDate: document.getElementById('orderDate')?.value || '',
             orderTime: document.getElementById('orderTime')?.value || '',
             items: {
+                kitchen: Array.from(document.getElementById('kitchenList')?.children || []).map(li => li.innerHTML),
                 kitchenProducts: Array.from(document.getElementById('kitchenProductsList')?.children || []).map(li => li.innerHTML),
                 fruits: Array.from(document.getElementById('fruitsList')?.children || []).map(li => li.innerHTML),
                 bakery: Array.from(document.getElementById('bakeryList')?.children || []).map(li => li.innerHTML),
                 warehouse: Array.from(document.getElementById('warehouseList')?.children || []).map(li => li.innerHTML),
                 sushi: Array.from(document.getElementById('sushiList')?.children || []).map(li => li.innerHTML),
-                amar: Array.from(document.getElementById('amarList')?.children || []).map(li => li.innerHTML)
+                amar: Array.from(document.getElementById('amarList')?.children || []).map(li => li.innerHTML),
+                online: Array.from(document.getElementById('onlineList')?.children || []).map(li => li.innerHTML)
             },
             total: calculateOrderTotal(),
             notes: document.getElementById('orderNotes')?.value || ''
