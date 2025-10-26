@@ -2772,30 +2772,12 @@ async function saveCurrentOrderToCloud() {
             orderDate: document.getElementById('orderDate')?.value || '',
             orderTime: document.getElementById('orderTime')?.value || '',
             items: {
-                kitchenProducts: Array.from(document.getElementById('kitchenProductsList')?.children || []).map(li => {
-                    const text = li.textContent || li.innerText || '';
-                    return text.replace(/מחק|⇅/g, '').trim();
-                }).filter(item => item.length > 0),
-                fruits: Array.from(document.getElementById('fruitsList')?.children || []).map(li => {
-                    const text = li.textContent || li.innerText || '';
-                    return text.replace(/מחק|⇅/g, '').trim();
-                }).filter(item => item.length > 0),
-                bakery: Array.from(document.getElementById('bakeryList')?.children || []).map(li => {
-                    const text = li.textContent || li.innerText || '';
-                    return text.replace(/מחק|⇅/g, '').trim();
-                }).filter(item => item.length > 0),
-                warehouse: Array.from(document.getElementById('warehouseList')?.children || []).map(li => {
-                    const text = li.textContent || li.innerText || '';
-                    return text.replace(/מחק|⇅/g, '').trim();
-                }).filter(item => item.length > 0),
-                sushi: Array.from(document.getElementById('sushiList')?.children || []).map(li => {
-                    const text = li.textContent || li.innerText || '';
-                    return text.replace(/מחק|⇅/g, '').trim();
-                }).filter(item => item.length > 0),
-                amar: Array.from(document.getElementById('amarList')?.children || []).map(li => {
-                    const text = li.textContent || li.innerText || '';
-                    return text.replace(/מחק|⇅/g, '').trim();
-                }).filter(item => item.length > 0)
+                kitchenProducts: Array.from(document.getElementById('kitchenProductsList')?.children || []).map(li => li.innerHTML),
+                fruits: Array.from(document.getElementById('fruitsList')?.children || []).map(li => li.innerHTML),
+                bakery: Array.from(document.getElementById('bakeryList')?.children || []).map(li => li.innerHTML),
+                warehouse: Array.from(document.getElementById('warehouseList')?.children || []).map(li => li.innerHTML),
+                sushi: Array.from(document.getElementById('sushiList')?.children || []).map(li => li.innerHTML),
+                amar: Array.from(document.getElementById('amarList')?.children || []).map(li => li.innerHTML)
             },
             total: calculateOrderTotal(),
             notes: document.getElementById('orderNotes')?.value || ''

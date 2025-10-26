@@ -7005,50 +7005,44 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             if (list) list.innerHTML = '';
           });
 
-          // הוספת הפריטים חזרה עם כל הפרטים - כולל כפתורי מחק וארגון
+          // הוספת הפריטים חזרה עם כל הפרטים - HTML מלא
           if (order.items) {
             Object.entries(order.items).forEach(([category, items]) => {
               if (Array.isArray(items) && items.length > 0) {
                 const listId = category + 'List';
                 const list = document.getElementById(listId);
                 if (list) {
-                  items.forEach(itemText => {
-                    // הסרת "מחק" ו-"⇅" אם הם כבר קיימים כדי למנוע כפילויות
-                    const cleanedText = itemText.replace(/מחק|⇅/g, '').trim();
-                    
-                    // יצירת רשומה עם כפתורי מחק וארגון
+                  items.forEach(itemHTML => {
+                    // יצירת אלמנט עם ה-HTML המלא (כולל כפתורים וכל הפרטים)
                     const li = document.createElement('li');
-                    li.style.cssText = 'display: flex; align-items: center; margin: 5px 0; padding: 8px; background: white; border-radius: 4px;';
+                    li.innerHTML = itemHTML;
                     
-                    // טקסט המוצר
-                    const productText = document.createElement('span');
-                    productText.style.flex = '1';
-                    productText.textContent = cleanedText;
+                    // הוספת event listeners לכפתורי מחק וארגון
+                    const deleteBtn = li.querySelector('.delete-btn');
+                    const removeBtn = li.querySelector('[onclick*="remove"]');
+                    const handleBtn = li.querySelector('.dnd-handle');
                     
-                    // כפתור מחק
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.textContent = 'מחק';
-                    deleteBtn.style.cssText = 'background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;';
-                    deleteBtn.onclick = () => {
-                      if (confirm('האם אתה בטוח שברצונך למחוק פריט זה?')) {
-                        li.remove();
-                        if (typeof updateOrderSummaryDisplay === 'function') {
-                          updateOrderSummaryDisplay();
+                    if (deleteBtn || removeBtn) {
+                      const btn = deleteBtn || removeBtn;
+                      btn.onclick = function(e) {
+                        e.preventDefault();
+                        if (confirm('האם אתה בטוח שברצונך למחוק פריט זה?')) {
+                          li.remove();
+                          if (typeof updateOrderSummaryDisplay === 'function') {
+                            updateOrderSummaryDisplay();
+                          }
+                          if (typeof removeProduct === 'function') {
+                            removeProduct(this, category);
+                          }
                         }
-                      }
-                    };
+                      };
+                    }
                     
-                    // כפתור ארגון
-                    const dragBtn = document.createElement('button');
-                    dragBtn.textContent = '⇅';
-                    dragBtn.type = 'button';
-                    dragBtn.className = 'dnd-handle';
-                    dragBtn.draggable = true;
-                    dragBtn.style.cssText = 'background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: move;';
-                    
-                    li.appendChild(productText);
-                    li.appendChild(deleteBtn);
-                    li.appendChild(dragBtn);
+                    if (handleBtn) {
+                      handleBtn.draggable = true;
+                      handleBtn.className = 'dnd-handle';
+                      handleBtn.style.cssText = 'background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: move;';
+                    }
                     
                     list.appendChild(li);
                   });
@@ -7057,8 +7051,23 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
                 }
               }
             });
+            
+            // הפעלת פונקציית ה-drag and drop אם קיימת
+            if (typeof setupDragAndDrop === 'function') {
+              setupDragAndDrop();
+            }
           }
 
+          // רענון מערכת ה-SKU
+          if (window.productsLoader && typeof window.productsLoader.replaceProductFunctions === 'function') {
+            window.productsLoader.replaceProductFunctions();
+          }
+          
+          // הפעלת drag and drop מחדש
+          if (typeof setupDragAndDrop === 'function') {
+            setupDragAndDrop();
+          }
+          
           // עדכון התצוגה
           if (typeof updateOrderSummaryDisplay === 'function') {
             updateOrderSummaryDisplay();
