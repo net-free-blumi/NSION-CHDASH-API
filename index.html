@@ -896,7 +896,7 @@ document.addEventListener('DOMContentLoaded', () => {
         >
           🛍️ ניהול מוצרים
         </button>
-        
+
         <button 
           id="orders-management-btn"
           onclick="openOrdersManagement()" 
@@ -7030,31 +7030,21 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
                     const li = document.createElement('li');
                     li.innerHTML = itemHTML;
                     
-                    // הוספת event listeners לכפתורי מחק וארגון
-                    const deleteBtn = li.querySelector('.delete-btn');
-                    const removeBtn = li.querySelector('[onclick*="remove"]');
-                    const handleBtn = li.querySelector('.dnd-handle');
-                    
-                    if (deleteBtn || removeBtn) {
-                      const btn = deleteBtn || removeBtn;
-                      btn.onclick = function(e) {
-                        e.preventDefault();
-                        if (confirm('האם אתה בטוח שברצונך למחוק פריט זה?')) {
-                          li.remove();
-                          if (typeof updateOrderSummaryDisplay === 'function') {
-                            updateOrderSummaryDisplay();
-                          }
-                          if (typeof removeProduct === 'function') {
-                            removeProduct(this, category);
-                          }
-                        }
-                      };
+                    // הפעלה מחדש של כל האירועים - לא ליצור כפתורים חדשים
+                    // פשוט לתקן את ה-onclick handlers הקיימים
+                    const deleteBtn = li.querySelector('.delete-btn, button[onclick*="remove"]');
+                    if (deleteBtn) {
+                      // שחזור המאזין המקורי
+                      const originalOnclick = deleteBtn.getAttribute('onclick');
+                      if (originalOnclick) {
+                        deleteBtn.setAttribute('onclick', originalOnclick);
+                      }
                     }
                     
+                    const handleBtn = li.querySelector('.dnd-handle');
                     if (handleBtn) {
                       handleBtn.draggable = true;
                       handleBtn.className = 'dnd-handle';
-                      handleBtn.style.cssText = 'background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: move;';
                     }
                     
                     list.appendChild(li);
@@ -7070,7 +7060,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
               setupDragAndDrop();
             }
           }
-
+          
           // רענון מערכת ה-SKU
           if (window.productsLoader && typeof window.productsLoader.replaceProductFunctions === 'function') {
             window.productsLoader.replaceProductFunctions();
@@ -7085,6 +7075,14 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           if (typeof updateOrderSummaryDisplay === 'function') {
             updateOrderSummaryDisplay();
           }
+          
+          // רענון סכומי הזמנות כולל קונדיטוריית עמר
+          if (typeof refreshAmarSummary === 'function') {
+            setTimeout(() => {
+              refreshAmarSummary();
+            }, 100);
+          }
+          
           if (typeof displayOrderInfo === 'function') {
             displayOrderInfo();
           }

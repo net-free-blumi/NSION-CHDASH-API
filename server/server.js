@@ -1323,32 +1323,18 @@ app.delete('/api/orders/delete/:orderId', async (req, res) => {
                     // הכנת שם הקובץ
                     const fileName = f.name.replace('orders/', '');
                     
-                    // נסיון עם שני נתיבים אפשריים
-                    const endpointsToTry = [
-                        `${env.url}/storage/v1/object/public/${encodeURIComponent(env.bucket)}/orders/${fileName}`,
-                        `${env.url}/storage/v1/object/public/${encodeURIComponent(env.bucket)}/${f.name}`,
-                        `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/orders/${fileName}`
-                    ];
+                    // נסיון ישיר עם הנתיב הנכון (מהיר יותר)
+                    // ניסיון ישיר עם object/ (לא public) - זה עובד
+                    const orderEndpoint = `${env.url}/storage/v1/object/${encodeURIComponent(env.bucket)}/orders/${fileName}`;
                     
-                    let orderResp = null;
-                    for (const orderEndpoint of endpointsToTry) {
-                        try {
-                            console.log('🔗 Trying endpoint:', orderEndpoint);
-                            orderResp = await fetch(orderEndpoint, {
-                                headers: {
-                                    'Authorization': `Bearer ${env.key}`,
-                                    'apikey': env.key
-                                }
-                            });
-                            console.log('📥 Order response status:', orderResp.status);
-                            if (orderResp.ok) {
-                                break;
-                            }
-                        } catch (e) {
-                            console.warn('⚠️ Failed to fetch from:', orderEndpoint, e.message);
-                            continue;
+                    const orderResp = await fetch(orderEndpoint, {
+                        headers: {
+                            'Authorization': `Bearer ${env.key}`,
+                            'apikey': env.key
                         }
-                    }
+                    });
+                    
+                    console.log('📥 Order response status:', orderResp.status);
                     
                     if (orderResp && orderResp.ok) {
                         const orderData = await orderResp.json();
