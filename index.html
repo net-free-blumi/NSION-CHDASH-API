@@ -6532,7 +6532,10 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         <h2>📋 היסטוריית הזמנות</h2>
         
         <!-- כפתורי פעולה -->
-        <div class="orders-actions" style="display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap;">
+        <div class="orders-actions" style="display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; align-items: center;">
+          <input type="text" id="orderSearchInput" placeholder="🔍 חפש לפי מספר הזמנה..." 
+            style="flex: 1; min-width: 200px; padding: 8px 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem;" 
+            onkeyup="filterOrdersByNumber(this.value)">
           <button onclick="refreshOrdersList()" class="btn" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);">
             🔄 רענן רשימה
           </button>
@@ -6632,17 +6635,36 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           }
 
           console.log('📋 מציג', this.orders.length, 'הזמנות');
-          // מיון לפי תאריך (החדש ביותר ראשון)
-          const sortedOrders = [...this.orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          // מיון לפי תאריך יצירה (החדש ביותר ראשון) - מה שפירקתי אחרון יופיע למעלה
+          const sortedOrders = [...this.orders].sort((a, b) => {
+            const aDate = new Date(a.data?.createdAt || a.createdAt);
+            const bDate = new Date(b.data?.createdAt || b.createdAt);
+            return bDate - aDate; // החדש ביותר ראשון
+          });
           console.log('📋 הזמנות ממוינות:', sortedOrders);
+          
+          // חישוב מספר פריטים לכל הזמנה
+          const getTotalItems = (order) => {
+            const items = order.data?.items || order.items || {};
+            return Object.values(items).reduce((sum, categoryItems) => {
+              return sum + (Array.isArray(categoryItems) ? categoryItems.length : 0);
+            }, 0);
+          };
 
-          ordersList.innerHTML = sortedOrders.map(order => `
+          ordersList.innerHTML = sortedOrders.map(order => {
+            const totalItems = getTotalItems(order);
+            return `
             <div class="order-item" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 10px; background: white;">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                   <div>
-                    <h4 style="margin: 0; color: #333; font-size: 1.2rem;">הזמנה #${order.orderNumber || order.id}</h4>
+                    <h4 style="margin: 0; color: #333; font-size: 1.2rem;">
+                      הזמנה #${order.orderNumber || order.data?.orderNumber || order.id}
+                      <span style="font-size: 0.8rem; color: #17a2b8; margin-right: 10px;">
+                        (${totalItems} פריטים)
+                      </span>
+                    </h4>
                     <p style="margin: 5px 0; color: #666; font-size: 0.9rem;">
-                      ${order.orderDate || order.date || order.createdDate || new Date(order.createdAt).toLocaleDateString('he-IL')} - ${order.orderTime || order.time || order.createdTime || new Date(order.createdAt).toLocaleTimeString('he-IL')}
+                      ${order.orderDate || order.data?.orderDate || order.date || order.data?.orderDate || order.createdDate || new Date(order.data?.createdAt || order.createdAt).toLocaleDateString('he-IL')} - ${order.orderTime || order.data?.orderTime || order.time || order.data?.orderTime || order.createdTime || new Date(order.data?.createdAt || order.createdAt).toLocaleTimeString('he-IL')}
                     </p>
                   </div>
                 <div style="display: flex; gap: 5px;">
@@ -6658,7 +6680,8 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
                 </div>
               </div>
             </div>
-          `).join('');
+          `;
+          }).join('');
           console.log('📋 HTML נוצר בהצלחה');
         }
 
@@ -6720,6 +6743,13 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         if (modal) {
           console.log('פותח את המודל');
           modal.style.display = 'block';
+          
+          // איפוס שדה החיפוש בפתיחת המודל
+          const searchInput = document.getElementById('orderSearchInput');
+          if (searchInput) {
+            searchInput.value = '';
+          }
+          
           if (!window.orderManager) {
             console.log('יוצר OrderManager חדש');
             window.orderManager = new OrderManager();
@@ -6733,8 +6763,9 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         }
       }
 
-      // הגדרת הפונקציה הגלובלית
+      // הגדרת הפונקציות הגלובליות
       window.openOrdersModal = openOrdersModal;
+      window.filterOrdersByNumber = filterOrdersByNumber;
 
       function closeOrdersModal() {
         const modal = document.getElementById('ordersManagementModal');
@@ -6747,6 +6778,99 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         if (orderManager) {
           orderManager.loadOrdersHistory();
         }
+        // איפוס שדה החיפוש
+        const searchInput = document.getElementById('orderSearchInput');
+        if (searchInput) {
+          searchInput.value = '';
+        }
+      }
+      
+      function filterOrdersByNumber(searchQuery) {
+        console.log('🔍 חיפוש הזמנות:', searchQuery);
+        if (!window.orderManager || !window.orderManager.orders) {
+          return;
+        }
+        
+        const manager = window.orderManager;
+        const query = searchQuery.trim().toLowerCase();
+        
+        if (!query) {
+          // אם אין חיפוש, הצג את כל ההזמנות
+          manager.updateOrdersDisplay();
+          return;
+        }
+        
+        // סינון הזמנות לפי מספר הזמנה
+        const filteredOrders = manager.orders.filter(order => {
+          const orderNumber = (order.orderNumber || order.data?.orderNumber || order.id || '').toString().toLowerCase();
+          return orderNumber.includes(query);
+        });
+        
+        console.log(`📋 נמצאו ${filteredOrders.length} הזמנות עם המספר "${query}"`);
+        
+        // עדכון התצוגה עם ההזמנות המסוננות
+        const ordersList = document.getElementById('ordersList');
+        if (!ordersList) return;
+        
+        if (filteredOrders.length === 0) {
+          ordersList.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #666;">
+              <div style="font-size: 3rem; margin-bottom: 20px;">🔍</div>
+              <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px;">לא נמצאו הזמנות</div>
+              <div style="color: #999;">נסה מספר הזמנה אחר</div>
+            </div>
+          `;
+          return;
+        }
+        
+        // מיון לפי תאריך יצירה (החדש ביותר ראשון)
+        const sortedOrders = [...filteredOrders].sort((a, b) => {
+          const aDate = new Date(a.data?.createdAt || a.createdAt);
+          const bDate = new Date(b.data?.createdAt || b.createdAt);
+          return bDate - aDate;
+        });
+        
+        // חישוב מספר פריטים לכל הזמנה
+        const getTotalItems = (order) => {
+          const items = order.data?.items || order.items || {};
+          return Object.values(items).reduce((sum, categoryItems) => {
+            return sum + (Array.isArray(categoryItems) ? categoryItems.length : 0);
+          }, 0);
+        };
+        
+        ordersList.innerHTML = sortedOrders.map(order => {
+          const totalItems = getTotalItems(order);
+          return `
+            <div class="order-item" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 10px; background: white;">
+              <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                <div>
+                  <h4 style="margin: 0; color: #333; font-size: 1.2rem;">
+                    הזמנה #${order.orderNumber || order.data?.orderNumber || order.id}
+                    <span style="font-size: 0.8rem; color: #17a2b8; margin-right: 10px;">
+                      (${totalItems} פריטים)
+                    </span>
+                  </h4>
+                  <p style="margin: 5px 0; color: #666; font-size: 0.9rem;">
+                    ${order.orderDate || order.data?.orderDate || order.date || order.data?.orderDate || order.createdDate || new Date(order.data?.createdAt || order.createdAt).toLocaleDateString('he-IL')} - ${order.orderTime || order.data?.orderTime || order.time || order.data?.orderTime || order.createdTime || new Date(order.data?.createdAt || order.createdAt).toLocaleTimeString('he-IL')}
+                  </p>
+                </div>
+              <div style="display: flex; gap: 5px;">
+                <button onclick="viewOrderDetails('${order.id}')" class="btn" style="padding: 5px 10px; font-size: 0.8rem; background: #17a2b8;">
+                  👁️ צפה
+                </button>
+                <button onclick="restoreOrderToMain('${order.id}')" class="btn" style="padding: 5px 10px; font-size: 0.8rem; background: #28a745;">
+                  🔄 שחזר
+                </button>
+                <button onclick="deleteOrderFromCloud('${order.id}')" class="btn" style="padding: 5px 10px; font-size: 0.8rem; background: #dc3545;">
+                  🗑️ מחק
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        }).join('');
+        
+        console.log('📋 תצוגה מסוננת הופעלה');
       }
 
       function createNewOrderFromModal() {
@@ -7029,6 +7153,14 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
                     // יצירת אלמנט עם ה-HTML המלא (כולל כפתורים וכל הפרטים)
                     const li = document.createElement('li');
                     li.innerHTML = itemHTML;
+                    
+                    // שחזור data-raw-summary אם הוא קיים ב-HTML (לביסים בקונדיטוריית עמר)
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = itemHTML;
+                    const tempLi = tempDiv.querySelector('li');
+                    if (tempLi && tempLi.getAttribute('data-raw-summary')) {
+                      li.setAttribute('data-raw-summary', tempLi.getAttribute('data-raw-summary'));
+                    }
                     
                     // הפעלה מחדש של כל האירועים - לא ליצור כפתורים חדשים
                     // פשוט לתקן את ה-onclick handlers הקיימים
