@@ -2760,40 +2760,35 @@ async function saveCurrentOrderToCloud() {
     try {
         console.log('💾 saveCurrentOrderToCloud נקרא');
         
-        // בדיקה אם יש הזמנה קיימת עם אותו מספר הזמנה
+        // הצגת אינדיקטור טעינה
+        showSaveLoadingIndicator();
+        
+        // בדיקה מהירה מקומית אם יש הזמנה קיימת עם אותו מספר הזמנה
         const orderNumberField = document.getElementById('orderNumber');
         if (orderNumberField && orderNumberField.value) {
             const existingOrderNumber = orderNumberField.value;
-            console.log('🔍 בודק אם מספר הזמנה קיים:', existingOrderNumber);
+            console.log('🔍 בודק אם מספר הזמנה קיים מקומית:', existingOrderNumber);
             
-            // בדיקה אם ההזמנה כבר קיימת
-            const response = await fetch(`${window.API_BASE_URL || window.location.origin}/api/orders/history`);
-            if (response.ok) {
-                const data = await response.json();
-                const existingOrder = data.orders?.find(order => 
-                    order.orderNumber == existingOrderNumber || 
-                    order.data?.orderNumber == existingOrderNumber
+            // בדיקה מקומית מהירה
+            const savedOrderNumbers = JSON.parse(localStorage.getItem('savedOrderNumbers') || '[]');
+            if (savedOrderNumbers.includes(existingOrderNumber)) {
+                const confirmUpdate = confirm(
+                    `הזמנה מספר ${existingOrderNumber} כבר קיימת בענן!\n\n` +
+                    `האם אתה בטוח שברצונך לעדכן את ההזמנה הקיימת?\n\n` +
+                    `לחץ "אישור" לעדכון ההזמנה הקיימת\n` +
+                    `לחץ "ביטול" לשמירה כמספר הזמנה חדש`
                 );
                 
-                if (existingOrder) {
-                    const confirmUpdate = confirm(
-                        `הזמנה מספר ${existingOrderNumber} כבר קיימת בענן!\n\n` +
-                        `האם אתה בטוח שברצונך לעדכן את ההזמנה הקיימת?\n\n` +
-                        `לחץ "אישור" לעדכון ההזמנה הקיימת\n` +
-                        `לחץ "ביטול" לשמירה כמספר הזמנה חדש`
-                    );
-                    
-                    if (!confirmUpdate) {
-                        // אם המשתמש לא רוצה לעדכן, נמחק את מספר ההזמנה כדי שייווצר חדש
-                        orderNumberField.value = '';
-                        console.log('🔄 מספר הזמנה נמחק, ייווצר מספר חדש');
-                    }
+                if (!confirmUpdate) {
+                    // אם המשתמש לא רוצה לעדכן, נמחק את מספר ההזמנה כדי שייווצר חדש
+                    orderNumberField.value = '';
+                    console.log('🔄 מספר הזמנה נמחק, ייווצר מספר חדש');
                 }
             }
         }
         
         const orderData = {
-            customerName: document.getElementById('customerName')?.value || 'הזמנה ללא שם',
+            customerName: 'הזמנה ללא שם',
             orderNumber: document.getElementById('orderNumber')?.value || '',
             orderDate: document.getElementById('orderDate')?.value || '',
             orderTime: document.getElementById('orderTime')?.value || '',
@@ -2848,6 +2843,17 @@ async function saveCurrentOrderToCloud() {
         if (response.ok) {
             const result = await response.json();
             console.log('✅ הזמנה נשמרה בהצלחה:', result);
+            
+            // שמירת מספר ההזמנה מקומית לבדיקות עתידיות
+            if (orderData.orderNumber) {
+                const savedOrderNumbers = JSON.parse(localStorage.getItem('savedOrderNumbers') || '[]');
+                if (!savedOrderNumbers.includes(orderData.orderNumber)) {
+                    savedOrderNumbers.push(orderData.orderNumber);
+                    localStorage.setItem('savedOrderNumbers', JSON.stringify(savedOrderNumbers));
+                    console.log('💾 מספר הזמנה נשמר מקומית:', orderData.orderNumber);
+                }
+            }
+            
             showNotification('ההזמנה נשמרה בענן בהצלחה!', 'green');
         } else {
             const errorText = await response.text();
@@ -2857,6 +2863,44 @@ async function saveCurrentOrderToCloud() {
     } catch (error) {
         console.error('❌ שגיאה בשמירת ההזמנה:', error);
         showNotification('שגיאה בשמירת ההזמנה בענן: ' + error.message, 'red');
+    } finally {
+        // הסתרת אינדיקטור הטעינה
+        hideSaveLoadingIndicator();
+    }
+}
+
+function showSaveLoadingIndicator() {
+    // יצירת אינדיקטור טעינה יפה
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'saveLoadingIndicator';
+    loadingDiv.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        backdrop-filter: blur(5px);
+    `;
+    loadingDiv.innerHTML = `
+        <div style="width: 80px; height: 80px; border: 6px solid #f3f3f3; border-top: 6px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+        <div style="font-size: 1.3rem; font-weight: bold; color: #007bff; text-align: center;">
+            שומר הזמנה בענן...<br>
+            <span style="font-size: 1rem; color: #666; font-weight: normal;">אנא המתן</span>
+        </div>
+    `;
+    document.body.appendChild(loadingDiv);
+}
+
+function hideSaveLoadingIndicator() {
+    const loadingDiv = document.getElementById('saveLoadingIndicator');
+    if (loadingDiv) {
+        loadingDiv.remove();
     }
 }
 

@@ -1351,22 +1351,22 @@ async function downloadOrderFromCloud(orderId) {
 app.post('/api/orders/create', async (req, res) => {
     try {
         await ensureOrdersData();
-        const { customerName, items, total, notes } = req.body;
+        const { customerName, items, total, notes, orderNumber, orderDate, orderTime } = req.body;
         
         const orderId = `order-${Date.now()}`;
-        const orderNumber = Math.floor(Math.random() * 9000) + 1000; // מספר הזמנה 4 ספרות
+        const finalOrderNumber = orderNumber || (Math.floor(Math.random() * 9000) + 1000); // Use provided orderNumber or generate new
         const now = new Date();
         const orderData = {
             id: orderId,
-            orderNumber: orderNumber,
+            orderNumber: finalOrderNumber,
             customerName: customerName || 'הזמנה ללא שם',
             items: items || {},
             total: total || 0,
             notes: notes || '',
             status: 'completed', // הזמנות שפורקו הן completed
             createdAt: now.toISOString(),
-            orderDate: now.toLocaleDateString('he-IL'), // תאריך ההזמנה
-            orderTime: now.toLocaleTimeString('he-IL'), // שעת ההזמנה
+            orderDate: orderDate || now.toLocaleDateString('he-IL'), // Use provided orderDate or current
+            orderTime: orderTime || now.toLocaleTimeString('he-IL'), // Use provided orderTime or current
             createdDate: now.toLocaleDateString('he-IL'), // תאריך הפירוק
             createdTime: now.toLocaleTimeString('he-IL'), // שעת הפירוק
             updatedAt: now.toISOString()
