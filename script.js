@@ -669,6 +669,17 @@ function copyCurrentSummary() {
 }
 
 function newOrder() {
+    // שמירה אוטומטית של ההזמנה הישנה לפני איפוס
+    const orderNumber = document.getElementById("orderNumber")?.value || "";
+    const hasItems = calculateOrderTotal() > 0;
+    
+    if (orderNumber && hasItems) {
+        // שמירה אוטומטית ברקע ללא הפרעה למשתמש (ללא אינדיקטור)
+        saveCurrentOrderToCloud(false).catch(err => {
+            console.warn('Auto-save failed:', err);
+        });
+    }
+    
     // העיר את השרת בהתחלת הזמנה חדשה
     wakeUpServer();
     // רענון נתוני מוצרים רק בעת התחלת הזמנה חדשה
@@ -2765,12 +2776,14 @@ function openOrdersManagement() {
 }
 
 // פונקציה לשמירת הזמנה נוכחית בענן
-async function saveCurrentOrderToCloud() {
+async function saveCurrentOrderToCloud(showIndicator = true) {
     try {
         console.log('💾 saveCurrentOrderToCloud נקרא');
         
-        // הצגת אינדיקטור טעינה
-        showSaveLoadingIndicator();
+        // הצגת אינדיקטור טעינה (רק אם לא שמירה אוטומטית)
+        if (showIndicator) {
+            showSaveLoadingIndicator();
+        }
         
         // שמירה תמיד מעדכנת - אין מניעת שמירה כפולה
         console.log('💾 המערכת שומרת/מעדכנת את ההזמנה בענן');
