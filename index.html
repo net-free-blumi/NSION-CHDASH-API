@@ -626,6 +626,47 @@
           /* width: 80px; */
         }
       }
+/* כפור נקה חיפוש עיצוב */
+      #clearButton {
+        width: 200px;
+      }
+     
+/* עיצוב כפתורים של התחלת הזמנה חדשה וסנכרון ושמירה לענן */
+      .syncProductsBtn {
+        background-color:#28a745; color:#fff;
+      }
+      @media (max-width: 600px) {
+        .syncProductsBtn {
+          max-width: 110px; /* קבע רוחב מקסימלי קטן יותר במסכים קטנים */
+          font-size: 14px;
+          font-weight: bold;
+
+        }
+      }
+      /* שמור הזמנה בענן */
+      .ProductsBtn2323 {
+        background-color:#1c6fdd; color:#fff;
+            }
+      @media (max-width: 600px) {
+        .ProductsBtn2323 {
+          max-width: 130px;
+          font-size: 14px;
+          font-weight: bold;
+
+        }
+      }
+/* התחל הזמנה חדשה */
+      .ProductsBtn8787878 {
+        background-color:#de5252; color:#fff;
+                 }
+      @media (max-width: 600px) {
+        .ProductsBtn8787878 {
+          max-width: 110px;
+          font-size: 14px;
+          font-weight: bold;
+        }
+      }
+
 
       .date-time-label1 {
         display: flex; /* השתמש ב-flexbox */
@@ -878,20 +919,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button 
           id="product-management-btn"
           onclick="openProductManagement()" 
-          style="
-            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
-            transition: all 0.3s ease;
-            margin: 10px;
-            display: none;
-          "
+          
           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,123,255,0.4)'"
           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,123,255,0.3)'"
         >
@@ -901,20 +929,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <button 
           id="orders-management-btn"
           onclick="openOrdersManagement()" 
-          style="
-            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(40,167,69,0.3);
-            transition: all 0.3s ease;
-            margin: 10px;
-            display: none;
-          "
           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(40,167,69,0.4)'"
           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(40,167,69,0.3)'"
         >
@@ -1009,7 +1023,7 @@ function syncProducts() {
             placeholder="הכנס מקט או שם מוצר"
             oninput="searchProduct()"
           />
-          <button style=" width: 150px;" id="clearButton" onclick="clearSearch()">נקה חיפוש</button>
+          <button id="clearButton" onclick="clearSearch()">נקה חיפוש</button>
         </div>
 
         <!-- תוצאות חיפוש -->
@@ -1018,16 +1032,10 @@ function syncProducts() {
         <br /><br/>
 
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
-          <button
-            style="background-color: rgba(245, 66, 66, 0.98)"
-            onclick="newOrder()">
-            התחל הזמנה חדשה
-          </button>
-          <button id="syncProductsBtn" style="background-color:#28a745; color:#fff;" onclick="syncProducts()">🔄 סנכרון מוצרים</button>
 
-          <button onclick="saveCurrentOrderToCloud()" style="background-color:#1c6fdd; color:#fff;">
-            ☁️ שמור הזמנה בענן
-          </button>
+          <button class="ProductsBtn8787878" onclick="newOrder()"> התחל הזמנה חדשה </button>
+          <button class="syncProductsBtn" onclick="syncProducts()">🔄 סנכרון מוצרים</button>
+          <button class="ProductsBtn2323" onclick="saveCurrentOrderToCloud()"> ☁️ שמור הזמנה בענן </button>
 
           <span id="syncProductsMsg" style="display:none; color:#28a745; font-weight:bold;">המוצרים סונכרנו בהצלחה!</span>
 
@@ -1722,6 +1730,52 @@ function syncProducts() {
   direction: rtl;
 }
 
+#orders-management-btn{
+  background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(40,167,69,0.3);
+            transition: all 0.3s ease;
+            margin: 10px;
+            display: none;}
+@media (max-width: 600px) {
+  #orders-management-btn {
+    max-width: 150px;
+    font-size: 15px;
+    /* max-height: 100px; */
+    /* margin: 5px 0 0 0;
+    padding: 5px 0 0 0; */
+  }
+}
+
+
+#product-management-btn{
+  background: linear-gradient(135deg, #0f17b8 0%, #2c29d4 100%);
+            color: rgb(255, 255, 255);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(40,167,69,0.3);
+            transition: all 0.3s ease;
+            margin: 10px;
+            display: none;}
+@media (max-width: 600px) {
+  #product-management-btn {
+    max-width: 150px;
+    font-size: 15px;
+    /* max-height: 100px; */
+    /* margin: 5px 0 0 0;
+    padding: 5px 0 0 0; */
+  }
+}
 
 .summary-buttons-grid button {
   display: flex;
@@ -6537,7 +6591,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
     <div id="ordersManagementModal" class="modal" style="display: none">
       <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
         <span class="close" onclick="closeOrdersModal()">&times;</span>
-        <h2>📋 היסטוריית הזמנות</h2>
+        <h2 class="orders-actions555"> 📋 היסטוריית הזמנות</h2>
         
         <!-- כפתורי פעולה -->
         <div class="orders-actions" style="display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; align-items: center;">
