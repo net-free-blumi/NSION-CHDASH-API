@@ -566,6 +566,7 @@
       @media (max-width: 600px) {
         .date-time-container {
           gap: 5px;
+          /* width: 200px; */
           border: 1px solid #ada5a5;
           padding-right: 10px;
         }
@@ -605,7 +606,7 @@
       }
       @media (max-width: 600px) {
         .date-time-label3 {
-          width: 50px;
+          width: 120px;
         }
       }
 
@@ -5013,7 +5014,7 @@ document.addEventListener('keydown', function(e) {
         const dayName = hasDate ? getDayOfWeek(orderDate) : "";
 
         const dateLine = hasDate ? `<strong>לתאריך: ${formattedDate}${dayName? ' (יום ' + dayName + ')' : ''}</strong><br>` : "";
-        const timeLine = orderTime ? `<strong>לשעה: ${orderTime}</strong>` : "";
+        const timeLine = orderTime ? `<strong>ל: ${orderTime}</strong>` : "";
         document.getElementById("orderInfo").innerHTML = `
           <span class="line"><strong>הזמנה מס: ${orderNumber}</strong></span>
           ${dateLine ? `<span class=\"line\">${dateLine.replace('<br>','')}</span>` : ''}
