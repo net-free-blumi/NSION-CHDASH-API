@@ -601,11 +601,11 @@
         flex-direction: column; /* תווית מעל התיבה */
         align-items: center;
         text-align: center;
-        width: auto;
+        width: 120px;
       }
       @media (max-width: 600px) {
         .date-time-label3 {
-          width: 100px;
+          width: 50px;
         }
       }
 
@@ -923,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
 
       <!-- Google Sign-In Section -->
-      <div id="authSection" style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+      <div id="authSection" style="text-align: center; margin: 10px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
         <div id="loginSection">
           <h3>התחברות לשליחת הודעות WhatsApp</h3>
           <p>רק משתמשים מורשים יכולים לשלוח הודעות לקבוצות WhatsApp</p>
@@ -943,15 +943,15 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
 
         <div id="userSection" style="display: none;">
-          <h3>ברוך הבא!</h3>
+          <h2>ברוך הבא!</h2>
           <p id="userEmail"></p>
-          <button onclick="signOut()" style="background-color: #dc3545; margin-top: 10px;">
+          <button onclick="signOut()" style="background-color: #dc3545; margin-top: 0px;">
             התנתק
           </button>
         </div>
 
         <div id="unauthorizedSection" style="display: none;">
-          <h3 style="color: #dc3545;">גישה מוגבלת</h3>
+          <h2 style="color: #dc3545;">גישה מוגבלת</h2>
           <p>המייל שלך אינו מורשה לשלוח הודעות WhatsApp</p>
           <p>אתה יכול לצפות באתר אך לא לשלוח הודעות</p>
           <button onclick="signOut()" style="background-color: #6c757d;">
@@ -969,8 +969,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <h3>תיבת חיפוש מוצר/מק"ט</h3>
 
           <!-- כפתור סנכרון מוצרים -->
-          <button id="syncProductsBtn" style="background-color:#28a745; color:#fff; margin-bottom:10px;" onclick="syncProducts()">🔄 סנכרון מוצרים</button>
-          <span id="syncProductsMsg" style="display:none; color:#28a745; font-weight:bold; margin-right:10px;">המוצרים סונכרנו בהצלחה!</span>
 <script>
 // כפתור סנכרון מוצרים
 function syncProducts() {
@@ -1010,20 +1008,29 @@ function syncProducts() {
             placeholder="הכנס מקט או שם מוצר"
             oninput="searchProduct()"
           />
-          <button id="clearButton" onclick="clearSearch()">נקה חיפוש</button>
+          <button style=" width: 150px;" id="clearButton" onclick="clearSearch()">נקה חיפוש</button>
         </div>
 
         <!-- תוצאות חיפוש -->
         <ul id="searchResults"></ul>
 
-        <br /><br />
+        <br /><br/>
 
-        <button
-          style="background-color: rgba(245, 66, 66, 0.98)"
-          onclick="newOrder()"
-        >
-          התחל הזמנה חדשה
-        </button>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+          <button
+            style="background-color: rgba(245, 66, 66, 0.98)"
+            onclick="newOrder()">
+            התחל הזמנה חדשה
+          </button>
+          <button id="syncProductsBtn" style="background-color:#28a745; color:#fff;" onclick="syncProducts()">🔄 סנכרון מוצרים</button>
+
+          <button onclick="saveCurrentOrderToCloud()" style="background-color:#1c6fdd; color:#fff;">
+            ☁️ שמור הזמנה בענן
+          </button>
+
+          <span id="syncProductsMsg" style="display:none; color:#28a745; font-weight:bold;">המוצרים סונכרנו בהצלחה!</span>
+
+        </div>
         <!-- הוסף את זה מתחת לכפתור "הזמנה חדשה" -->
         <div
           id="orderNotification"
@@ -1033,7 +1040,7 @@ function syncProducts() {
           ההזמנה אופסה בהצלחה!
         </div>
 
-        <br /><br /><br />
+        <br /><br />
 
         <!-- הנח את תיבות התאריך, השעה ומספר ההזמנה באותה שורה עם תוויות -->
         <div class="date-time-container">
@@ -1260,6 +1267,10 @@ function syncProducts() {
       <!-- <button id="copyButton" onclick="copySummary()">העתק סיכום הזמנה</button> -->
       <!-- <button id="whatsappButton" onclick="openWhatsAppModal()">שליחת והעתקה סיכום כללי</button> -->
       <div class="summary-buttons-grid">
+
+        <button onclick="smartSortByTemperature()" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+          🔄<br>סידור חכם<br>לפי חם-קר
+        </button>
         <button id="whatsappGeneralButton" onclick="openWhatsAppGeneralModal()">
           <span class="wa-icon">whatsapp</span>
           שליחת סיכום<br> כללי
@@ -1288,12 +1299,8 @@ function syncProducts() {
           <span class="wa-icon">whatsapp</span>
           שליחת סיכום<br>קונדיטוריית עמר
         </button>
-        <button onclick="smartSortByTemperature()" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
-          🔄<br>סידור חכם<br>לפי חם-קר
-        </button>
-        <button onclick="saveCurrentOrderToCloud()" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);">
-          ☁️<br>שמור הזמנה<br>בענן
-        </button>
+       
+       
       </div>
 
 
@@ -6772,16 +6779,33 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         if (modal) {
           modal.style.display = 'none';
         }
-      }
-
-      function refreshOrdersList() {
-        if (orderManager) {
-          orderManager.loadOrdersHistory();
-        }
-        // איפוס שדה החיפוש
+        // איפוס חיפוש היסטוריית הזמנות עם סגירת החלון
         const searchInput = document.getElementById('orderSearchInput');
         if (searchInput) {
           searchInput.value = '';
+        }
+        if (window.orderManager && typeof window.orderManager.updateOrdersDisplay === 'function') {
+          try { window.orderManager.updateOrdersDisplay(); } catch {}
+        }
+      }
+
+      function refreshOrdersList() {
+        // איפוס שדה החיפוש
+        const searchInput = document.getElementById('orderSearchInput');
+        if (searchInput) searchInput.value = '';
+        
+        // ריענון אמיתי כמו פתיחה מחדש
+        if (window.orderManager) {
+          try {
+            const p = window.orderManager.loadOrdersHistory();
+            if (p && typeof p.then === 'function') {
+              p.then(() => {
+                if (typeof window.orderManager.updateOrdersDisplay === 'function') {
+                  window.orderManager.updateOrdersDisplay();
+                }
+              }).catch(()=>{});
+            }
+          } catch {}
         }
       }
       
