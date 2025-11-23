@@ -2604,8 +2604,8 @@ function generateAmarSummary() {
         match = itemText.match(/(\d+)\s*מגש.*?\((\d+)\s*יחי'/);
         jabettaTotal += match ? parseInt(match[1]) * parseInt(match[2]) : 0;
       } else if (productCode === "12408") {
-        match = itemText.match(/(\ד+)\s*מגש/);
-        grisiniTotal += match ? parseInt(match[1]) * 13 : 0;
+        match = itemText.match(/(\d+)\s*מגש/);
+        grisiniTotal += match ? parseInt(match[1]) * 14 : 0;
       } else if (productCode === "12622") {
         match = itemText.match(/(\d+)\s*מגש/);
         focacciaTotal += match ? parseInt(match[1]) * 8 : 0;
