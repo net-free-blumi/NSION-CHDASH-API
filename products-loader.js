@@ -304,6 +304,11 @@ class ProductsLoader {
                         }, 100);
                     }
                 }
+                
+                // בדיקת הצגת תיבת סוג הלחם ובחירת ברירת מחדל למקטים ספציפיים
+                if (typeof window.checkBisProduct === 'function') {
+                    window.checkBisProduct(productCode);
+                }
             } catch (error) {
                 console.log("שגיאה בהגדרת המוצר:", error);
             }

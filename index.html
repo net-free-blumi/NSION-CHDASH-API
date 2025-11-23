@@ -2400,6 +2400,11 @@ document.addEventListener('keydown', function(e) {
               }, 100);
             }
           }
+          
+          // בדיקת הצגת תיבת סוג הלחם ובחירת ברירת מחדל למקטים ספציפיים
+          if (typeof checkBisProduct === 'function') {
+            checkBisProduct(productCode);
+          }
         } catch (error) {
           console.log("שגיאה בהגדרת המוצר:", error);
         }
@@ -3086,9 +3091,25 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         if (!breadTypeDiv) return;
         if (bisProducts.includes(code)) {
           breadTypeDiv.style.display = "block";
-          // בחר ערך ברירת מחדל אם לא נבחר
-          if (breadTypeSelect && breadTypeSelect.selectedIndex < 0) {
-            breadTypeSelect.selectedIndex = 0;
+          
+          // מקטים ספציפיים שצריכים ברירת מחדל "ביס בריוש מלבן"
+          const defaultBrioshCodes = ['12617', '12627'];
+          
+          if (defaultBrioshCodes.includes(code)) {
+            // בחר "ביס בריוש מלבן" אוטומטית למקטים אלו
+            if (breadTypeSelect) {
+              const brioshOption = Array.from(breadTypeSelect.options).find(
+                opt => opt.value === 'ביס בריוש מלבן'
+              );
+              if (brioshOption) {
+                breadTypeSelect.value = 'ביס בריוש מלבן';
+              }
+            }
+          } else {
+            // למקטים אחרים - בחר ערך ברירת מחדל אם לא נבחר
+            if (breadTypeSelect && breadTypeSelect.selectedIndex < 0) {
+              breadTypeSelect.selectedIndex = 0;
+            }
           }
         } else {
           breadTypeDiv.style.display = "none";
