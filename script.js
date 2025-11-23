@@ -2284,6 +2284,16 @@ function onDrop(e) {
   e.preventDefault();
   const targetList = e.currentTarget;
   targetList.classList.remove('drag-over');
+  
+  // עדכון כפתורי מחיקה/עריכה בפריט שנגרר לקטגוריה החדשה
+  const draggedLi = dragState.draggingEl || document.querySelector('.dragging');
+  if (draggedLi && targetList) {
+    const newCategory = (targetList.id || '').replace('List', '');
+    if (newCategory) {
+      updateListItemButtons(draggedLi, newCategory);
+    }
+  }
+  
   // עדכון כפתורים ושמירת סדר
   updateCategoryButtonsVisibility();
   saveOrderDetails();
@@ -2313,6 +2323,11 @@ function duplicateListItem(sourceLi) {
   Array.from(clone.querySelectorAll('.dnd-handle')).forEach(h => h.remove());
   // הוספת ידית חדשה ו-binding תקין
   ensureDragHandle(clone);
+  
+  // עדכון כפתורי מחיקה/עריכה בפריט המשוכפל לקטגוריה הנוכחית
+  const currentCategory = (list.id || '').replace('List', '');
+  updateListItemButtons(clone, currentCategory);
+  
   list.insertBefore(clone, sourceLi.nextSibling);
   updateCategoryButtonsVisibility();
   saveOrderDetails();
@@ -2322,11 +2337,46 @@ function duplicateListItem(sourceLi) {
     const editBtn = clone.querySelector('.edit-btn');
     if (editBtn) {
       setTimeout(() => {
-        try { openEditPopup(editBtn, (list.id||'').replace('List','')); } catch {}
+        try { openEditPopup(editBtn, currentCategory); } catch {}
       }, 0);
     }
   } catch {}
   return clone;
+}
+
+// עדכון כפתורי מחיקה/עריכה בפריט לקטגוריה חדשה (לאחר גרירה/שכפול)
+function updateListItemButtons(li, category) {
+  if (!li || !category) return;
+  
+  // עדכון כפתור מחיקה
+  const deleteBtn = li.querySelector('.delete-btn');
+  if (deleteBtn) {
+    // הסרת מאזינים ישנים
+    deleteBtn.removeAttribute('onclick');
+    deleteBtn.onclick = null;
+    // הוספת מאזין חדש עם הקטגוריה הנכונה
+    deleteBtn.setAttribute('onclick', `removeProduct(this, '${category}')`);
+    deleteBtn.onclick = function() { 
+      if (typeof removeProduct === 'function') {
+        removeProduct(this, category);
+      }
+    };
+  }
+  
+  // עדכון כפתור עריכה
+  const editBtn = li.querySelector('.edit-btn');
+  if (editBtn) {
+    // הסרת מאזינים ישנים
+    editBtn.removeAttribute('onclick');
+    editBtn.onclick = null;
+    // הוספת מאזין חדש עם הקטגוריה הנכונה
+    editBtn.setAttribute('onclick', `openEditPopup(this, '${category}')`);
+    editBtn.onclick = function() { 
+      if (typeof openEditPopup === 'function') {
+        openEditPopup(this, category);
+      }
+    };
+  }
 }
 
 // מודאל אישור קטן ועדין במרכז המסך
@@ -2586,20 +2636,37 @@ function updateCategoryButtonsVisibility() {
 // ... existing code ...
 function removeProduct(button, category) {
   const listItem = button.closest("li");
-  if (listItem) {
-    document.getElementById(`${category}List`).removeChild(listItem);
-    updateCategoryButtonsVisibility();
-    saveOrderDetails();
-    
-    // עדכון תצוגת סיכום ההזמנה
-    if (typeof updateOrderSummaryDisplay === 'function') {
-      updateOrderSummaryDisplay();
+  if (!listItem) return;
+  
+  // מציאת הקטגוריה האמיתית מהרשימה שבה הפריט נמצא (למקרה שהפריט נגרר)
+  const actualList = listItem.closest('ul');
+  let actualCategory = category;
+  if (actualList && actualList.id) {
+    actualCategory = actualList.id.replace('List', '');
+  }
+  
+  // מחיקה מהרשימה האמיתית (לא מהקטגוריה שהועברה לכפתור)
+  if (actualList) {
+    actualList.removeChild(listItem);
+  } else if (category) {
+    // fallback: נסה עם הקטגוריה שהועברה (למקרה שלא מצאנו רשימה)
+    const fallbackList = document.getElementById(`${category}List`);
+    if (fallbackList && fallbackList.contains(listItem)) {
+      fallbackList.removeChild(listItem);
     }
-    
-    // עדכון תצוגת קונדיטוריית עמר
-    if (typeof refreshAmarSummary === 'function') {
-      refreshAmarSummary();
-    }
+  }
+  
+  updateCategoryButtonsVisibility();
+  saveOrderDetails();
+  
+  // עדכון תצוגת סיכום ההזמנה
+  if (typeof updateOrderSummaryDisplay === 'function') {
+    updateOrderSummaryDisplay();
+  }
+  
+  // עדכון תצוגת קונדיטוריית עמר
+  if (typeof refreshAmarSummary === 'function') {
+    refreshAmarSummary();
   }
 }
 // ... existing code ...

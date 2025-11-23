@@ -3266,9 +3266,31 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
       function removeProduct(button, category) {
         // מוצאים את אלמנט ה-li הקרוב ביותר לכפתור המחיקה
         const listItem = button.closest("li");
-        if (listItem) {
-          document.getElementById(`${category}List`).removeChild(listItem);
-          saveOrderDetails();
+        if (!listItem) return;
+        
+        // מציאת הקטגוריה האמיתית מהרשימה שבה הפריט נמצא (למקרה שהפריט נגרר)
+        const actualList = listItem.closest('ul');
+        let actualCategory = category;
+        if (actualList && actualList.id) {
+          actualCategory = actualList.id.replace('List', '');
+        }
+        
+        // מחיקה מהרשימה האמיתית (לא מהקטגוריה שהועברה לכפתור)
+        if (actualList) {
+          actualList.removeChild(listItem);
+        } else if (category) {
+          // fallback: נסה עם הקטגוריה שהועברה (למקרה שלא מצאנו רשימה)
+          const fallbackList = document.getElementById(`${category}List`);
+          if (fallbackList && fallbackList.contains(listItem)) {
+            fallbackList.removeChild(listItem);
+          }
+        }
+        
+        saveOrderDetails();
+        
+        // עדכון תצוגת כפתורי הקטגוריות
+        if (typeof updateCategoryButtonsVisibility === 'function') {
+          updateCategoryButtonsVisibility();
         }
       }
 
