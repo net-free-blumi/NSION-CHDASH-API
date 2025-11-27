@@ -3398,20 +3398,6 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
             );
           }
         );
-        // אם אין מוצרים, בדוק אם יש מוצר 19100 בכל הרשימות
-        if (!hasProducts) {
-          const allLists = document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li, #amarList li");
-          for (const item of allLists) {
-            const codeEl = item.querySelector(".product-code");
-            if (codeEl) {
-              const productCode = codeEl.textContent.match(/מק"ט: (\d+)/)?.[1];
-              if (productCode === "19100") {
-                hasProducts = true;
-                break;
-              }
-            }
-          }
-        }
 
         if (!hasProducts) {
           showNotification("אין מוצרים בסיכום ההזמנה.", "red"); // הודעת שגיאה
@@ -3437,30 +3423,6 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
               return text;
             })
             .filter((text) => text.trim() !== "");
-
-          // אם זה קטגוריית קונדיטוריה, הוסף גם מוצר 19100 מכל הרשימות
-          if (category === "bakery") {
-            const allLists = document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li, #amarList li");
-            allLists.forEach((item) => {
-              const codeEl = item.querySelector(".product-code");
-              if (codeEl) {
-                const productCode = codeEl.textContent.match(/מק"ט: (\d+)/)?.[1];
-                if (productCode === "19100") {
-                  let text = item.firstElementChild.textContent;
-                  text = text
-                    .replace(/\(מק"ט: \d+\)/g, "")
-                    .replace(
-                      /\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג|שחור|אדום-סלק|בריוש מלבן))\|/g,
-                      " $1"
-                    )
-                    .trim();
-                  if (text && !categoryItems.includes(text)) {
-                    categoryItems.push(text);
-                  }
-                }
-              }
-            });
-          }
 
           if (categoryItems.length > 0) {
             const categoryTitle = getCategoryTitle(category);

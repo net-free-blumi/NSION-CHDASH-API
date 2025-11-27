@@ -283,24 +283,9 @@ function copyBakerySummary() {
         const bakeryItems = Array.from(document.getElementById("bakeryList").children)
             .map(li => li.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, '').trim());
         
-        // איסוף מוצר 19100 מכל הרשימות
-        const allLists = document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li, #amarList li");
-        allLists.forEach((item) => {
-            const codeEl = item.querySelector(".product-code");
-            if (codeEl) {
-                const productCode = codeEl.textContent.match(/מק"ט: (\d+)/)?.[1];
-                if (productCode === "19100") {
-                    const cleanText = item.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, '').trim();
-                    if (cleanText && !bakeryItems.includes(cleanText)) {
-                        bakeryItems.push(cleanText);
-                    }
-                }
-            }
-        });
-        
         if (bakeryItems.length > 0) {
             const dayWithDate = shortDate ? `${orderDay} ${shortDate}` : orderDay;
-            const bakerySummary = `*הזמנה אונליין ליום ${dayWithDate} עד השעה: ${orderTime}*\n\nמיהודה\n\n${bakeryItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
+            const bakerySummary = `*הזמנה אונליין ליום ${dayWithDate} עד השעה: ${orderTime}*\n\n${bakeryItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
             navigator.clipboard
                 .writeText(bakerySummary.trim())
                 .then(() => showCopyNotification("סיכום קונדיטוריה הועתק בהצלחה!"))
@@ -326,24 +311,9 @@ function openWhatsAppModal() {
     const temperature = localStorage.getItem("temperature") || "";
     const formattedDate = orderDate ? formatDateToDDMMYYYY(orderDate) : "";
     const categories = ["kitchen",  "kitchenProducts", "bakery", "online", "warehouse"];
-    // בדיקה אם יש מוצרים - כולל מוצר 19100 מכל הרשימות
-    let hasProducts = categories.some((category) => {
+    const hasProducts = categories.some((category) => {
         return document.getElementById(`${category}List`).children.length > 0;
     });
-    // אם אין מוצרים, בדוק אם יש מוצר 19100 בכל הרשימות
-    if (!hasProducts) {
-        const allLists = document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li, #amarList li");
-        for (const item of allLists) {
-            const codeEl = item.querySelector(".product-code");
-            if (codeEl) {
-                const productCode = codeEl.textContent.match(/מק"ט: (\d+)/)?.[1];
-                if (productCode === "19100") {
-                    hasProducts = true;
-                    break;
-                }
-            }
-        }
-    }
     if (!hasProducts) {
         showNotification("אין מוצרים בסיכום ההזמנה.", "red");
         return;
@@ -362,28 +332,6 @@ function openWhatsAppModal() {
                 return text;
             })
             .filter((text) => text.trim() !== "");
-        
-        // אם זה קטגוריית קונדיטוריה, הוסף גם מוצר 19100 מכל הרשימות
-        if (category === 'bakery') {
-            const allLists = document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li, #amarList li");
-            allLists.forEach((item) => {
-                const codeEl = item.querySelector(".product-code");
-                if (codeEl) {
-                    const productCode = codeEl.textContent.match(/מק"ט: (\d+)/)?.[1];
-                    if (productCode === "19100") {
-                        let text = item.firstElementChild.textContent;
-                        text = text.replace(/\(מק"ט: \d+\)/g, '')
-                                  .replace(/\|BREAD_TYPE:(ביס (שומשום|בריוש|קמח מלא|דגנים|פרג))\|/g, ' $1')
-                                  .replace(/\s{2,}/g, ' ')
-                                  .replace(/\*([^*]+)\*/g, '$1')
-                                  .trim();
-                        if (text && !categoryItems.includes(text)) {
-                            categoryItems.push(text);
-                        }
-                    }
-                }
-            });
-        }
         
         if (categoryItems.length > 0) {
             // רווח שורה לפני כל כותרת קטגוריה
@@ -867,7 +815,7 @@ function openWhatsAppFruitsModal() {
     const fruitItems = getFruitItems();
 
     if (fruitItems.length > 0) {
-        const fruitSummary = `*הזמנה אונליין ליום ${orderDay} עד השעה: ${orderTime}*\n\nמיהודה\n\n${fruitItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
+        const fruitSummary = `*הזמנה אונליין ליום ${orderDay} עד השעה: ${orderTime}*\n\n${fruitItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
         
         // המרה ל-HTML עם הדגשות נכונות לוואטסאפ
         const htmlSummary = fruitSummary
@@ -1051,24 +999,9 @@ function openWhatsAppBakeryModal() {
     const bakeryItems = Array.from(document.getElementById("bakeryList").children)
         .map(li => li.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, '').trim());
     
-    // איסוף מוצר 19100 מכל הרשימות
-    const allLists = document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li, #amarList li");
-    allLists.forEach((item) => {
-        const codeEl = item.querySelector(".product-code");
-        if (codeEl) {
-            const productCode = codeEl.textContent.match(/מק"ט: (\d+)/)?.[1];
-            if (productCode === "19100") {
-                const cleanText = item.firstElementChild.textContent.replace(/\(מק"ט: \d+\)/g, '').trim();
-                if (cleanText && !bakeryItems.includes(cleanText)) {
-                    bakeryItems.push(cleanText);
-                }
-            }
-        }
-    });
-    
     if (bakeryItems.length > 0) {
         const dayWithDate = shortDate ? `${orderDay} ${shortDate}` : orderDay;
-        const bakerySummary = `*הזמנה אונליין ליום ${dayWithDate} עד השעה: ${orderTime}*\n\nמיהודה\n\n${bakeryItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
+        const bakerySummary = `*הזמנה אונליין ליום ${dayWithDate} עד השעה: ${orderTime}*\n\n${bakeryItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
         // המרה ל-HTML עם הדגשות נכונות לוואטסאפ
         const htmlSummary = bakerySummary
             .replace(/\*([^*]+)\*/g, '<b>$1</b>')
@@ -1713,6 +1646,29 @@ function openWhatsAppGeneralModal() {
                 return { text, temperature };
             })
             .filter((item) => item.text.trim() !== '');
+        
+        // אם זה קטגוריית קונדיטוריה, הוסף גם מוצר 19100 מכל הרשימות
+        if (category === 'bakery') {
+            const allListsFor19100 = document.querySelectorAll("#kitchenList li, #bakeryList li, #onlineList li, #warehouseList li, #amarList li");
+            allListsFor19100.forEach((item) => {
+                const codeEl = item.querySelector(".product-code");
+                if (codeEl) {
+                    const productCode = codeEl.textContent.match(/מק"ט: (\d+)/)?.[1];
+                    if (productCode === "19100") {
+                        let text = item.firstElementChild.textContent;
+                        text = text.replace(/\(מק\"ט: \d+\)/g, '')
+                                  .replace(/\|BREAD_TYPE:(ביס [^|]+)\|/g, ' $1')
+                                  .replace(/\s{2,}/g, ' ')
+                                  .replace(/\*([^*]+)\*/g, '$1')
+                                  .trim();
+                        // Only add if not already present to avoid duplicates
+                        if (text && !categoryItems.some(ci => ci.text === text)) {
+                            categoryItems.push({ text: text, temperature: '' });
+                        }
+                    }
+                }
+            });
+        }
             
         if (categoryItems.length > 0) {
             // רווח שורה לפני כל כותרת קטגוריה
@@ -2622,7 +2578,9 @@ function updateCategoryButtonsVisibility() {
         const codeEl = item.querySelector(".product-code");
         if (codeEl) {
           const productCode = codeEl.textContent.match(/מק"ט: (\d+)/)?.[1];
-          if (productCode === "19100") {
+          const parentListId = item.closest("ul")?.id;
+          // Ignore product 19100 when it belongs to Amar's bakery list
+          if (productCode === "19100" && parentListId !== "amarList") {
             hasItems = true;
             break;
           }
@@ -2656,8 +2614,8 @@ function removeProduct(button, category) {
     }
   }
   
-  updateCategoryButtonsVisibility();
-  saveOrderDetails();
+    updateCategoryButtonsVisibility();
+    saveOrderDetails();
   
   // עדכון תצוגת סיכום ההזמנה
   if (typeof updateOrderSummaryDisplay === 'function') {
