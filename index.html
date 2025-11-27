@@ -1063,7 +1063,7 @@ function syncProducts() {
             <input type="date" id="orderDate" class="date-time-input" />
           </div>
         <div class="date-time-label3">
-          <label for="orderTimeMasked">שעה:</label>
+          <label for="orderTimeMasked">עד השעה:</label>
           <input type="hidden" id="orderTime" />
           <input type="text" id="orderTimeMasked" class="date-time-input" list="timeOptions" inputmode="numeric" placeholder="HH:MM" maxlength="5" autocomplete="off" pattern="^(?:[01]\\d|2[0-3]):[0-5]\\d$" title="הכנס שעה בפורמט 24 שעות, למשל 15:30" />
           <datalist id="timeOptions"></datalist>
@@ -2581,7 +2581,13 @@ document.addEventListener('keydown', function(e) {
       // עזר: שם יום מהתאריך
       function getDayOfWeek(dateStr){
         const days=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
-        const d=new Date(dateStr); return isNaN(d)?'':days[d.getDay()];
+        if (typeof window.parseOrderDate === 'function') {
+          const parsed = window.parseOrderDate(dateStr);
+          if (!parsed) return '';
+          return days[parsed.getDay()] ?? '';
+        }
+        const d=new Date(dateStr);
+        return isNaN(d)?'':days[d.getDay()];
       }
 
       // הצגת פרטי ההזמנה על המסך
@@ -2595,7 +2601,7 @@ document.addEventListener('keydown', function(e) {
         const dayName = hasDate ? getDayOfWeek(orderDate) : "";
 
         const dateLine = hasDate ? `<strong>לתאריך: ${formattedDate}${dayName? ' (יום ' + dayName + ')' : ''}</strong><br>` : "";
-        const timeLine = orderTime ? `<strong>ל: ${orderTime}</strong>` : "";
+        const timeLine = orderTime ? `<strong>עד השעה: ${orderTime}</strong>` : "";
         document.getElementById("orderInfo").innerHTML = `
           <span class="line"><strong>הזמנה מס: ${orderNumber}</strong></span>
           ${dateLine ? `<span class=\"line\">${dateLine.replace('<br>','')}</span>` : ''}
@@ -2666,9 +2672,8 @@ document.addEventListener('keydown', function(e) {
     } else {
         // אם המודל לא פתוח – העתק סיכום אוטומטי (כמו היום)
         const orderNumber = localStorage.getItem("orderNumber") || "";
-        const orderDate = localStorage.getItem("orderDate") || "";
-        const orderDay = getDayOfWeek(orderDate);
-        const orderTime = document.getElementById("orderTime").value;
+        const orderDate = resolveOrderDate();
+        const orderTime = resolveOrderTime();
 
         const fruitItems = getFruitItems().map((item) => {
             const match = item.match(/(\\d+)\\s+מגש.*?\\((.*?)\\)/);
@@ -2687,7 +2692,11 @@ document.addEventListener('keydown', function(e) {
         }
 
         if (fruitItems.length > 0) {
-            const fruitSummary = `*ליום ${orderDay} עד השעה: ${orderTime}*\n\n${fruitItems.join(
+            const dayWithDate = buildDayWithDateLabel(orderDate);
+            const headerLine = dayWithDate
+                ? `*ליום ${dayWithDate} עד השעה: ${orderTime}*`
+                : `*עד השעה: ${orderTime}*`;
+            const fruitSummary = `${headerLine}\n\n${fruitItems.join(
                 "\n"
             )}\n\n(הזמנה מס' *${orderNumber}*)`;
 
@@ -3404,7 +3413,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           return; // יציאה מהפונקציה אם אין מוצרים
         }
 
-        let summary = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${formattedDate}*\n*שעה: ${orderTime}*\n\n`;
+        let summary = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${formattedDate}*\n*עד השעה: ${orderTime}*\n\n`;
 
         // רשימת הקטגוריות שיכללו בסיכום הכללי
         ["kitchen", "bakery",  "kitchenProducts", "online", "warehouse"].forEach((category) => {
@@ -4043,9 +4052,12 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
 
         // יצירת סיכום פירות בפורמט זהה ל-copyFruitSummary
         const orderNumber = localStorage.getItem("orderNumber") || "";
-        const orderDate = localStorage.getItem("orderDate") || "";
-        const orderDay = getDayOfWeek(orderDate);
-        const orderTime = document.getElementById("orderTime").value;
+        const orderDate = (typeof window.resolveOrderDate === 'function')
+          ? window.resolveOrderDate()
+          : (localStorage.getItem("orderDate") || "");
+        const orderTime = (typeof window.resolveOrderTime === 'function')
+          ? window.resolveOrderTime()
+          : (document.getElementById("orderTime")?.value || "");
 
         // קבלת כל הפריטים בפורמט מודגש
         const fruitItems = getFruitItems().map((item) => {
@@ -4066,8 +4078,13 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         }
 
         if (fruitItems.length > 0) {
-          // בנה את הסיכום בפורמט וואטסאפ עם הדגשות
-          let fruitSummary = `*ליום ${orderDay} עד השעה: ${orderTime}*\n\n${fruitItems.join(
+          const dayWithDate = (typeof window.buildDayWithDateLabel === 'function')
+            ? window.buildDayWithDateLabel(orderDate)
+            : [getDayOfWeek(orderDate), formatDateToDDMM(orderDate)].filter(Boolean).join(' ').trim();
+          const headerLine = dayWithDate
+            ? `*ליום ${dayWithDate} עד השעה: ${orderTime}*`
+            : `*עד השעה: ${orderTime}*`;
+          let fruitSummary = `${headerLine}\n\n${fruitItems.join(
             "\n"
           )}\n\n(הזמנה מס' *${orderNumber}*)`;
           // המרה ל-html: כל טקסט בין כוכביות יהפוך ל-<b>
@@ -4556,7 +4573,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                           <div><strong>מספר הזמנה:</strong> ${orderData.orderNumber || order.id}</div>
                           <div><strong>תאריך:</strong> ${orderData.orderDate || orderData.createdDate || new Date(orderData.createdAt).toLocaleDateString('he-IL')}</div>
-                          <div><strong>שעה:</strong> ${orderData.orderTime || orderData.createdTime || new Date(orderData.createdAt).toLocaleTimeString('he-IL')}</div>
+                          <div><strong>עד השעה:</strong> ${orderData.orderTime || orderData.createdTime || new Date(orderData.createdAt).toLocaleTimeString('he-IL')}</div>
                           <div><strong>סה"כ פריטים:</strong> ${orderData.total || 0}</div>
                         </div>
                       </div>

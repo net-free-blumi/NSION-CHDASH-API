@@ -595,10 +595,47 @@ window.addEventListener('DOMContentLoaded', function() {
   if (modal) modal.style.display = 'none';
 });
 
-// Helper function to get day of week
+// Helper utilities for order date handling
+function parseOrderDate(dateStr) {
+    if (!dateStr) return null;
+    const raw = typeof dateStr === 'string' ? dateStr.trim() : String(dateStr);
+    if (!raw) return null;
+
+    let date = null;
+
+    // ISO format (input[type="date"])
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        date = new Date(raw);
+    }
+    // DD/MM/YYYY or DD.MM.YYYY
+    else if (/^\d{2}[\/.]\d{2}[\/.]\d{4}$/.test(raw)) {
+        const [day, month, year] = raw.split(/[\/.]/).map(Number);
+        date = new Date(year, month - 1, day);
+    }
+    // DD/MM/YY or DD.MM.YY (assume 2000+)
+    else if (/^\d{2}[\/.]\d{2}[\/.]\d{2}$/.test(raw)) {
+        const [day, month, yearTwoDigits] = raw.split(/[\/.]/).map(Number);
+        const year = yearTwoDigits + (yearTwoDigits >= 70 ? 1900 : 2000); // assume 1970-2069 range
+        date = new Date(year, month - 1, day);
+    }
+    // DD/MM or DD.MM (fallback to current year)
+    else if (/^\d{2}[\/.]\d{2}$/.test(raw)) {
+        const [day, month] = raw.split(/[\/.]/).map(Number);
+        const currentYear = new Date().getFullYear();
+        date = new Date(currentYear, month - 1, day);
+    }
+    // Attempt generic parse as last resort
+    else {
+        date = new Date(raw);
+    }
+
+    return Number.isNaN(date?.getTime()) ? null : date;
+}
+
 function getDayOfWeek(dateStr) {
+    const date = parseOrderDate(dateStr);
+    if (!date) return '';
     const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-    const date = new Date(dateStr);
     return days[date.getDay()];
 }
 
@@ -807,15 +844,18 @@ function openWhatsAppFruitsModal() {
 
     // יצירת סיכום פירות
     const orderNumber = localStorage.getItem("orderNumber") || "";
-    const orderDate = localStorage.getItem("orderDate") || "";
-    const orderDay = getDayOfWeek(orderDate);
-    const orderTime = document.getElementById("orderTime").value;
+    const orderDate = resolveOrderDate();
+    const orderTime = resolveOrderTime();
     
     // מקבל את כל הפריטים מקטגוריית הפירות
     const fruitItems = getFruitItems();
 
     if (fruitItems.length > 0) {
-        const fruitSummary = `*הזמנה אונליין ליום ${orderDay} עד השעה: ${orderTime}*\n\n${fruitItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
+        const dayWithDate = buildDayWithDateLabel(orderDate);
+        const headerLine = dayWithDate
+            ? `*הזמנה אונליין ליום ${dayWithDate} עד השעה: ${orderTime}*`
+            : `*הזמנה אונליין עד השעה: ${orderTime}*`;
+        const fruitSummary = `${headerLine}\n\n${fruitItems.join('\n')}\n\n(הזמנה מס' *${orderNumber}*)`;
         
         // המרה ל-HTML עם הדגשות נכונות לוואטסאפ
         const htmlSummary = fruitSummary
@@ -1631,7 +1671,7 @@ function openWhatsAppGeneralModal() {
     const orderDay = orderDate ? getDayOfWeek(orderDate) : '';
     const orderTime = localStorage.getItem('orderTime') || '';
     const temperature = localStorage.getItem('temperature') || '';
-    let message = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${orderDateFormatted}${orderDay ? ' (יום ' + orderDay + ')' : ''}*\n*שעה: ${orderTime}*\n`;
+    let message = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${orderDateFormatted}${orderDay ? ' (יום ' + orderDay + ')' : ''}*\n*עד השעה: ${orderTime}*\n`;
     categories.forEach((category) => {
         const categoryItems = Array.from(document.getElementById(`${category}List`).children)
             .filter(li => !li.classList.contains('temperature-header')) // רק מוצרים אמיתיים, לא כותרות
@@ -1861,8 +1901,9 @@ function confirmGeneralResend() {
 }
 // פונקציה עזר: קבלת שם יום מהתאריך (אם לא קיימת)
 function getDayOfWeek(dateStr) {
+    const date = parseOrderDate(dateStr);
+    if (!date) return '';
     const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-    const date = new Date(dateStr);
     return days[date.getDay()];
 }
 // פונקציה עזר: כותרת קטגוריה
@@ -1878,11 +1919,37 @@ function getCategoryTitle(category) {
 }
 // פונקציה עזר: פורמט תאריך DD/MM/YYYY
 function formatDateToDDMMYYYY(dateString) {
-    const date = new Date(dateString);
+    const date = parseOrderDate(dateString);
+    if (!date) return '';
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
+}
+
+function formatDateToDDMM(dateString) {
+    const date = parseOrderDate(dateString);
+    if (!date) return '';
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    return `${day}/${month}`;
+}
+
+function resolveOrderDate() {
+    const inputValue = document.getElementById("orderDate")?.value || "";
+    if (inputValue) return inputValue;
+    return localStorage.getItem("orderDate") || "";
+}
+
+function resolveOrderTime() {
+    const inputValue = document.getElementById("orderTime")?.value || "";
+    if (inputValue) return inputValue;
+    return localStorage.getItem("orderTime") || "";
+}
+
+function buildDayWithDateLabel(dateString) {
+    const parts = [getDayOfWeek(dateString), formatDateToDDMM(dateString)].filter(Boolean);
+    return parts.join(' ').trim();
 }
 
 function displayOrderInfo() {
@@ -1928,7 +1995,7 @@ function openWhatsAppKitchenProductsModal() {
       return;
     }
 
-    let message = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${formatDateToDDMMYYYY(orderDate)} (${dayOfWeek})*\n*שעה: ${orderTime}*\n\n*מוצרי מטבח:*\n${kitchenProductsItems.join("\n\n")}`;
+    let message = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${formatDateToDDMMYYYY(orderDate)} (${dayOfWeek})*\n*עד השעה: ${orderTime}*\n\n*מוצרי מטבח:*\n${kitchenProductsItems.join("\n\n")}`;
 
     // הדגשה בתצוגה באתר (כמו בשאר)
     const htmlSummary = message.replace(/\*([^*]+)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
