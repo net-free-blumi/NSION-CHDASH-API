@@ -557,11 +557,13 @@
 
       .date-time-container {
         display: flex; /* השתמש ב-flexbox */
-        gap: 50px; /* רווח בין התיבות */
+        gap: 15px; /* רווח קטן יותר בין התיבות */
         align-items: center;
         text-align: center;
         border: 3px solid #ada5a5;
-        padding-right: 30px;
+        padding-right: 15px;
+        padding-left: 15px;
+        flex-wrap: wrap; /* אפשר מעבר שורה אם צריך */
       }
       @media (max-width: 600px) {
         .date-time-container {
@@ -569,6 +571,7 @@
           /* width: 200px; */
           border: 1px solid #ada5a5;
           padding-right: 10px;
+          padding-left: 10px;
         }
       }
 
@@ -589,11 +592,11 @@
         flex-direction: column; /* תווית מעל התיבה */
         align-items: center;
         text-align: center;
-        width: 190px;
+        width: 150px; /* קטן מ-190px */
       }
       @media (max-width: 600px) {
         .date-time-label2 {
-          width: 140px;
+          width: 110px;
         }
       }
 
@@ -606,16 +609,18 @@
       }
       @media (max-width: 600px) {
         .date-time-label3 {
-          width: 120px;
+          width: 100px;
         }
       }
 
       .date-time-input {
         flex-direction: column;
-        width: 140px; /* גודל התיבה */
+        width: 100%; /* גמיש - יתאים לרוחב התיבה */
+        max-width: 140px; /* מקסימום */
         padding: 5px; /* ריפוד פנימי */
         font-size: 24px; /* גודל טקסט */
         margin-top: 5px; /* רווח בין התווית לתיבה */
+        box-sizing: border-box;
         align-items: center;
         text-align: center;
       }
@@ -1067,6 +1072,10 @@ function syncProducts() {
           <input type="hidden" id="orderTime" />
           <input type="text" id="orderTimeMasked" class="date-time-input" list="timeOptions" inputmode="numeric" placeholder="HH:MM" maxlength="5" autocomplete="off" pattern="^(?:[01]\\d|2[0-3]):[0-5]\\d$" title="הכנס שעה בפורמט 24 שעות, למשל 15:30" />
           <datalist id="timeOptions"></datalist>
+        </div>
+        <div class="date-time-label2">
+          <label for="orderCity">עיר יעד:</label>
+          <input type="text" id="orderCity" class="date-time-input" placeholder="הכנס עיר" />
         </div>
 
 
@@ -2511,6 +2520,25 @@ document.addEventListener('keydown', function(e) {
       updateSelectedRadio();
       // טעינת פרטי ההזמנה מדפדפן בעת פתיחת הדף
       document.addEventListener("DOMContentLoaded", () => {
+        // טעינת ערכים מ-localStorage לשדות הקלט
+        const savedOrderNumber = localStorage.getItem("orderNumber") || "";
+        const savedOrderDate = localStorage.getItem("orderDate") || "";
+        const savedOrderTime = localStorage.getItem("orderTime") || "";
+        const savedOrderCity = localStorage.getItem("orderCity") || "";
+        
+        if (savedOrderNumber) {
+          document.getElementById("orderNumber").value = savedOrderNumber;
+        }
+        if (savedOrderDate) {
+          document.getElementById("orderDate").value = savedOrderDate;
+        }
+        if (savedOrderTime) {
+          document.getElementById("orderTime").value = savedOrderTime;
+        }
+        if (savedOrderCity) {
+          document.getElementById("orderCity").value = savedOrderCity;
+        }
+        
         document
           .getElementById("orderDate")
 
@@ -2521,6 +2549,9 @@ document.addEventListener('keydown', function(e) {
         document
           .getElementById("orderNumber")
           .addEventListener("change", saveOrderDetails);
+        document
+          .getElementById("orderCity")
+          .addEventListener("change", saveOrderDetails);
         displayOrderInfo();
       });
 
@@ -2529,10 +2560,12 @@ document.addEventListener('keydown', function(e) {
         const orderNumber = document.getElementById("orderNumber").value;
         const orderDate = document.getElementById("orderDate").value;
         const orderTime = document.getElementById("orderTime").value;
+        const orderCity = document.getElementById("orderCity").value;
         const temperature = document.getElementById("temperature").value; // שמירת מצב חם/קר
         localStorage.setItem("orderNumber", orderNumber);
         localStorage.setItem("orderDate", orderDate);
         localStorage.setItem("orderTime", orderTime);
+        localStorage.setItem("orderCity", orderCity);
         localStorage.setItem("temperature", temperature); // שמירת בחירה של חם/קר
 
         // שמירת רשימות המוצרים
@@ -3373,6 +3406,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         document.getElementById("searchResults").innerHTML = "";
         document.getElementById("orderDate").value = "";
         document.getElementById("orderTime").value = "";
+        document.getElementById("orderCity").value = "";
         const orderTimeMasked = document.getElementById("orderTimeMasked");
         if (orderTimeMasked) orderTimeMasked.value = "";
         document.getElementById("productCode").value = "";
@@ -3396,6 +3430,7 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
         const orderNumber = localStorage.getItem("orderNumber") || "";
         const orderDate = localStorage.getItem("orderDate") || "";
         const orderTime = localStorage.getItem("orderTime") || "";
+        const orderCity = localStorage.getItem("orderCity") || "";
         const temperature = localStorage.getItem("temperature") || "";
         const formattedDate = orderDate ? formatDateToDDMMYYYY(orderDate) : "";
 
@@ -3413,7 +3448,8 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
           return; // יציאה מהפונקציה אם אין מוצרים
         }
 
-        let summary = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${formattedDate}*\n*עד השעה: ${orderTime}*\n\n`;
+        const cityText = orderCity ? ` ${orderCity}` : "";
+        let summary = `*הזמנה מס: ${orderNumber}${cityText}*\n*תאריך: ${formattedDate}*\n*עד השעה: ${orderTime}*\n\n`;
 
         // רשימת הקטגוריות שיכללו בסיכום הכללי
         ["kitchen", "bakery",  "kitchenProducts", "online", "warehouse"].forEach((category) => {
@@ -4791,6 +4827,15 @@ ${sushiItems.map((item) => `● ${item}`).join("\n\n")}
               orderTimeMaskedField.value = order.orderTime;
             }
             console.log('🕐 שעת הזמנה שוחזרה:', order.orderTime);
+          }
+          
+          // שחזור עיר יעד
+          if (order.orderCity || order.data?.orderCity) {
+            const orderCityField = document.getElementById('orderCity');
+            if (orderCityField) {
+              orderCityField.value = order.orderCity || order.data?.orderCity || "";
+              console.log('🏙️ עיר יעד שוחזרה:', orderCityField.value);
+            }
           }
 
           // ניקוי כל הרשימות הקיימות - כל הקטגוריות

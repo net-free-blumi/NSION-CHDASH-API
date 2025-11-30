@@ -731,6 +731,7 @@ function newOrder() {
     localStorage.removeItem("orderNumber");
     localStorage.removeItem("orderDate");
     localStorage.removeItem("orderTime");
+    localStorage.removeItem("orderCity");
     localStorage.removeItem("temperature");
     
     // ניקוי localStorage של פריטי הקטגוריות
@@ -743,6 +744,8 @@ function newOrder() {
     document.getElementById("orderNumber").value = "";
     document.getElementById("orderDate").value = "";
     document.getElementById("orderTime").value = "";
+    const orderCityField = document.getElementById("orderCity");
+    if (orderCityField) orderCityField.value = "";
     document.getElementById("temperature").value = "";
     document.getElementById("notesSummary").value = "";
     document.getElementById("notesSummary").textContent = "";
@@ -1667,11 +1670,13 @@ function openWhatsAppGeneralModal() {
 
     // יצירת סיכום כללי בפורמט כמו הכפתור הקיים
     const orderNumber = localStorage.getItem('orderNumber') || '';
+    const orderCity = localStorage.getItem('orderCity') || '';
     const orderDateFormatted = orderDate ? formatDateToDDMMYYYY(orderDate) : '';
     const orderDay = orderDate ? getDayOfWeek(orderDate) : '';
     const orderTime = localStorage.getItem('orderTime') || '';
     const temperature = localStorage.getItem('temperature') || '';
-    let message = `*הזמנה מס: ${orderNumber}*\n*תאריך: ${orderDateFormatted}${orderDay ? ' (יום ' + orderDay + ')' : ''}*\n*עד השעה: ${orderTime}*\n`;
+    const cityText = orderCity ? ` ${orderCity}` : '';
+    let message = `*הזמנה מס: ${orderNumber}${cityText}*\n*תאריך: ${orderDateFormatted}${orderDay ? ' (יום ' + orderDay + ')' : ''}*\n*עד השעה: ${orderTime}*\n`;
     categories.forEach((category) => {
         const categoryItems = Array.from(document.getElementById(`${category}List`).children)
             .filter(li => !li.classList.contains('temperature-header')) // רק מוצרים אמיתיים, לא כותרות
@@ -2976,6 +2981,7 @@ async function saveCurrentOrderToCloud(showIndicator = true) {
             orderNumber: document.getElementById('orderNumber')?.value || '',
             orderDate: document.getElementById('orderDate')?.value || '',
             orderTime: document.getElementById('orderTime')?.value || '',
+            orderCity: document.getElementById('orderCity')?.value || '',
             items: {
                 kitchen: Array.from(document.getElementById('kitchenList')?.children || []).map(li => {
                   const cloned = li.cloneNode(true);
